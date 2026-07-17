@@ -2,7 +2,7 @@
 
 혼자 사는 노인의 낙상을 카메라로 감지해 보호자 앱에 알린다. **영상은 기기를 벗어나지 않는다.**
 
-과제 제출용 프로젝트이며 실제 배포하지 않는다.
+과제 제출용으로 시작한 프로젝트다. 지금은 실서비스 배포를 지원한다 — 백엔드는 Render, 감지 페이지는 GitHub Pages, 앱은 실기기 설치. 절차는 [배포 가이드](docs/DEPLOYMENT.md) 참고.
 
 ## 사생활 보호
 
@@ -79,7 +79,7 @@ flutter pub get
 flutter run
 ```
 
-서버 주소는 플랫폼에 따라 자동으로 갈린다 — Android 에뮬레이터는 `10.0.2.2:8000`, iOS 시뮬레이터는 `127.0.0.1:8000`.
+서버 주소는 플랫폼에 따라 자동으로 갈린다 — Android 에뮬레이터는 `10.0.2.2:8000`, iOS 시뮬레이터는 `127.0.0.1:8000`. 릴리즈 빌드는 Render 배포 주소를 쓴다(`app/lib/api.dart`).
 
 ## 테스트
 
@@ -111,6 +111,7 @@ cd app     && flutter test                   # 4개 — 새 이벤트 판별
 
 ## 문서
 
+- [배포 가이드](docs/DEPLOYMENT.md)
 - [설계](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
 - [구현 계획](docs/superpowers/plans/2026-07-17-fall-detection.md)
 - [결정 기록](context-notes.md)

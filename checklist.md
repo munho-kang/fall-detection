@@ -86,3 +86,19 @@
 - [x] 오탐지 없이 3회 연속 감지 성공 — 3차에서 낙상 4회 연속 감지·해당 구간 오탐지 없음. 단 배치 오탐지 여유는 미확정 (context-notes.md 4차·README 한계)
 - [x] README — 실행 방법, 아키텍처, 사생활 보호 설명
 - [x] README — 범위 밖 / 한계 명시 (설계 문서 12절)
+
+## 8. 배포 (2026-07-18)
+
+코드 준비는 완료. 계정이 필요한 실행 단계는 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 순서대로 진행한다.
+
+- [x] Django 프로덕션 설정 — 환경변수 분기, whitenoise, Postgres(DATABASE_URL) 지원, gunicorn
+- [x] `render.yaml` 블루프린트 + `backend/build.sh`
+- [x] 웹/앱 배포 주소 분기 (`web/js/api.js`, `app/lib/api.dart`)
+- [x] GitHub Pages 워크플로 (`.github/workflows/deploy-pages.yml`)
+- [x] Android 릴리즈 매니페스트 INTERNET 권한
+- [x] 검증 — pytest 7·vitest 10·flutter 4 통과, 프로덕션 시뮬레이션(헬스체크 200, CORS 허용/차단), iOS 릴리즈 빌드 컴파일
+- [ ] GitHub 저장소 생성 + push + Pages Source를 GitHub Actions로 설정
+- [ ] Render Blueprint 배포 + 환경변수 4개 입력
+- [ ] 배포된 Render 주소를 두 파일의 `XXXX`에 반영 후 push
+- [ ] 감지 페이지 로그인 → 감지 시작 동작 확인
+- [ ] 아이폰 `flutter run --release` 설치 + 알림 수신 확인

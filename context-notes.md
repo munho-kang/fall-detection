@@ -393,3 +393,20 @@ FALLING 진입이 9회, 전부 눕기·앉기다. 관문 창 hipV가 0.456·0.47
 ### 결과 — 알림 5초 내 도달
 
 로그인 후 poller가 기준선(최대 id 6)을 잡은 뒤 `manage.py`로 낙상 1건(id 7, 안방 1)을 주입했다. 서버 로그에서 주입 직후 폴링(16:32:03)의 응답이 1105→1279바이트로 커졌고(새 이벤트 수신), 폰에 "안방 1에서 낙상 감지" 배너가 떴다. 3차에서 검증한 "웹캠 낙상 → POST → DB"와 합치면 **넘어짐부터 보호자 알림까지 전 구간이 두 검증으로 이어진다.** 주입 검증이라, 마지막으로 "실제 웹캠 낙상 → 폰 알림"을 한 번에 보이려면 웹 감지 페이지를 함께 띄우면 된다.
+
+## 배포 준비 (2026-07-18)
+
+"배포하지 않는다" 전제를 뒤집고 실서비스 배포(백엔드 Render, 감지 페이지 GitHub Pages, 앱 실기기)를 준비했다. 절차 문서는 docs/DEPLOYMENT.md.
+
+- **Render 감지는 `RENDER` 환경변수로** — Render가 자동 주입하는 변수라 별도 설정이 필요 없다(공식 Django 가이드 패턴). 로컬은 지금까지처럼 DEBUG=True로 동작하고, 기존 개발 흐름(LAN 실기기 포함)은 그대로다.
+- **배포 DB는 Postgres 강제** — Render 무료 웹 서비스의 디스크는 재배포·슬립 때마다 초기화되므로 SQLite면 보호자 계정과 낙상 기록이 계속 사라진다. `dj-database-url`로 `DATABASE_URL` 있으면 Postgres, 없으면(로컬) SQLite. 무료 Postgres는 생성 30일 뒤 만료 — 대안(Neon 등)은 DATABASE_URL 교체만으로 갈아탈 수 있게 했다.
+- **migrate·createsuperuser는 startCommand에서** — 무료 플랜엔 preDeploy가 없고, 빌드 시점의 DB 접근은 보장이 불확실하다. 시작 시점은 항상 DB에 닿는다. `createsuperuser --noinput || true`로 멱등(이미 있으면 통과). 셸 접근이 없는 무료 플랜에서 보호자 계정을 만들 유일한 통로가 DJANGO_SUPERUSER_* 환경변수다.
+- **정적 파일은 whitenoise, manifest 스토리지는 안 씀** — admin 화면용이 전부라 압축·해시 스토리지의 엄격성(누락 파일에 collectstatic 실패)이 이득보다 리스크다. `WHITENOISE_AUTOREFRESH = DEBUG`로 개발 중 staticfiles 미존재 경고 제거.
+- **웹 주소 분기는 location.hostname으로** — 127.0.0.1/localhost면 로컬 Django, 그 외(Pages)면 PROD_API_BASE. 빌드 도구가 없는 순수 정적 페이지라 환경변수 주입이 불가능해 런타임 분기를 택했다.
+- **앱 주소 분기는 kReleaseMode로** — 우선순위는 API_HOST(dart-define, LAN 개발) > 릴리즈=배포 주소 > 디버그=로컬. 릴리즈로 폰에 설치하면 자동으로 Render를 본다.
+- **배포 주소는 자리 표시자(XXXX)** — Render URL엔 랜덤 접미사가 붙어 배포 전엔 알 수 없다. 배포 후 web/js/api.js·app/lib/api.dart 두 곳을 실제 주소로 교체하는 단계가 DEPLOYMENT.md 3단계다. 잘못된 주소로 조용히 남의 서버를 치는 것보다 명시적으로 실패하는 자리 표시자가 낫다.
+- **Pages는 Actions 방식** — web/을 docs/로 복제하거나 gh-pages 브랜치를 만들지 않고 워크플로가 web/ 디렉토리만 아티팩트로 올린다. 저장소가 public이어야 무료 Pages가 된다.
+- **CORS는 환경변수로 확장** — 코드에 GitHub 아이디를 하드코딩하지 않도록 `CORS_ALLOWED_ORIGINS`(쉼표 구분)를 기존 로컬 5500 목록에 더한다. 값 형식 주의(끝 슬래시·경로 금지) — 문제 해결 표에 넣었다.
+- **Android 릴리즈 매니페스트에 INTERNET 권한 추가** — 디버그는 Flutter 도구가 자동 주입하지만 릴리즈는 없으면 네트워크가 그냥 죽는 고전 함정. 지금 폰은 아이폰이지만 한 줄이라 미리 막았다.
+- **검증** — pytest 7·vitest 10·flutter test 4 전부 통과, flutter analyze 클린. Render 환경 시뮬레이션(RENDER=1 + 환경변수)으로 check --deploy, collectstatic 157개, wsgi 로드, 헬스체크 200, Pages 오리진 CORS 허용·타 오리진 차단을 확인. iOS 릴리즈 빌드(--no-codesign) 컴파일 성공. check --deploy 잔여 경고 3건은 의도적 — HSTS·SSL 리다이렉트는 Render 엣지가 처리하고, SECRET_KEY 경고는 테스트용 짧은 키 탓(실배포는 generateValue).
+- **혼동 주의** — 시연·과제 맥락 문구(README 첫 줄 등)는 "배포 지원"으로 갱신했지만, 알려진 한계(백그라운드 알림 불가, 전송 유실 등)는 배포 후에도 그대로 유효하다. 특히 "앱이 떠 있어야 알림이 온다"는 운영 안내를 DEPLOYMENT.md 6절에 명시했다.
