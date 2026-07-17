@@ -85,7 +85,7 @@ flutter run
 
 ```bash
 cd backend && .venv/bin/python -m pytest    # 7개 — 인증·소유권·멱등성
-cd web     && npm test                       # 7개 — 상태머신 시나리오
+cd web     && npm test                       # 10개 — 상태머신 시나리오
 cd app     && flutter test                   # 4개 — 새 이벤트 판별
 ```
 
