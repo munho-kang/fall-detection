@@ -1,0 +1,45 @@
+<!doctype html>
+<!-- 방을 선택하고 웹캠으로 낙상을 감지하는 화면 -->
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>낙상 감지 — 감지 중</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="banner" class="banner hidden"></div>
+
+    <div id="setup" class="card">
+      <h1>감지할 방 선택</h1>
+      <label for="roomName">방 이름</label>
+      <select id="roomName">
+        <option>안방</option>
+        <option>부엌</option>
+        <option>거실</option>
+        <option>화장실</option>
+      </select>
+      <label for="roomNumber">방 번호</label>
+      <input id="roomNumber" type="number" value="1" min="1" max="99" />
+      <button id="start">감지 시작</button>
+      <p class="error" id="error"></p>
+    </div>
+
+    <div id="stage" class="hidden">
+      <!-- MediaPipe 입력용. 화면에는 절대 표시하지 않는다. -->
+      <video id="video" playsinline hidden></video>
+      <canvas id="canvas" width="640" height="480"></canvas>
+      <div id="status">
+        <h1 id="room"></h1>
+        <div id="state">—</div>
+        <p class="metric" id="metrics"></p>
+        <p class="metric" id="sent">전송된 낙상 0건</p>
+        <div class="privacy">
+          검은 배경 위 스켈레톤이 전부입니다. 영상과 관절 좌표는 이 브라우저를 벗어나지 않습니다.
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
