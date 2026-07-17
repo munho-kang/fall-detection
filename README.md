@@ -111,7 +111,7 @@ cd app     && flutter test                   # 4개 — 새 이벤트 판별
 
 ## 문서
 
-- [배포 가이드](docs/DEPLOYMENT.md)
+- [배포 가이드](docs/DEPLOYMENT.md) ([HTML판](docs/deploy-guide.html))
 - [설계](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
 - [구현 계획](docs/superpowers/plans/2026-07-17-fall-detection.md)
 - [결정 기록](context-notes.md)

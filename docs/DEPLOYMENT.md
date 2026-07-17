@@ -31,6 +31,7 @@ push에서 인증을 요구하면 GitHub 계정으로 로그인한다(비밀번�
 
 3. 저장소 Settings → Pages → Build and deployment → Source를 **GitHub Actions**로 바꾼다.
    - 방금 push 때 실행된 "Deploy web to GitHub Pages" 워크플로는 이 설정 전이라 실패했을 수 있다. 3단계에서 다시 push하면 자동으로 재실행되니 지금은 넘어가도 된다.
+   - 대안. Source를 그대로 두고 Branch를 `main`으로 저장하는 "브랜치 배포"도 동작한다 — 이 경우 저장소 전체가 사이트가 되고, 루트의 `index.html`이 감지 페이지(`web/`)로 자동 이동시킨다. 두 방식 비교는 [deploy-guide.html](deploy-guide.html) 1단계 참고.
 
 ## 2. Render에 백엔드 배포
 

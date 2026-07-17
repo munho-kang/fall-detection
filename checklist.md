@@ -97,6 +97,8 @@
 - [x] GitHub Pages 워크플로 (`.github/workflows/deploy-pages.yml`)
 - [x] Android 릴리즈 매니페스트 INTERNET 권한
 - [x] 검증 — pytest 7·vitest 10·flutter 4 통과, 프로덕션 시뮬레이션(헬스체크 200, CORS 허용/차단), iOS 릴리즈 빌드 컴파일
+- [x] 브랜치 배포 모드 안전망 — 루트 `index.html` → `web/` 리다이렉트 + `.nojekyll`
+- [x] 배포 가이드 HTML판 (`docs/deploy-guide.html`) — 헤드리스 Chrome 렌더링 확인
 - [ ] GitHub 저장소 생성 + push + Pages Source를 GitHub Actions로 설정
 - [ ] Render Blueprint 배포 + 환경변수 4개 입력
 - [ ] 배포된 Render 주소를 두 파일의 `XXXX`에 반영 후 push
