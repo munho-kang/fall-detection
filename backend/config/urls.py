@@ -10,6 +10,7 @@ def healthcheck(request):
 
 urlpatterns = [
     path("", healthcheck),
-    path("admin/", admin.site.urls),
+    # 기본 /admin/ 경로를 노출하지 않아 자동 스캐너를 피한다. 관리자 화면은 /ansgh/로 접속한다.
+    path("ansgh/", admin.site.urls),
     path("api/", include("falls.urls")),
 ]

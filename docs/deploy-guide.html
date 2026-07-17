@@ -221,7 +221,7 @@ git push -u origin main</code></pre>
   <table>
     <tr><th>키</th><th>넣을 값</th></tr>
     <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td><code>https://&lt;아이디&gt;.github.io</code> — <b>끝에 / 없이, 저장소 이름 없이.</b> 감지 페이지의 요청을 허용하는 값이다.</td></tr>
-    <tr><td><code>DJANGO_SUPERUSER_USERNAME</code></td><td>관리자 아이디. <code>/admin/</code> 접속용이다.</td></tr>
+    <tr><td><code>DJANGO_SUPERUSER_USERNAME</code></td><td>관리자 아이디. <code>/ansgh/</code> 접속용이다.</td></tr>
     <tr><td><code>DJANGO_SUPERUSER_EMAIL</code></td><td>이메일(형식만 맞으면 된다).</td></tr>
     <tr><td><code>DJANGO_SUPERUSER_PASSWORD</code></td><td>관리자 비밀번호 — 길고 어렵게.</td></tr>
   </table>
@@ -231,7 +231,7 @@ git push -u origin main</code></pre>
     <li>확인 두 가지.
       <ul>
         <li>브라우저에서 그 URL을 열면 <code>{"status": "ok", ...}</code>가 보인다.</li>
-        <li><code>&lt;URL&gt;/admin/</code>에서 방금 만든 관리자 계정으로 로그인이 된다.</li>
+        <li><code>&lt;URL&gt;/ansgh/</code>에서 방금 만든 관리자 계정으로 로그인이 된다. (기본 <code>/admin/</code> 경로는 열리지 않는다 — 404가 정상이다.)</li>
       </ul>
     </li>
   </ol>
