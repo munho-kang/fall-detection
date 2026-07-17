@@ -35,6 +35,27 @@ export async function login(username, password) {
   return token;
 }
 
+export async function signup(username, password) {
+  const res = await fetch(`${API_BASE}/api/auth/signup/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    // DRF 검증 에러({필드: [메시지, ...]})의 첫 메시지를 그대로 보여준다. 한국어로 내려온다.
+    let message = "회원가입에 실패했습니다.";
+    try {
+      const first = Object.values(await res.json()).flat()[0];
+      if (typeof first === "string") message = first;
+    } catch {
+      // 본문이 JSON이 아니면 기본 문구를 쓴다
+    }
+    throw new Error(message);
+  }
+  const { token } = await res.json();
+  return token; // 가입 즉시 발급된 토큰 — 별도 로그인이 필요 없다
+}
+
 class UnauthorizedError extends Error {}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

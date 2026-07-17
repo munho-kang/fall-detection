@@ -72,6 +72,17 @@ button:disabled {
   min-height: 20px;
 }
 
+.alt-link {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.alt-link a {
+  color: var(--accent);
+}
+
 .banner {
   padding: 12px 16px;
   margin-bottom: 16px;
