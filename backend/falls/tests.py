@@ -77,3 +77,18 @@ def test_post_forces_guardian_to_requester(guardian, other):
     )
     assert r.status_code == 201
     assert FallEvent.objects.get(pk=r.data["id"]).guardian == guardian
+
+
+def test_acknowledge_other_users_event_404(guardian, other):
+    theirs = make_event(other)
+    r = client_for(guardian).post(f"/api/falls/{theirs.id}/acknowledge/")
+    assert r.status_code == 404
+
+
+def test_acknowledge_is_idempotent(guardian):
+    e = make_event(guardian)
+    c = client_for(guardian)
+    first = c.post(f"/api/falls/{e.id}/acknowledge/").data["acknowledged_at"]
+    assert first is not None
+    second = c.post(f"/api/falls/{e.id}/acknowledge/").data["acknowledged_at"]
+    assert second == first  # 두 번째 호출이 시각을 덮어쓰면 안 된다
