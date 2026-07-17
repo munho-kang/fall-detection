@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- 보호자 계정으로 로그인해 토큰을 받는 화면 -->
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>낙상 감지 — 로그인</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="card">
+      <h1>낙상 감지 시스템</h1>
+      <form id="form">
+        <label for="username">아이디</label>
+        <input id="username" name="username" autocomplete="username" required />
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        <button type="submit">로그인</button>
+      </form>
+      <p class="error" id="error"></p>
+      <p class="privacy">
+        이 페이지는 웹캠 영상을 브라우저 안에서만 처리합니다. 영상과 관절 좌표는 서버로 전송되지
+        않습니다.
+      </p>
+    </div>
+
+    <script type="module">
+      import { login, setToken } from "./js/api.js";
+
+      const form = document.getElementById("form");
+      const error = document.getElementById("error");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        const button = form.querySelector("button");
+        button.disabled = true;
+        try {
+          setToken(await login(form.username.value, form.password.value));
+          location.href = "detect.html";
+        } catch (err) {
+          error.textContent = err.message;
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

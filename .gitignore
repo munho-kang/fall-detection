@@ -14,3 +14,4 @@ node_modules/
 # Flutter
 app/build/
 app/.dart_tool/
+.superpowers/
