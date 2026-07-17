@@ -1,6 +1,6 @@
 // 감지 페이지 조립 — 방 선택 → 웹캠 → MediaPipe → 상태머신 → 화면
 
-import { requireToken } from "./api.js";
+import { postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
 import { drawSkeleton } from "./overlay.js";
 import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
@@ -22,6 +22,11 @@ const el = {
   video: document.getElementById("video"),
   canvas: document.getElementById("canvas"),
 };
+
+function showBanner(message) {
+  el.banner.textContent = message;
+  el.banner.classList.remove("hidden");
+}
 
 const ctx = el.canvas.getContext("2d");
 const detector = createDetector();
@@ -61,9 +66,18 @@ el.start.addEventListener("click", async () => {
     el.metrics.textContent = `tilt ${(tilt ?? 0).toFixed(1)}°  ·  hipV ${hipVelocity.toFixed(2)}/s`;
 
     if (fall) {
-      sentCount += 1;
-      el.sent.textContent = `전송된 낙상 ${sentCount}건`;
-      console.log("낙상 확정", { room, fall });
+      const payload = {
+        room_name: room.name,
+        room_number: room.number,
+        occurred_at: new Date(performance.timeOrigin + fall.occurredAt).toISOString(),
+        confidence: fall.confidence,
+      };
+      postFall(payload)
+        .then(() => {
+          sentCount += 1;
+          el.sent.textContent = `전송된 낙상 ${sentCount}건`;
+        })
+        .catch((err) => showBanner(`낙상 전송에 실패했습니다. ${err.message}`));
     }
   });
 });

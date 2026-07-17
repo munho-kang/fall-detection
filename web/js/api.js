@@ -29,3 +29,39 @@ export async function login(username, password) {
   const { token } = await res.json();
   return token;
 }
+
+class UnauthorizedError extends Error {}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function postFallOnce(payload) {
+  const res = await fetch(`${API_BASE}/api/falls/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Token ${getToken()}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok) throw new Error(`서버가 ${res.status}를 반환했습니다.`);
+  return res.json();
+}
+
+// 최대 3회 시도, 사이에 지수 백오프(0.5s → 1s)를 둔다. 마지막 시도가 실패하면
+// 기다리지 않고 바로 포기하므로 배너까지 약 1.5초다. 3회 실패하면 이 낙상은 유실된다.
+// 실제 제품이라면 localStorage 큐가 필요하지만 과제 범위에서는 배너로 알리고 포기한다.
+export async function postFall(payload, attempts = 3) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await postFallOnce(payload);
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        logoutAndRedirect(); // 토큰이 죽었으면 재시도는 무의미하다
+        throw err;
+      }
+      if (i === attempts - 1) throw err;
+      await sleep(500 * 2 ** i);
+    }
+  }
+}
