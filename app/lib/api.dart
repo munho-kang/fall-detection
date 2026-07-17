@@ -13,10 +13,13 @@ class UnauthorizedException implements Exception {}
 class Api {
   static const _tokenKey = 'fall_token';
 
-  // Android 에뮬레이터는 호스트를 10.0.2.2로 본다. iOS 시뮬레이터와 데스크톱은
-  // 호스트 네트워크를 그대로 공유하므로 127.0.0.1이다.
-  static String get baseUrl =>
-      Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+  // Android 에뮬레이터는 호스트를 10.0.2.2로, iOS 시뮬레이터·데스크톱은 127.0.0.1로 본다.
+  // 실기기(폰)는 같은 LAN의 Mac IP가 필요하므로 --dart-define=API_HOST=<Mac IP>로 덮어쓴다.
+  static String get baseUrl {
+    const host = String.fromEnvironment('API_HOST');
+    if (host.isNotEmpty) return 'http://$host:8000';
+    return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+  }
 
   String? _token;
 

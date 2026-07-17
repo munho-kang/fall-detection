@@ -17,7 +17,11 @@ class Notifications {
       importance: Importance.max,
       priority: Priority.high,
     ),
-    iOS: DarwinNotificationDetails(),
+    iOS: DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    ),
   );
 
   static Future<void> init() async {

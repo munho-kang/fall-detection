@@ -371,3 +371,25 @@ FALLING 진입이 9회, 전부 눕기·앉기다. 관문 창 hipV가 0.456·0.47
 이 배치엔 맞는 임계값이 없으니 0.45를 딴 값으로 바꿔도 소용없다 — 눕기 0.541 위로 올리면 낙상 0.456을 놓친다. 0.45는 1차 스위트스팟에서 옳은 값이고, 고칠 건 임계값이 아니라 배치다. `detector.js` 무변경.
 
 분석은 `scripts/state-timeline.mjs`(state 전이 타임라인)와 `scripts/lie-events.mjs`(눕기 구간별 하강 hipV)로 했다. 튜닝이 끝나면 `analyze-tuning.mjs`와 함께 지워도 된다.
+
+## 실기기 알림 검증 (2026-07-18)
+
+미뤄뒀던 **보호자 폰 알림 수신**을 실제 iPhone(iOS 26.5)에서 검증했다. 시뮬레이터가 아니라 실기기라 시뮬레이터용 설정 몇 개를 실기기용으로 바꿔야 했다.
+
+### 실기기 배포에 필요했던 변경 4개
+
+- `app/lib/api.dart` — 실기기는 `127.0.0.1`로 Mac에 못 닿는다. `--dart-define=API_HOST=<Mac IP>`로 서버 주소를 덮어쓰게 했다(플랫폼 분기는 기본값으로 유지). 실행은 `flutter run -d <기기> --dart-define=API_HOST=<Mac IP>`.
+- `app/ios/Runner/Info.plist` — iOS ATS가 평문 HTTP를 막으므로 `NSAllowsLocalNetworking`으로 사설망 접속을 허용했다. `NSLocalNetworkUsageDescription`도 넣었지만, iOS 26에선 사설 IP 직접 접속에 로컬 네트워크 권한이 강제되지 않아 이 키 없이도 붙었다(현재 실행 빌드엔 이 키가 없다). 앱이 실제로 로컬망에 접속하므로 선언상 맞아 남겨둔다.
+- `app/lib/notifications.dart` — iOS는 앱이 **포그라운드**일 때 기본적으로 배너를 안 띄운다. poller가 포그라운드에서 도니까 `DarwinNotificationDetails`의 `presentAlert/presentBadge/presentSound`를 켰다. 안 켜면 앱을 보고 있을 때 알림이 조용히 삼켜진다.
+- `backend/config/settings.py` — `ALLOWED_HOSTS`를 DEBUG 중 개방(`['*'] if DEBUG else []`). 서버는 `runserver 0.0.0.0:8000`으로 전체 인터페이스에 바인딩해야 폰이 붙는다.
+
+서명 팀(`DEVELOPMENT_TEAM`)은 Xcode에서 개인 Apple ID로 설정했다. 개인 식별자라 `project.pbxproj`의 이 변경은 커밋하지 않고 로컬에만 둔다.
+
+### 막혔던 두 지점 — 로그로 원인 확정
+
+1. **폰이 서버에 아예 못 닿음** (`SocketException ... errno 48`). Django 로그에 폰 요청이 안 찍혀서 "요청 미도달"로 좁혔다. 원인은 폰이 Mac과 **다른 Wi‑Fi**였던 것이다. 같은 Wi‑Fi로 옮기니 요청이 도달했다. 방화벽·IP·바인딩은 모두 정상이었다.
+2. **로그인 400** — 도달 후엔 자격 증명 거부였다. 로그에 `POST /api/auth/login/ 400` 다섯 번. `guardian` 비밀번호를 `guardian1234`로 재설정하니 `200` + 토큰이 나왔다. 시연·다음 세션은 이 계정으로 로그인한다.
+
+### 결과 — 알림 5초 내 도달
+
+로그인 후 poller가 기준선(최대 id 6)을 잡은 뒤 `manage.py`로 낙상 1건(id 7, 안방 1)을 주입했다. 서버 로그에서 주입 직후 폴링(16:32:03)의 응답이 1105→1279바이트로 커졌고(새 이벤트 수신), 폰에 "안방 1에서 낙상 감지" 배너가 떴다. 3차에서 검증한 "웹캠 낙상 → POST → DB"와 합치면 **넘어짐부터 보호자 알림까지 전 구간이 두 검증으로 이어진다.** 주입 검증이라, 마지막으로 "실제 웹캠 낙상 → 폰 알림"을 한 번에 보이려면 웹 감지 페이지를 함께 띄우면 된다.

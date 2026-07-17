@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-7if6$so*-4-h5^3*y#z1rsd-880j(hdo8x^_ls2_tvffd*k43m
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# DEBUG(개발) 중에는 실기기 폰이 같은 LAN의 Mac IP로 접속하므로 호스트를 열어둔다. 배포하지 않는다.
+ALLOWED_HOSTS = ['*'] if DEBUG else []
 
 
 # Application definition
