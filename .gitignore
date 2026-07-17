@@ -1,0 +1,16 @@
+.DS_Store
+
+# Python / Django
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+db.sqlite3
+.pytest_cache/
+
+# Node
+node_modules/
+
+# Flutter
+app/build/
+app/.dart_tool/
