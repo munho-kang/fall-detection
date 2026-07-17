@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,11 +14,16 @@ class UnauthorizedException implements Exception {}
 class Api {
   static const _tokenKey = 'fall_token';
 
-  // Android 에뮬레이터는 호스트를 10.0.2.2로, iOS 시뮬레이터·데스크톱은 127.0.0.1로 본다.
-  // 실기기(폰)는 같은 LAN의 Mac IP가 필요하므로 --dart-define=API_HOST=<Mac IP>로 덮어쓴다.
+  // Render에 배포한 백엔드 주소. Render 대시보드에 표시되는 실제 URL로 바꾼다. 끝에 / 없이.
+  static const _prodBaseUrl = 'https://fall-backend-XXXX.onrender.com';
+
+  // 우선순위: --dart-define=API_HOST(LAN 개발용 명시 지정) > 릴리즈 빌드는 배포 서버 >
+  // 디버그는 로컬 서버. Android 에뮬레이터는 호스트를 10.0.2.2로, iOS 시뮬레이터·데스크톱은
+  // 127.0.0.1로 본다. 디버그 실기기는 같은 LAN의 Mac IP가 필요하므로 API_HOST로 덮어쓴다.
   static String get baseUrl {
     const host = String.fromEnvironment('API_HOST');
     if (host.isNotEmpty) return 'http://$host:8000';
+    if (kReleaseMode) return _prodBaseUrl;
     return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
   }
 
