@@ -66,6 +66,35 @@ class Api {
     return token;
   }
 
+  Future<String> signup(String username, String password) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/auth/signup/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username, 'password': password}),
+    );
+    if (res.statusCode != 201) {
+      throw Exception(_firstErrorMessage(res) ?? '회원가입에 실패했습니다.');
+    }
+    final token = jsonDecode(utf8.decode(res.bodyBytes))['token'] as String;
+    await saveToken(token); // 가입 즉시 발급된 토큰 — 별도 로그인이 필요 없다
+    return token;
+  }
+
+  // DRF 검증 에러({필드: [메시지, ...]})의 첫 메시지를 꺼낸다. 서버가 한국어로 내려준다.
+  String? _firstErrorMessage(http.Response res) {
+    try {
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      if (body is Map<String, dynamic> && body.isNotEmpty) {
+        final first = body.values.first;
+        if (first is List && first.isNotEmpty) return first.first.toString();
+        if (first is String) return first;
+      }
+    } catch (_) {
+      // 본문이 JSON이 아니면 기본 문구를 쓴다
+    }
+    return null;
+  }
+
   Future<List<FallEvent>> listFalls() async {
     final res = await http.get(Uri.parse('$baseUrl/api/falls/'), headers: _headers);
     if (res.statusCode == 401) throw UnauthorizedException();
