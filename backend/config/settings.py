@@ -10,23 +10,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# Render에 배포되면 RENDER 환경변수가 자동으로 주입된다. 그 외(로컬)는 개발 모드로 동작한다.
+IS_RENDER = 'RENDER' in os.environ
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7if6$so*-4-h5^3*y#z1rsd-880j(hdo8x^_ls2_tvffd*k43m'
+# 로컬 개발은 아래 기본값을 쓰고, Render에서는 대시보드가 생성한 SECRET_KEY 환경변수를 쓴다.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-7if6$so*-4-h5^3*y#z1rsd-880j(hdo8x^_ls2_tvffd*k43m',
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = not IS_RENDER
 
-# DEBUG(개발) 중에는 실기기 폰이 같은 LAN의 Mac IP로 접속하므로 호스트를 열어둔다. 배포하지 않는다.
+# DEBUG(개발) 중에는 실기기 폰이 같은 LAN의 Mac IP로 접속하므로 호스트를 열어둔다.
+# Render에서는 자기 도메인(RENDER_EXTERNAL_HOSTNAME)만 허용한다.
 ALLOWED_HOSTS = ['*'] if DEBUG else []
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    # Render 프록시가 TLS를 종료하므로 이 헤더로 https 여부를 판단한다. admin 로그인 CSRF에 필요하다.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    CSRF_TRUSTED_ORIGINS = [f'https://{RENDER_EXTERNAL_HOSTNAME}']
+    # 배포 환경은 https 전용이므로 admin 세션·CSRF 쿠키도 https로만 보낸다.
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -47,6 +62,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # gunicorn은 정적 파일을 서빙하지 못하므로 admin 화면의 CSS/JS를 whitenoise가 담당한다.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -78,11 +95,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# 로컬은 SQLite, Render에서는 DATABASE_URL 환경변수(Postgres)를 쓴다.
+# Render 무료 웹 서비스의 디스크는 재배포·슬립 때마다 초기화되므로 SQLite를 그대로 쓰면
+# 보호자 계정과 낙상 기록이 전부 사라진다. 그래서 배포 DB는 반드시 외부 Postgres여야 한다.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+    )
 }
 
 
@@ -121,6 +141,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# 개발 중에는 collectstatic 없이 매 요청마다 파일을 찾는다. staticfiles 미존재 경고도 사라진다.
+WHITENOISE_AUTOREFRESH = DEBUG
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -132,7 +155,13 @@ REST_FRAMEWORK = {
 }
 
 # 감지 페이지는 Live Server(:5500)에서, Django는 :8000에서 뜨므로 오리진이 다르다.
+# 배포된 감지 페이지(GitHub Pages) 오리진은 Render의 CORS_ALLOWED_ORIGINS 환경변수로
+# 추가한다. 값은 쉼표로 구분한다. 예: https://내아이디.github.io
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+] + [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
 ]

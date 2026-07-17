@@ -7,6 +7,7 @@ __pycache__/
 venv/
 db.sqlite3
 .pytest_cache/
+staticfiles/
 
 # Node
 node_modules/

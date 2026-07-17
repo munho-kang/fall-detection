@@ -1,0 +1,36 @@
+# Render 블루프린트 — Django 백엔드 웹 서비스 + 무료 Postgres를 한 번에 생성한다.
+# 사용법: Render 대시보드 → New → Blueprint → 이 저장소 선택.
+# 주의: 무료 Postgres는 생성 30일 뒤 만료된다. docs/DEPLOYMENT.md의 "DB 만료" 절 참고.
+
+databases:
+  - name: fall-db
+    plan: free
+
+services:
+  - type: web
+    name: fall-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: python manage.py migrate --noinput && (python manage.py createsuperuser --noinput || true) && gunicorn config.wsgi:application
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.4
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fall-db
+          property: connectionString
+      # 배포된 감지 페이지 오리진. 예: https://내아이디.github.io
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # 보호자 계정. 서버가 뜰 때 없으면 자동 생성된다 (createsuperuser --noinput).
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
