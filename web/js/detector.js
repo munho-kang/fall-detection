@@ -32,6 +32,7 @@ export function createDetector(config = CONFIG) {
   let lastSeenAt = null;
   let fallingAt = null;
   let fallenAt = null;
+  let stateBeforeGap = null;
 
   // 설계에 명시된 심층 방어다. 다만 오탐지를 실제로 막는 것은 아래 Δt 계산이지
   // 이 초기화가 아니다 — NO_PERSON은 2초 이상 미검출일 때만 발동하므로
@@ -48,6 +49,7 @@ export function createDetector(config = CONFIG) {
   function update(landmarks, t) {
     if (!hasRequired(landmarks)) {
       if (lastSeenAt === null || t - lastSeenAt > c.NO_PERSON_TIMEOUT) {
+        if (state !== "NO_PERSON") stateBeforeGap = state;
         state = "NO_PERSON";
         resetMotion();
       }
@@ -78,7 +80,18 @@ export function createDetector(config = CONFIG) {
     // 위에서부터 평가하고 처음 일치하는 규칙 하나만 적용한다
     switch (state) {
       case "NO_PERSON":
-        state = "STANDING";
+        // 끊기기 전 이미 FALLEN이었거나 FALLING 도중이었다면 재검출 시 무조건 STANDING으로
+        // 내리면 안 된다. FALLING은 속도 관문(1차)을 이미 통과한 상태라 tilt만 못 봤을 뿐,
+        // 재검출 시에도 여전히 누워 있다면 실제로는 쓰러진 채였다는 뜻이다.
+        // 둘 다 놔두면 확정 대기 중이던 낙상이 조용히 사라진다 — tilt로 여전히 누워 있는지
+        // 확인하고 맞으면 FALLEN으로 복귀시킨다. FALLEN이었으면 원래 fallenAt부터 hold 시계를
+        // 이어가고, FALLING이었으면 fallenAt이 아직 없었으므로 지금(재검출 시각)부터 새로 시작한다.
+        if ((stateBeforeGap === "FALLEN" || stateBeforeGap === "FALLING") && tilt > c.TILT_FALLEN) {
+          if (stateBeforeGap === "FALLING") fallenAt = t;
+          state = "FALLEN";
+        } else {
+          state = "STANDING";
+        }
         break;
 
       case "STANDING":

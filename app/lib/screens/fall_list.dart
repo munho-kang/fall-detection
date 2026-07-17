@@ -143,7 +143,8 @@ class _FallListScreenState extends State<FallListScreen> {
                                     ),
                                   );
                                   if (updated != null) {
-                                    setState(() => _events[i] = updated);
+                                    final idx = _events.indexWhere((x) => x.id == updated.id);
+                                    if (idx != -1) setState(() => _events[idx] = updated);
                                   }
                                 },
                               );
