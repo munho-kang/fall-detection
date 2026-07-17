@@ -56,7 +56,7 @@ cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python manage.py migrate
-.venv/bin/python manage.py createsuperuser   # 보호자 계정 (회원가입 화면은 범위 밖)
+.venv/bin/python manage.py createsuperuser   # admin 계정. 보호자 계정은 웹·앱의 회원가입으로 만든다
 .venv/bin/python manage.py runserver 8000
 ```
 
@@ -67,7 +67,7 @@ cd web
 npx serve -l 5500 .
 ```
 
-`http://127.0.0.1:5500`에서 로그인 → 방 선택 → 감지 시작 → 카메라 권한 허용.
+`http://127.0.0.1:5500`에서 로그인(첫 사용이면 회원가입) → 방 선택 → 감지 시작 → 카메라 권한 허용.
 
 포트가 **5500이어야 한다.** Django의 `CORS_ALLOWED_ORIGINS`가 이 포트만 허용한다. `getUserMedia`는 보안 컨텍스트를 요구하지만 `localhost`는 예외라 HTTPS는 불필요하다.
 
@@ -105,7 +105,7 @@ cd app     && flutter test                   # 4개 — 새 이벤트 판별
 - **끊긴 뒤 영영 재검출되지 않는 낙상** — 넘어진 사람이 가구에 완전히 가리거나 화면 밖으로 옮겨져 다시는 검출되지 않으면 알림이 끝내 발생하지 않는다. 재검출된 경우에는 tilt를 보고 FALLEN을 복원해 hold 시계를 이어가지만, 재검출 자체가 없으면 판단할 근거가 없다. 반대로 "일정 시간 미검출이면 알림"으로 만들면 스스로 일어나 화면 밖으로 걸어 나간 사람에게도 오탐지가 발생하므로, 이 트레이드오프는 의도적으로 감수했다.
 - **다중 인물** — `numPoses: 1`, 독거 전제다.
 - **낙상 전송 유실** — POST 3회 재시도 후 포기하고 배너만 띄운다. 실제 제품이라면 localStorage 큐가 필요하다.
-- **회원가입·방 등록·연락처 관리 화면 없음** — 계정은 `createsuperuser`, 방은 고정 선택지 4개, 연락처는 상수다.
+- **방 등록·연락처 관리 화면 없음** — 방은 고정 선택지 4개, 연락처는 상수다. 회원가입은 웹·앱 양쪽에 있다(2026-07-18 추가). 가입이 공개라 임의 계정 생성은 막지 않지만, 낙상 데이터는 계정별로 격리된다.
 - **119는 더미 번호** — 시연 중 실제 발신을 막기 위함이다. `fall_detail.dart`의 `_emergencyPhone` 참고.
 - **실시간 방 상태 대시보드 없음** — 웹캠이 하나라 의미가 없다.
 
