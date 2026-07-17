@@ -60,6 +60,48 @@ MediaPipe · DOM · 네트워크를 하나도 안 쓰는 모듈로 뺐다. 웹�
 
 ---
 
+## 2026-07-17 — 구현 계획 작성 중 검증한 것들
+
+계획을 쓰기 전에 스크래치패드에서 실제로 돌려본 결과다. 계획의 코드 블록은 전부 아래 검증을 통과한 것이다.
+
+### 툴체인 실측
+
+Python 3.14.4 / Node 25.8.1 / Flutter 3.44.0 / Dart 3.12.0. `pip install django`는 **Django 6.0.7 + DRF 3.17.1**을 가져온다. Python 3.14에서 정상 동작하고 `authtoken` 마이그레이션도 통과한다. 설계 당시엔 버전을 못 박지 않았는데, 실측값을 계획에 고정했다.
+
+### Django 6.0의 startproject 템플릿은 홑따옴표를 쓴다
+
+`config/urls.py`가 `path('admin/', ...)`로 생성된다. 쌍따옴표를 가정하고 문자열 치환을 하면 **조용히 실패**하고 모든 라우트가 404가 된다. 스모크 테스트에서 실제로 이걸로 5개 테스트가 깨졌다. 계획에는 치환 대신 파일 전체 내용을 적었다.
+
+### Android 에뮬레이터가 이 기기에 없다
+
+`flutter emulators` → 없음. iOS 시뮬레이터(iPhone 17 Pro 등)만 있다. 설계 5절의 `10.0.2.2:8000`은 Android 전용 주소이고, iOS 시뮬레이터는 호스트 네트워크를 공유하므로 `127.0.0.1:8000`이다. 둘 다 살리려고 `api.dart`에서 `Platform.isAndroid` 분기 한 줄로 처리하기로 했다. 양쪽 플랫폼이 실제로 다 사정권에 있으므로 투기적 유연성이 아니다.
+
+### resetMotion()은 방어선이 아니다 — 진짜 방어선은 Δt 계산이다
+
+상태머신을 구현한 뒤 뮤테이션 테스트를 돌렸다. 속도 관문 제거 · `occurred_at`을 확정 시각으로 변경 · ALERTED 미전이는 전부 테스트를 깨뜨렸다(= 테스트에 이빨이 있다). 그런데 **`resetMotion()`을 통째로 지워도 7개가 전부 통과했다.**
+
+이유를 파보니, `NO_PERSON`은 정의상 2초 이상 미검출일 때만 발동하므로 복귀 시점의 Δt가 항상 2000ms 이상이다. 좌표가 최대치(0.3)로 점프해도 가짜 속도는 `0.3 / 2.1s = 0.14/s`라 임계값 0.45에 한참 못 미친다.
+
+설계 6절이 경고한 "재검출 순간의 좌표 점프가 거대한 가짜 속도로 잡힌다"는 **Δt를 고정 프레임 간격(33ms)으로 놓는 구현에서만** 터진다. 그 경우 `0.3 / 0.033 = 9.0/s`로 임계값의 20배다.
+
+그래서 계획에서 강조하는 규칙은 `resetMotion()`이 아니라 **"Δt는 반드시 실제 타임스탬프 차이로 계산한다"**로 바꿨다. `resetMotion()`은 설계에 명시돼 있고 비용이 없으므로 심층 방어로 남기되, 이게 오탐지를 막는 근거라고 착각하지 않도록 주석과 계획에 적었다.
+
+### MediaPipe CDN 버전
+
+설계에는 버전이 없었다. `@mediapipe/tasks-vision`의 최신은 **0.10.35**이고, 아래 셋 다 200을 확인했다.
+
+- `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs`
+- `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm`
+- `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`
+
+버전을 안 박고 `@latest`를 쓰면 브레이킹 체인지에 시연이 깨질 수 있어 고정했다.
+
+### performance.now()를 그대로 occurred_at으로 보내면 안 된다
+
+`detector.js`가 다루는 타임스탬프는 `performance.now()` 기준(페이지 로드 이후 경과 ms)이다. 이걸 그대로 서버에 보내면 1970년이 찍힌다. `new Date(performance.timeOrigin + occurredAt).toISOString()`으로 벽시계 시각으로 변환해야 한다. 계획 11번 태스크에 명시했다.
+
+---
+
 ## 임계값 튜닝 기록
 
 설계상의 초기값은 전부 추정치다. 실제 웹캠 테스트 후 조정한 내역을 여기에 남긴다.

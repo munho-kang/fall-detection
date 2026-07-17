@@ -1,12 +1,15 @@
 # 노인 낙상 감지 시스템 — 체크리스트
 
 설계: [docs/superpowers/specs/2026-07-17-fall-detection-design.md](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
+구현 계획: [docs/superpowers/plans/2026-07-17-fall-detection.md](docs/superpowers/plans/2026-07-17-fall-detection.md)
+
+아래는 설계 기준 체크리스트다. 실제 구현은 계획 문서의 Task 1~16을 따르고, 각 태스크를 끝낼 때 여기 해당 항목을 함께 체크한다.
 
 ## 0. 설계
 
 - [x] 요구사항 브레인스토밍
 - [x] 설계 문서 작성
-- [ ] 구현 계획 작성 (writing-plans)
+- [x] 구현 계획 작성 (writing-plans) — Task 16개, 계획 작성 중 검증한 내용은 context-notes.md 참고
 
 ## 1. Django 백엔드
 
