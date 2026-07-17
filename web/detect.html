@@ -34,6 +34,12 @@
         <div id="state">—</div>
         <p class="metric" id="metrics"></p>
         <p class="metric" id="sent">전송된 낙상 0건</p>
+        <!-- 임계값 실측 튜닝용. 튜닝이 끝나면 이 블록과 js/tuning.js를 함께 제거한다. -->
+        <div class="tuning">
+          <p class="metric" id="peak"></p>
+          <p class="metric">동작 하나를 마칠 때마다 <b>r</b> 키로 시행을 끊는다.</p>
+          <button id="download">CSV 다운로드</button>
+        </div>
         <div class="privacy">
           검은 배경 위 스켈레톤이 전부입니다. 영상과 관절 좌표는 이 브라우저를 벗어나지 않습니다.
         </div>

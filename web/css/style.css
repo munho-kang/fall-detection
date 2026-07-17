@@ -113,6 +113,20 @@ canvas {
   font-variant-numeric: tabular-nums;
 }
 
+/* 임계값 실측 튜닝용 패널. 튜닝 완료 후 제거한다. */
+.tuning {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #2b3040;
+  border-radius: 8px;
+}
+
+.tuning button {
+  margin-top: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
 .privacy {
   margin-top: 20px;
   padding: 12px 14px;

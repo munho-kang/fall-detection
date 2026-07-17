@@ -4,6 +4,7 @@ import { postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
 import { drawSkeleton } from "./overlay.js";
 import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
+import { createTuningRecorder } from "./tuning.js";
 
 requireToken();
 
@@ -21,6 +22,8 @@ const el = {
   sent: document.getElementById("sent"),
   video: document.getElementById("video"),
   canvas: document.getElementById("canvas"),
+  peak: document.getElementById("peak"),
+  download: document.getElementById("download"),
 };
 
 function showBanner(message) {
@@ -30,6 +33,7 @@ function showBanner(message) {
 
 const ctx = el.canvas.getContext("2d");
 const detector = createDetector();
+const tuning = createTuningRecorder({ peakEl: el.peak, downloadEl: el.download });
 let sentCount = 0;
 
 el.start.addEventListener("click", async () => {
@@ -64,6 +68,7 @@ el.start.addEventListener("click", async () => {
     drawSkeleton(ctx, landmarks, state);
     el.state.textContent = state;
     el.metrics.textContent = `tilt ${(tilt ?? 0).toFixed(1)}°  ·  hipV ${hipVelocity.toFixed(2)}/s`;
+    tuning.record(t, state, tilt, hipVelocity);
 
     if (fall) {
       const payload = {
