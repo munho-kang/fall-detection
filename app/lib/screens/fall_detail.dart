@@ -1,6 +1,7 @@
 // 낙상 이벤트 상세 화면
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../models.dart';
@@ -42,6 +43,24 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:'
       '${t.second.toString().padLeft(2, '0')}';
 
+  // 연락처 관리 화면은 범위 밖이므로 상수로 둔다.
+  static const _elderPhone = '01012345678';
+
+  // 시연 중 실수로 119에 실제 신고가 나가면 안 되므로 더미 번호다.
+  // 실제 제품에서는 '119'로 바꾼다.
+  static const _emergencyPhone = '01000000119';
+
+  Future<void> _dial(String number) async {
+    final uri = Uri(scheme: 'tel', path: number);
+    // 다이얼러에 번호를 띄우는 데까지만 한다. 실제 발신은 사용자가 누른다.
+    if (!await launchUrl(uri)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('전화 앱을 열 수 없습니다.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +81,18 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
             onPressed: _busy || _event.isAcknowledged ? null : _acknowledge,
             icon: const Icon(Icons.check),
             label: Text(_event.isAcknowledged ? '확인함' : '확인함으로 표시'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _dial(_elderPhone),
+            icon: const Icon(Icons.phone),
+            label: const Text('어르신께 전화'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _dial(_emergencyPhone),
+            icon: const Icon(Icons.local_hospital),
+            label: const Text('119 신고 (시연용 더미 번호)'),
           ),
         ],
       ),

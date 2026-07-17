@@ -1,5 +1,8 @@
 // 폴링 응답에서 새 이벤트를 골라내는 로직과 5초 타이머
 
+import 'dart:async';
+
+import 'api.dart';
 import 'models.dart';
 
 class NewEventTracker {
@@ -32,5 +35,63 @@ class NewEventTracker {
         : events.where((e) => e.id > _lastSeenId!).toList();
     _lastSeenId = maxId;
     return fresh;
+  }
+}
+
+class FallPoller {
+  FallPoller({
+    required this.api,
+    required this.onEvents,
+    required this.onConnectionLost,
+    required this.onRecovered,
+    required this.onUnauthorized,
+  });
+
+  static const _interval = Duration(seconds: 5);
+  static const _failuresBeforeBanner = 3;
+
+  final Api api;
+  final void Function(List<FallEvent> all, List<FallEvent> fresh) onEvents;
+  final void Function() onConnectionLost;
+  final void Function() onRecovered;
+  final void Function() onUnauthorized;
+
+  final _tracker = NewEventTracker();
+  Timer? _timer;
+  int _consecutiveFailures = 0;
+  bool _inFlight = false;
+
+  void start() {
+    _tick();
+    _timer = Timer.periodic(_interval, (_) => _tick());
+  }
+
+  void stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  Future<void> _tick() async {
+    // 이전 요청이 아직 끝나지 않았는데 새 틱이 또 요청을 보내면, 응답이 엇갈려 도착할 때
+    // (나중에 보낸 요청이 먼저 응답) _lastSeenId가 더 오래된 값으로 되돌아가
+    // 이미 알린 낙상을 다시 알릴 수 있다. 그래서 이전 요청이 끝날 때까지 새 틱은 건너뛴다.
+    if (_inFlight) return;
+    _inFlight = true;
+    try {
+      final all = await api.listFalls();
+      final fresh = _tracker.newEvents(all);
+      if (_consecutiveFailures >= _failuresBeforeBanner) onRecovered();
+      _consecutiveFailures = 0;
+      onEvents(all, fresh);
+    } on UnauthorizedException {
+      stop();
+      onUnauthorized();
+    } catch (_) {
+      // 조용히 다음 주기에 재시도한다. 3회 연속 실패해야 사용자에게 알린다.
+      _consecutiveFailures += 1;
+      if (_consecutiveFailures == _failuresBeforeBanner) onConnectionLost();
+    } finally {
+      _inFlight = false;
+    }
   }
 }

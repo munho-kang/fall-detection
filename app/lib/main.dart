@@ -3,10 +3,13 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'notifications.dart';
 import 'screens/fall_list.dart';
 import 'screens/login.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Notifications.init();
   runApp(const FallGuardianApp());
 }
 

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../models.dart';
+import '../notifications.dart';
+import '../poller.dart';
 import 'fall_detail.dart';
 import 'login.dart';
 
@@ -20,11 +22,44 @@ class _FallListScreenState extends State<FallListScreen> {
   List<FallEvent> _events = [];
   bool _loading = true;
   String? _error;
+  late final FallPoller _poller;
 
   @override
   void initState() {
     super.initState();
-    _refresh();
+    _poller = FallPoller(
+      api: widget.api,
+      onEvents: (all, fresh) {
+        for (final e in fresh) {
+          Notifications.show(e);
+        }
+        if (!mounted) return;
+        setState(() {
+          _events = all;
+          _loading = false;
+          _error = null;
+        });
+      },
+      onConnectionLost: () {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = '연결 끊김 — 서버에 닿지 않습니다.';
+        });
+      },
+      onRecovered: () {
+        if (!mounted) return;
+        setState(() => _error = null);
+      },
+      onUnauthorized: _logout,
+    );
+    _poller.start();
+  }
+
+  @override
+  void dispose() {
+    _poller.stop();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
