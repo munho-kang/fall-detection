@@ -92,3 +92,30 @@ def test_acknowledge_is_idempotent(guardian):
     assert first is not None
     second = c.post(f"/api/falls/{e.id}/acknowledge/").data["acknowledged_at"]
     assert second == first  # 두 번째 호출이 시각을 덮어쓰면 안 된다
+
+
+def test_signup_returns_token_and_logs_in(db):
+    r = APIClient().post(
+        "/api/auth/signup/", {"username": "new1", "password": "tough-pass-9x"}, format="json"
+    )
+    assert r.status_code == 201
+    c = APIClient()
+    c.credentials(HTTP_AUTHORIZATION=f"Token {r.data['token']}")
+    assert c.get("/api/falls/").status_code == 200  # 발급된 토큰이 곧바로 유효해야 한다
+
+
+def test_signup_duplicate_username_400(guardian):
+    r = APIClient().post(
+        "/api/auth/signup/", {"username": "g1", "password": "tough-pass-9x"}, format="json"
+    )
+    assert r.status_code == 400
+    assert "username" in r.data
+
+
+def test_signup_weak_password_400(db):
+    # AUTH_PASSWORD_VALIDATORS(8자 미만·흔한 비밀번호·숫자만)가 가입에도 적용되어야 한다
+    r = APIClient().post(
+        "/api/auth/signup/", {"username": "new2", "password": "1234"}, format="json"
+    )
+    assert r.status_code == 400
+    assert "password" in r.data

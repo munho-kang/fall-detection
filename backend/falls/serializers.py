@@ -1,8 +1,28 @@
 # FallEvent를 JSON으로 변환하는 시리얼라이저
 
+from django.contrib.auth import password_validation
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from .models import FallEvent
+
+
+class SignupSerializer(serializers.ModelSerializer):
+    # 비밀번호가 응답 JSON에 실리지 않도록 쓰기 전용으로 막는다
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ["username", "password"]
+
+    def validate_password(self, value):
+        # settings의 AUTH_PASSWORD_VALIDATORS(8자 미만·흔한 비밀번호·숫자만 금지)를 가입에도 적용한다
+        password_validation.validate_password(value)
+        return value
+
+    def create(self, validated_data):
+        # create_user가 비밀번호를 해시해서 저장한다. 기본 create()면 평문으로 저장되므로 반드시 이쪽.
+        return User.objects.create_user(**validated_data)
 
 
 class FallEventSerializer(serializers.ModelSerializer):

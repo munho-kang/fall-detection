@@ -128,7 +128,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# 검증 에러 메시지(아이디 중복, 비밀번호 규칙 등)가 한국어로 내려가도록 한다. admin도 한국어가 된다.
+LANGUAGE_CODE = 'ko'
 
 TIME_ZONE = 'UTC'
 

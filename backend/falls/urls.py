@@ -7,6 +7,7 @@ from . import views
 
 urlpatterns = [
     path("auth/login/", obtain_auth_token),
+    path("auth/signup/", views.signup),
     path("falls/", views.FallEventListCreate.as_view()),
     path("falls/<int:pk>/acknowledge/", views.acknowledge),
 ]

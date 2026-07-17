@@ -1,13 +1,25 @@
-# 낙상 이벤트 등록·조회·확인 API 뷰
+# 낙상 이벤트 등록·조회·확인 API 뷰와 회원가입
 
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import FallEvent
-from .serializers import FallEventSerializer
+from .serializers import FallEventSerializer, SignupSerializer
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def signup(request):
+    # 가입 즉시 토큰을 돌려줘 클라이언트가 로그인 요청을 한 번 더 보낼 필요가 없다
+    serializer = SignupSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user = serializer.save()
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({"token": token.key}, status=status.HTTP_201_CREATED)
 
 
 class FallEventListCreate(generics.ListCreateAPIView):
