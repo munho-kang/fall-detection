@@ -1,7 +1,7 @@
 // Django API 호출 래퍼와 토큰 보관
 
 // Render에 배포한 백엔드 주소. Render 대시보드에 표시되는 실제 URL로 바꾼다. 끝에 / 없이.
-const PROD_API_BASE = "https://fall-backend-XXXX.onrender.com";
+const PROD_API_BASE = "https://fall-backend-l3pg.onrender.com";
 
 // 로컬에서 열면(개발) 로컬 Django를, GitHub Pages에서 열면 Render 백엔드를 쓴다.
 const isLocalhost = ["127.0.0.1", "localhost"].includes(location.hostname);

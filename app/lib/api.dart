@@ -15,7 +15,7 @@ class Api {
   static const _tokenKey = 'fall_token';
 
   // Render에 배포한 백엔드 주소. Render 대시보드에 표시되는 실제 URL로 바꾼다. 끝에 / 없이.
-  static const _prodBaseUrl = 'https://fall-backend-XXXX.onrender.com';
+  static const _prodBaseUrl = 'https://fall-backend-l3pg.onrender.com';
 
   // 우선순위: --dart-define=API_HOST(LAN 개발용 명시 지정) > 릴리즈 빌드는 배포 서버 >
   // 디버그는 로컬 서버. Android 에뮬레이터는 호스트를 10.0.2.2로, iOS 시뮬레이터·데스크톱은
