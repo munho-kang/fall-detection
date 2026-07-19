@@ -492,13 +492,14 @@
   <p class="sub">낙상의 72.5%는 집 안에서, 그중 상당수는 화장실 타일 바닥에서 일어납니다. 거실에 한 대 놓아둔 카메라는 <b>화장실에서 쓰러진 사람을 볼 수 없습니다.</b> 그래서 이 시스템은 <b class="accent">지키려는 방마다 한 대씩</b> 설치합니다.</p>
   <div class="row fill" style="align-items:stretch">
     <div class="card col" style="flex:1.3; justify-content:center">
-      <svg viewBox="0 0 520 360" style="width:100%; height:auto" role="img" aria-label="안방·작은방·화장실·주방·거실·현관으로 이루어진 아파트 평면도. 안방·거실·화장실·주방 네 곳에 카메라가 설치되어 있고 화장실에서 낙상이 감지된 상태">
+      <svg viewBox="0 0 520 360" style="width:100%; height:auto" role="img" aria-label="안방·작은방·화장실·주방·거실·현관으로 이루어진 아파트 평면도. 안방·작은방·거실·화장실·주방 다섯 곳에 카메라가 설치되어 있고 화장실에서 낙상이 감지된 상태">
         <!-- 집 외곽 -->
         <rect x="20" y="20" width="480" height="320" rx="4" fill="#131312" stroke="#6b6a66" stroke-width="3"/>
 
         <!-- 시야각 -->
         <g fill="rgba(57,135,229,.09)">
           <path d="M46 56 L30 144 L164 144 Z"/>
+          <path d="M182 56 L174 144 L272 144 Z"/>
           <path d="M292 56 L286 144 L394 144 Z"/>
           <path d="M486 56 L408 144 L494 144 Z"/>
           <path d="M135 182 L124 332 L404 332 Z"/>
@@ -542,9 +543,10 @@
           <path d="M115 235 H165 A50 50 0 0 1 115 285"/>
         </g>
 
-        <!-- 카메라 4대 -->
+        <!-- 카메라 5대 -->
         <g fill="none" stroke="#3987e5" stroke-width="2">
           <g transform="translate(46,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
+          <g transform="translate(182,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
           <g transform="translate(292,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
           <g transform="translate(486,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
           <g transform="translate(135,170)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
@@ -561,11 +563,11 @@
         </g>
         <g font-size="11" fill="#898781" class="mono" text-anchor="middle">
           <text x="112" y="62">room 1</text>
+          <text x="225" y="62">room 2</text>
           <text x="345" y="62">room 3</text>
           <text x="440" y="62">room 4</text>
-          <text x="300" y="209">room 2</text>
+          <text x="300" y="209">room 5</text>
         </g>
-        <text x="225" y="62" font-size="10.5" fill="#6b6a66" text-anchor="middle">카메라 미설치</text>
 
         <!-- 화장실: 쓰러진 사람 (감지됨) -->
         <ellipse cx="328" cy="121" rx="38" ry="23" fill="none" stroke="#3987e5" stroke-width="1.4" stroke-dasharray="4 5"/>
@@ -599,7 +601,7 @@
       </div>
       <div class="card" style="border-color:rgba(57,135,229,.45)">
         <b class="accent">④ 대수를 늘려도 사생활 비용은 0입니다</b>
-        <p class="note" style="margin-top:.3rem">카메라가 1대든 4대든 서버로 가는 영상은 <b style="color:var(--ink-2)">0바이트</b>. 각 방이 보는 것은 그 사람의 모습이 아니라 <b style="color:var(--ink-2)">관절 33개</b>뿐이라, 방을 늘리는 것이 <b style="color:var(--ink-2)">감시를 늘리는 것이 되지 않습니다.</b></p>
+        <p class="note" style="margin-top:.3rem">카메라가 1대든 5대든 서버로 가는 영상은 <b style="color:var(--ink-2)">0바이트</b>. 각 방이 보는 것은 그 사람의 모습이 아니라 <b style="color:var(--ink-2)">관절 33개</b>뿐이라, 방을 늘리는 것이 <b style="color:var(--ink-2)">감시를 늘리는 것이 되지 않습니다.</b></p>
       </div>
     </div>
   </div>
