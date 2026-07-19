@@ -567,13 +567,6 @@
         </g>
         <text x="225" y="62" font-size="10.5" fill="#6b6a66" text-anchor="middle">카메라 미설치</text>
 
-        <!-- 서 있는 사람 (관절만) -->
-        <g stroke="#6b6a66" stroke-width="2.2" stroke-linecap="round" fill="none">
-          <g transform="translate(136,104)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
-          <g transform="translate(437,96)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
-          <g transform="translate(320,246)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
-        </g>
-
         <!-- 화장실: 쓰러진 사람 (감지됨) -->
         <ellipse cx="328" cy="121" rx="38" ry="23" fill="none" stroke="#3987e5" stroke-width="1.4" stroke-dasharray="4 5"/>
         <g stroke="#3987e5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(298,122) scale(0.9)">
@@ -691,102 +684,8 @@
   <p class="note">알림 시각(occurred_at)은 판정 확정 시각이 아니라 <b style="color:var(--ink-2)">실제로 넘어진 순간(FALLING 진입)</b>으로 기록 — 보호자에게 5초 늦은 시각을 보여주지 않기 위한 설계.</p>
 </section>
 
-<!-- ================= 11. 상황 예시 ================= -->
+<!-- ================= 11. 실측 검증 ================= -->
 <section class="slide" id="s11">
-  <div class="kicker">원리 — 상황별 판정</div>
-  <h2>같은 “내려감”, 다른 판정</h2>
-  <div class="fill col" style="justify-content:center">
-  <div class="row">
-
-    <div class="card col" style="flex:1; gap:.5rem">
-      <div style="font-weight:800">빠르게 넘어짐, 그대로 5초</div>
-      <svg viewBox="0 0 300 100" style="width:100%" role="img" aria-label="서 있다가 빠르게 넘어져 바닥에 누운 상황">
-        <line x1="8" y1="88" x2="292" y2="88" stroke="#383835" stroke-width="1.5"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="45" cy="26" r="6"/><path d="M45 32 L45 58 M45 40 L34 50 M45 40 L56 50 M45 58 L37 84 M45 58 L53 84"/>
-        </g>
-        <path d="M96 34 q18 6 26 30" fill="none" stroke="#3987e5" stroke-width="2.4" marker-end="url(#arrB)"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none" transform="rotate(52 160 84)">
-          <circle cx="160" cy="32" r="6"/><path d="M160 38 L160 62 M160 46 L149 54 M160 46 L173 50 M160 62 L152 84 M160 62 L168 84"/>
-        </g>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="222" cy="80" r="6"/><path d="M228 82 L258 82 M236 82 L242 74 M258 82 L272 78 M258 82 L270 86"/>
-        </g>
-        <g fill="#898781" font-size="11"><text x="236" y="66">🕐 5초…</text></g>
-      </svg>
-      <div class="note">① 속도 통과 → ② 1초 내 수평 → ③ 5초 경과</div>
-      <div><span class="badge alert"><span class="ic">📲</span> 보호자 알림 발송</span></div>
-    </div>
-
-    <div class="card col" style="flex:1; gap:.5rem">
-      <div style="font-weight:800">침대에 천천히 눕기</div>
-      <svg viewBox="0 0 300 100" style="width:100%" role="img" aria-label="천천히 침대에 눕는 상황">
-        <line x1="8" y1="88" x2="292" y2="88" stroke="#383835" stroke-width="1.5"/>
-        <rect x="196" y="70" width="88" height="18" rx="3" fill="none" stroke="#52514e" stroke-width="1.5"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="45" cy="26" r="6"/><path d="M45 32 L45 58 M45 40 L34 50 M45 40 L56 50 M45 58 L37 84 M45 58 L53 84"/>
-        </g>
-        <path d="M92 50 h34" fill="none" stroke="#6b6a66" stroke-width="2" stroke-dasharray="4 5" marker-end="url(#arrG)"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="148" cy="46" r="6"/><path d="M148 52 L150 66 M148 56 L140 62 M148 56 L157 60 M150 66 L144 84 M150 66 L160 80"/>
-        </g>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="212" cy="64" r="6"/><path d="M218 66 L248 66 M226 66 L232 60 M248 66 L262 62 M248 66 L260 70"/>
-        </g>
-      </svg>
-      <div class="note">① 하강 속도 미달 — <b style="color:var(--ink-2)">여기서 끝</b> <span class="mono" style="font-size:.72rem">(실측 hipV 최대 0.194)</span></div>
-      <div><span class="badge ok"><span class="ic">✓</span> 알림 없음</span></div>
-    </div>
-
-    <div class="card col" style="flex:1; gap:.5rem">
-      <div style="font-weight:800">의자에 급히 앉기</div>
-      <svg viewBox="0 0 300 100" style="width:100%" role="img" aria-label="의자에 빠르게 앉는 상황">
-        <line x1="8" y1="88" x2="292" y2="88" stroke="#383835" stroke-width="1.5"/>
-        <path d="M206 50 v38 M206 66 h30 M236 66 v22" fill="none" stroke="#52514e" stroke-width="1.5"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="60" cy="26" r="6"/><path d="M60 32 L60 58 M60 40 L49 50 M60 40 L71 50 M60 58 L52 84 M60 58 L68 84"/>
-        </g>
-        <path d="M118 40 q10 10 8 26" fill="none" stroke="#3987e5" stroke-width="2.4" marker-end="url(#arrB)"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="180" cy="34" r="6"/><path d="M180 40 L180 64 M180 48 L170 56 M180 48 L190 56 M180 64 L198 64 M198 64 L198 86"/>
-        </g>
-        <g fill="#898781" font-size="11"><text x="212" y="30">몸통은 수직</text><text x="212" y="44">tilt ≤ 11°</text></g>
-      </svg>
-      <div class="note">① 속도 통과 → ② 몸통이 서 있음 — <b style="color:var(--ink-2)">1초 내 60° 미도달</b></div>
-      <div><span class="badge ok"><span class="ic">✓</span> 알림 없음</span></div>
-    </div>
-
-    <div class="card col" style="flex:1; gap:.5rem">
-      <div style="font-weight:800">넘어졌지만 3초 만에 일어남</div>
-      <svg viewBox="0 0 300 100" style="width:100%" role="img" aria-label="넘어졌다가 스스로 일어나는 상황">
-        <line x1="8" y1="88" x2="292" y2="88" stroke="#383835" stroke-width="1.5"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="32" cy="80" r="6"/><path d="M38 82 L68 82 M46 82 L52 74 M68 82 L82 78 M68 82 L80 86"/>
-        </g>
-        <g fill="#898781" font-size="11"><text x="36" y="62">🕐 3초</text></g>
-        <path d="M118 76 q12 -18 30 -24" fill="none" stroke="#0ca30c" stroke-width="2.4" marker-end="url(#arrGr)"/>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="196" cy="38" r="6"/><path d="M196 44 L194 62 M196 50 L186 58 M196 50 L206 54 M194 62 L186 84 M194 62 L202 84"/>
-        </g>
-        <g stroke="#c3c2b7" stroke-width="2.4" stroke-linecap="round" fill="none">
-          <circle cx="252" cy="26" r="6"/><path d="M252 32 L252 58 M252 40 L241 50 M252 40 L263 50 M252 58 L244 84 M252 58 L260 84"/>
-        </g>
-      </svg>
-      <div class="note">①② 통과 → ③ <b style="color:var(--ink-2)">5초 전 회복 — 전송 취소</b> <span class="mono" style="font-size:.72rem">(실측: 4.6초 기상 → 미발송)</span></div>
-      <div><span class="badge ok"><span class="ic">✓</span> 알림 없음</span></div>
-    </div>
-  </div>
-  </div>
-  <svg width="0" height="0"><defs>
-    <marker id="arrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3987e5"/></marker>
-    <marker id="arrG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b6a66"/></marker>
-    <marker id="arrGr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0ca30c"/></marker>
-  </defs></svg>
-  <p class="note">보호자를 깨우지 않는 것도 기능입니다 — 오탐지가 잦으면 알림은 무시되고, 무시되는 알림은 없는 것과 같습니다.</p>
-</section>
-
-<!-- ================= 12. 실측 검증 ================= -->
-<section class="slide" id="s12">
   <div class="kicker">검증</div>
   <h2>실측으로 확인했습니다 — <span class="accent">20시행 8,899프레임</span></h2>
   <div class="row fill" style="align-items:stretch">
@@ -842,8 +741,8 @@
   </div>
 </section>
 
-<!-- ================= 13. 마무리 ================= -->
-<section class="slide" id="s13">
+<!-- ================= 12. 마무리 ================= -->
+<section class="slide" id="s12">
   <div class="kicker">마무리</div>
   <h2>요약</h2>
   <div class="row" style="gap:1rem">
@@ -893,7 +792,7 @@
 
 <div class="nav">
   <button id="prev" aria-label="이전 슬라이드">‹</button>
-  <span id="pageno">1 / 13</span>
+  <span id="pageno">1 / 12</span>
   <button id="next" aria-label="다음 슬라이드">›</button>
 </div>
 <div class="foot">노인 낙상 감지 시스템 — 발표자료</div>
