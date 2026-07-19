@@ -267,29 +267,111 @@
 <section class="slide" id="s5">
   <div class="kicker">딜레마</div>
   <h2>“그럼 집에 CCTV를 달까요?” — <span class="thin">아무도 원하지 않습니다</span></h2>
-  <div class="fill col" style="justify-content:center; gap:2rem">
-    <div class="flow" style="align-items:center">
-      <div class="fbox" style="flex:1">
+  <div class="row fill" style="align-items:stretch">
+    <div class="col" style="flex:1.15">
+      <div class="card fill col" style="justify-content:center; gap:.7rem; border-color:rgba(208,59,59,.35)">
+        <div style="font-size:.85rem; color:var(--muted); font-weight:600">일반 CCTV가 내보내는 화면 — <b style="color:#eb9a9a">카메라 시점</b></div>
+        <svg viewBox="0 0 480 330" style="width:100%; height:auto" role="img" aria-label="거실 천장 모서리에 달린 CCTV가 내려다본 화면. 어르신의 얼굴과 옷차림, 집 안 살림이 그대로 보인다">
+          <defs>
+            <radialGradient id="cctvVig" cx="50%" cy="50%" r="72%">
+              <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#000" stop-opacity=".65"/>
+            </radialGradient>
+            <pattern id="cctvScan" width="4" height="4" patternUnits="userSpaceOnUse">
+              <rect width="4" height="2" fill="#fff" opacity=".035"/>
+            </pattern>
+            <clipPath id="cctvClip"><rect x="10" y="10" width="460" height="310" rx="6"/></clipPath>
+          </defs>
+          <g clip-path="url(#cctvClip)">
+            <!-- 방 (1점 투시) -->
+            <polygon points="10,10 140,90 350,90 470,10" fill="#151514"/>
+            <polygon points="10,10 140,90 140,205 10,320" fill="#1f1f1d"/>
+            <polygon points="470,10 350,90 350,205 470,320" fill="#1a1a19"/>
+            <rect x="140" y="90" width="210" height="115" fill="#242422"/>
+            <polygon points="140,205 350,205 470,320 10,320" fill="#2b2b28"/>
+            <!-- 창문 -->
+            <rect x="168" y="112" width="66" height="52" fill="#111110" stroke="#585752" stroke-width="1.6"/>
+            <line x1="201" y1="112" x2="201" y2="164" stroke="#585752" stroke-width="1.6"/>
+            <line x1="168" y1="138" x2="234" y2="138" stroke="#585752" stroke-width="1.6"/>
+            <!-- TV장 -->
+            <rect x="266" y="120" width="62" height="40" rx="2" fill="#141413" stroke="#585752" stroke-width="1.6"/>
+            <rect x="272" y="162" width="50" height="8" fill="#33332f"/>
+            <!-- 러그 -->
+            <polygon points="186,246 316,246 356,296 142,296" fill="#232321"/>
+            <!-- 소파 -->
+            <polygon points="52,232 128,214 176,232 96,256" fill="#3a3a36"/>
+            <polygon points="52,232 96,256 96,286 52,264" fill="#2e2e2b"/>
+            <polygon points="96,256 176,232 176,262 96,286" fill="#343430"/>
+            <!-- 탁자 -->
+            <polygon points="286,258 348,246 386,266 320,280" fill="#38352f"/>
+            <path d="M292 262 L294 288 M344 252 L346 276 M380 268 L382 292 M324 280 L326 304" stroke="#2a2823" stroke-width="4"/>
+            <!-- 어르신 (얼굴·옷차림 그대로 식별됨) -->
+            <g transform="translate(232,292) scale(0.60)" stroke-linejoin="round">
+              <path d="M-21 -84 L-19 -16 L-6 -16 L-3 -84 Z" fill="#45454a"/>
+              <path d="M3 -84 L6 -16 L19 -16 L21 -84 Z" fill="#4d4d52"/>
+              <path d="M-21 -16 L-6 -16 L-5 -7 Q-14 -2 -23 -6 Z" fill="#2b2b2c"/>
+              <path d="M6 -16 L21 -16 L23 -6 Q14 -2 5 -7 Z" fill="#2b2b2c"/>
+              <path d="M-27 -148 Q-38 -136 -36 -114 L-33 -95" stroke="#8a8981" stroke-width="12" stroke-linecap="round" fill="none"/>
+              <path d="M27 -148 Q38 -136 36 -114 L33 -95" stroke="#8a8981" stroke-width="12" stroke-linecap="round" fill="none"/>
+              <circle cx="-33" cy="-91" r="6" fill="#c2a894"/>
+              <circle cx="33" cy="-91" r="6" fill="#c2a894"/>
+              <path d="M-7 -168 L7 -168 L7 -150 L-7 -150 Z" fill="#b1957f"/>
+              <path d="M-27 -154 Q0 -163 27 -154 L30 -88 Q0 -82 -30 -88 Z" fill="#8a8981"/>
+              <path d="M-9 -159 Q0 -150 9 -159 L7 -84 L-7 -84 Z" fill="#75746d"/>
+              <ellipse cx="0" cy="-184" rx="17" ry="20.5" fill="#c2a894"/>
+              <ellipse cx="-17" cy="-182" rx="3.6" ry="5.2" fill="#b1957f"/>
+              <ellipse cx="17" cy="-182" rx="3.6" ry="5.2" fill="#b1957f"/>
+              <path d="M-17.5 -188 Q-16 -206 0 -205 Q16 -206 17.5 -188 Q11 -197 0 -196 Q-11 -197 -17.5 -188 Z" fill="#ddd9d2"/>
+              <ellipse cx="-6.2" cy="-187" rx="1.9" ry="2.3" fill="#3b3b39"/>
+              <ellipse cx="6.2" cy="-187" rx="1.9" ry="2.3" fill="#3b3b39"/>
+              <path d="M-4.5 -175 Q0 -171.5 4.5 -175" stroke="#8f7563" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- 얼굴 인식 박스 -->
+            <rect x="219" y="166" width="26" height="30" rx="1" fill="none" stroke="#d03b3b" stroke-width="1.4"/>
+            <text x="249" y="176" font-size="10" fill="#eb9a9a" font-weight="700" class="mono">FACE</text>
+            <!-- 주사선·비네트 -->
+            <rect x="10" y="10" width="460" height="310" fill="url(#cctvScan)"/>
+            <rect x="10" y="10" width="460" height="310" fill="url(#cctvVig)"/>
+            <!-- 모니터 오버레이 -->
+            <circle cx="34" cy="34" r="6" fill="#d03b3b"/>
+            <text x="47" y="39" font-size="14" fill="#eb9a9a" font-weight="700" class="mono">REC</text>
+            <text x="34" y="60" font-size="12" fill="#c3c2b7" class="mono">CAM 01 · 거실</text>
+            <text x="446" y="39" font-size="12" fill="#c3c2b7" text-anchor="end" class="mono">2026-07-19 15:04:39</text>
+            <text x="446" y="306" font-size="11" fill="#898781" text-anchor="end" class="mono">▲ 외부 서버로 업로드 중</text>
+            <g stroke="#c3c2b7" stroke-width="1.6" fill="none" opacity=".5">
+              <path d="M26 82 L26 66 L42 66"/><path d="M454 82 L454 66 L438 66"/>
+              <path d="M26 252 L26 268 L42 268"/><path d="M454 252 L454 268 L438 268"/>
+            </g>
+          </g>
+          <rect x="10" y="10" width="460" height="310" rx="6" fill="none" stroke="#52514e" stroke-width="1.6"/>
+        </svg>
+        <p class="note">천장 모서리 카메라가 내려다본 거실. <b style="color:#eb9a9a">얼굴·옷차림·집 안 살림·생활 습관이 전부 그대로</b> 담겨 하루 24시간 밖으로 나갑니다.</p>
+      </div>
+    </div>
+    <div class="col" style="flex:.72; justify-content:center; gap:.55rem">
+      <div class="fbox" style="flex:none">
         <div class="t">집 안 카메라</div>
         <div class="d">거실·침실·욕실 앞…<br>하루 24시간, 내 모든 일상</div>
       </div>
-      <div class="farrow">
-        <span class="a" style="color:var(--critical)">⟶</span>
+      <div class="farrow" style="min-width:0; flex-direction:row; gap:.5rem; justify-content:center">
+        <span class="a" style="color:var(--critical)">↓</span>
         <span style="color:var(--critical); font-weight:700">24시간 영상 전송</span>
       </div>
-      <div class="fbox" style="flex:1; border-color:rgba(208,59,59,.5)">
+      <div class="fbox" style="flex:none; border-color:rgba(208,59,59,.5)">
         <div class="t" style="color:#eb9a9a">외부 서버</div>
         <div class="d">내 일상이 남의 저장소에<br>녹화·보관·열람</div>
       </div>
-      <div class="farrow">
-        <span class="a" style="color:var(--critical)">⟶</span>
+      <div class="farrow" style="min-width:0; flex-direction:row; gap:.5rem; justify-content:center">
+        <span class="a" style="color:var(--critical)">↓</span>
         <span style="color:var(--critical); font-weight:700">누군가의 화면</span>
       </div>
-      <div class="fbox" style="flex:1; border-color:rgba(208,59,59,.5)">
+      <div class="fbox" style="flex:none; border-color:rgba(208,59,59,.5)">
         <div class="t" style="color:#eb9a9a">상시 모니터링</div>
         <div class="d">“감시당하는 집”이 되는 순간<br>어르신이 먼저 거부합니다</div>
       </div>
     </div>
+  </div>
+  <div class="col" style="gap:1rem">
     <div class="row" style="justify-content:center">
       <div class="card" style="max-width:52rem; text-align:center; border-color:rgba(57,135,229,.4)">
         <p style="font-size:1.25rem; font-weight:700">필요한 것은 <span class="danger">감시(watching)</span>가 아니라 <span class="accent">감지(sensing)</span>입니다.</p>
@@ -309,18 +391,37 @@
     <div class="col" style="flex:1">
       <div class="card fill col" style="justify-content:center; align-items:center; gap:.6rem">
         <div style="font-size:.85rem; color:var(--muted); font-weight:600">카메라에 비치는 것</div>
-        <svg viewBox="0 0 260 210" style="width:78%" role="img" aria-label="방 안에 서 있는 사람 실루엣">
+        <svg viewBox="0 0 260 210" style="width:78%" role="img" aria-label="방 안에 서 있는 어르신 — 얼굴과 옷차림이 그대로 보이는 원본 영상">
           <rect x="8" y="8" width="244" height="194" rx="8" fill="#232322"/>
-          <rect x="26" y="28" width="52" height="44" rx="3" fill="none" stroke="#52514e" stroke-width="1.5"/>
-          <line x1="52" y1="28" x2="52" y2="72" stroke="#52514e" stroke-width="1.5"/>
-          <rect x="168" y="120" width="72" height="34" rx="4" fill="none" stroke="#52514e" stroke-width="1.5"/>
-          <line x1="168" y1="132" x2="240" y2="132" stroke="#52514e" stroke-width="1.5"/>
-          <line x1="20" y1="182" x2="240" y2="182" stroke="#52514e" stroke-width="1.5"/>
-          <g fill="#898781">
-            <circle cx="118" cy="66" r="13"/>
-            <path d="M104 84 q14 -8 28 0 l6 52 q-20 8 -40 0 z"/>
-            <rect x="104" y="134" width="11" height="46" rx="5"/>
-            <rect x="121" y="134" width="11" height="46" rx="5"/>
+          <!-- 창문 -->
+          <rect x="24" y="30" width="54" height="46" rx="2" fill="#1b1b1a" stroke="#52514e" stroke-width="1.5"/>
+          <line x1="51" y1="30" x2="51" y2="76" stroke="#52514e" stroke-width="1.5"/>
+          <line x1="24" y1="53" x2="78" y2="53" stroke="#52514e" stroke-width="1.5"/>
+          <!-- 서랍장 -->
+          <rect x="180" y="118" width="62" height="38" rx="3" fill="#2b2b29" stroke="#52514e" stroke-width="1.5"/>
+          <line x1="180" y1="131" x2="242" y2="131" stroke="#52514e" stroke-width="1.5"/>
+          <!-- 바닥선 -->
+          <line x1="18" y1="176" x2="242" y2="176" stroke="#52514e" stroke-width="1.5"/>
+          <!-- 어르신 (실제 모습 그대로) -->
+          <g transform="translate(112,176) scale(0.70)" stroke-linejoin="round">
+            <path d="M-21 -84 L-19 -16 L-6 -16 L-3 -84 Z" fill="#45454a"/>
+            <path d="M3 -84 L6 -16 L19 -16 L21 -84 Z" fill="#4d4d52"/>
+            <path d="M-21 -16 L-6 -16 L-5 -7 Q-14 -2 -23 -6 Z" fill="#2b2b2c"/>
+            <path d="M6 -16 L21 -16 L23 -6 Q14 -2 5 -7 Z" fill="#2b2b2c"/>
+            <path d="M-27 -148 Q-38 -136 -36 -114 L-33 -95" stroke="#8a8981" stroke-width="12" stroke-linecap="round" fill="none"/>
+            <path d="M27 -148 Q38 -136 36 -114 L33 -95" stroke="#8a8981" stroke-width="12" stroke-linecap="round" fill="none"/>
+            <circle cx="-33" cy="-91" r="6" fill="#c2a894"/>
+            <circle cx="33" cy="-91" r="6" fill="#c2a894"/>
+            <path d="M-7 -168 L7 -168 L7 -150 L-7 -150 Z" fill="#b1957f"/>
+            <path d="M-27 -154 Q0 -163 27 -154 L30 -88 Q0 -82 -30 -88 Z" fill="#8a8981"/>
+            <path d="M-9 -159 Q0 -150 9 -159 L7 -84 L-7 -84 Z" fill="#75746d"/>
+            <ellipse cx="0" cy="-184" rx="17" ry="20.5" fill="#c2a894"/>
+            <ellipse cx="-17" cy="-182" rx="3.6" ry="5.2" fill="#b1957f"/>
+            <ellipse cx="17" cy="-182" rx="3.6" ry="5.2" fill="#b1957f"/>
+            <path d="M-17.5 -188 Q-16 -206 0 -205 Q16 -206 17.5 -188 Q11 -197 0 -196 Q-11 -197 -17.5 -188 Z" fill="#ddd9d2"/>
+            <ellipse cx="-6.2" cy="-187" rx="1.9" ry="2.3" fill="#3b3b39"/>
+            <ellipse cx="6.2" cy="-187" rx="1.9" ry="2.3" fill="#3b3b39"/>
+            <path d="M-4.5 -175 Q0 -171.5 4.5 -175" stroke="#8f7563" stroke-width="1.7" fill="none" stroke-linecap="round"/>
           </g>
         </svg>
         <p class="note" style="text-align:center">원본 영상 — <b style="color:var(--ink-2)">브라우저 메모리 안에서만</b> 존재.<br>저장되지 않고, 전송되지 않고, 화면에 표시조차 되지 않습니다.</p>
@@ -391,53 +492,102 @@
   <p class="sub">낙상의 72.5%는 집 안에서, 그중 상당수는 화장실 타일 바닥에서 일어납니다. 거실에 한 대 놓아둔 카메라는 <b>화장실에서 쓰러진 사람을 볼 수 없습니다.</b> 그래서 이 시스템은 <b class="accent">지키려는 방마다 한 대씩</b> 설치합니다.</p>
   <div class="row fill" style="align-items:stretch">
     <div class="card col" style="flex:1.3; justify-content:center">
-      <svg viewBox="0 0 520 360" style="width:100%; height:auto" role="img" aria-label="방 네 칸에 각각 카메라가 설치된 평면도. 화장실에서 낙상이 감지된 상태">
-        <rect x="20" y="20" width="480" height="320" rx="6" fill="#111110" stroke="#52514e" stroke-width="2"/>
-        <line x1="270" y1="20" x2="270" y2="340" stroke="#52514e" stroke-width="2"/>
-        <line x1="20" y1="180" x2="500" y2="180" stroke="#52514e" stroke-width="2"/>
+      <svg viewBox="0 0 520 360" style="width:100%; height:auto" role="img" aria-label="안방·작은방·화장실·주방·거실·현관으로 이루어진 아파트 평면도. 안방·거실·화장실·주방 네 곳에 카메라가 설치되어 있고 화장실에서 낙상이 감지된 상태">
+        <!-- 집 외곽 -->
+        <rect x="20" y="20" width="480" height="320" rx="4" fill="#131312" stroke="#6b6a66" stroke-width="3"/>
 
         <!-- 시야각 -->
-        <g fill="rgba(57,135,229,.08)">
-          <path d="M52 62 L34 174 L250 174 Z"/><path d="M468 62 L292 174 L486 174 Z"/>
-          <path d="M52 222 L34 334 L250 334 Z"/><path d="M468 222 L292 334 L486 334 Z"/>
+        <g fill="rgba(57,135,229,.09)">
+          <path d="M46 56 L30 144 L164 144 Z"/>
+          <path d="M292 56 L286 144 L394 144 Z"/>
+          <path d="M486 56 L408 144 L494 144 Z"/>
+          <path d="M135 182 L124 332 L404 332 Z"/>
+        </g>
+
+        <!-- 가구 -->
+        <g stroke="#3f3e3b" stroke-width="1.6" fill="#1b1b19">
+          <!-- 안방: 침대·장롱 -->
+          <rect x="30" y="88" width="72" height="52" rx="3"/><line x1="30" y1="102" x2="102" y2="102"/>
+          <rect x="120" y="72" width="42" height="20" rx="2"/>
+          <!-- 작은방: 책상·침대 -->
+          <rect x="180" y="74" width="50" height="18" rx="2"/>
+          <rect x="180" y="102" width="54" height="40" rx="3"/><line x1="180" y1="113" x2="234" y2="113"/>
+          <!-- 화장실: 세면대·변기 -->
+          <rect x="286" y="76" width="22" height="14" rx="3"/>
+          <ellipse cx="382" cy="102" rx="10" ry="13"/>
+          <!-- 주방: 싱크대·조리대 -->
+          <rect x="468" y="60" width="24" height="76" rx="2"/>
+          <circle cx="480" cy="80" r="7"/>
+          <rect x="472" y="108" width="16" height="16" rx="2"/>
+          <!-- 현관: 신발장 -->
+          <rect x="28" y="302" width="38" height="28" rx="2"/>
+          <!-- 거실: TV·소파·탁자·식탁 -->
+          <rect x="176" y="160" width="66" height="12" rx="2"/>
+          <rect x="146" y="286" width="88" height="34" rx="4"/><line x1="146" y1="300" x2="234" y2="300"/>
+          <rect x="252" y="284" width="58" height="28" rx="3"/>
+          <circle cx="432" cy="296" r="27"/>
+        </g>
+
+        <!-- 내벽 (문 자리는 비움) -->
+        <g stroke="#6b6a66" stroke-width="3" stroke-linecap="square">
+          <path d="M20 150 H128 M163 150 H218 M253 150 H332 M367 150 H415 M485 150 H500"/>
+          <path d="M170 20 V150 M280 20 V150 M400 20 V150"/>
+          <path d="M115 150 V235 M115 285 V340"/>
+        </g>
+        <!-- 문 회전 -->
+        <g stroke="#45444100" stroke-width="0" fill="none"/>
+        <g stroke="#4d4c49" stroke-width="1.4" fill="none">
+          <path d="M128 150 V115 A35 35 0 0 1 163 150"/>
+          <path d="M218 150 V115 A35 35 0 0 1 253 150"/>
+          <path d="M115 235 H165 A50 50 0 0 1 115 285"/>
         </g>
 
         <!-- 카메라 4대 -->
         <g fill="none" stroke="#3987e5" stroke-width="2">
-          <g transform="translate(52,50)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
-          <g transform="translate(468,50)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
-          <g transform="translate(52,210)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
-          <g transform="translate(468,210)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
+          <g transform="translate(46,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
+          <g transform="translate(292,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
+          <g transform="translate(486,44)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
+          <g transform="translate(135,170)"><rect x="-11" y="-8" width="22" height="14" rx="3"/><circle cx="0" cy="-1" r="3"/></g>
         </g>
 
         <!-- 방 이름 -->
-        <g font-size="15" font-weight="700" fill="#ffffff">
-          <text x="165" y="46">안방</text><text x="300" y="46">거실</text>
-          <text x="165" y="206">화장실</text><text x="300" y="206">주방</text>
+        <g font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">
+          <text x="112" y="45">안방</text>
+          <text x="225" y="45">작은방</text>
+          <text x="345" y="45">화장실</text>
+          <text x="440" y="45">주방</text>
+          <text x="300" y="192">거실</text>
+          <text x="67" y="180">현관</text>
         </g>
-        <g font-size="12" fill="#898781" class="mono">
-          <text x="165" y="64">room 1</text><text x="300" y="64">room 2</text>
-          <text x="165" y="224">room 3</text><text x="300" y="224">room 4</text>
+        <g font-size="11" fill="#898781" class="mono" text-anchor="middle">
+          <text x="112" y="62">room 1</text>
+          <text x="345" y="62">room 3</text>
+          <text x="440" y="62">room 4</text>
+          <text x="300" y="209">room 2</text>
         </g>
+        <text x="225" y="62" font-size="10.5" fill="#6b6a66" text-anchor="middle">카메라 미설치</text>
 
-        <!-- 서 있는 사람 3명 (관절만) -->
+        <!-- 서 있는 사람 (관절만) -->
         <g stroke="#6b6a66" stroke-width="2.2" stroke-linecap="round" fill="none">
-          <g transform="translate(180,110)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
-          <g transform="translate(390,110)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
-          <g transform="translate(390,270)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
+          <g transform="translate(136,104)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
+          <g transform="translate(437,96)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
+          <g transform="translate(320,246)"><circle cx="0" cy="-16" r="5"/><path d="M0 -11 L0 6 M0 -6 L-11 2 M0 -6 L11 2 M0 6 L-8 26 M0 6 L8 26"/></g>
         </g>
 
         <!-- 화장실: 쓰러진 사람 (감지됨) -->
-        <ellipse cx="110" cy="307" rx="62" ry="28" fill="none" stroke="#3987e5" stroke-width="1.4" stroke-dasharray="4 5"/>
-        <g stroke="#3987e5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(62,308) scale(1.25)">
+        <ellipse cx="328" cy="121" rx="38" ry="23" fill="none" stroke="#3987e5" stroke-width="1.4" stroke-dasharray="4 5"/>
+        <g stroke="#3987e5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(298,122) scale(0.9)">
           <circle cx="0" cy="-2" r="6.5"/>
           <path d="M7 0 L40 3"/>
           <path d="M17 1 L27 -14"/>
           <path d="M40 3 L55 -7 L69 -3"/>
           <path d="M40 3 L54 13 L69 12"/>
         </g>
-        <text x="40" y="252" font-size="14" font-weight="700" fill="#9cc4f4">낙상 감지</text>
-        <text x="40" y="268" font-size="11" fill="#898781" class="mono">room_name: "화장실"</text>
+        <!-- 지시선 + 콜아웃 -->
+        <path d="M364 134 L420 186" stroke="#3987e5" stroke-width="1.3" stroke-dasharray="3 4" fill="none"/>
+        <circle cx="420" cy="186" r="2.6" fill="#3987e5"/>
+        <text x="492" y="207" font-size="14" font-weight="700" fill="#9cc4f4" text-anchor="end">낙상 감지</text>
+        <text x="492" y="224" font-size="11" fill="#898781" class="mono" text-anchor="end">room_name: "화장실"</text>
       </svg>
       <p class="chart-cap">방 하나에 브라우저 한 개 — 각 방이 <b style="color:var(--ink-2)">자기 방 영상만, 자기 기기 안에서</b> 판정합니다. 서버로는 “화장실”이라는 <b style="color:var(--ink-2)">글자</b>만 올라갑니다.</p>
     </div>
