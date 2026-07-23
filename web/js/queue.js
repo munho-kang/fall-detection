@@ -38,8 +38,11 @@ export function createFallQueue(storage) {
           } catch {
             return;
           }
-          // await 중 enqueue된 항목을 잃지 않도록, 성공 후 최신 큐에서 head만 제거한다
-          write(read().slice(1));
+          // await 중 enqueue된 항목을 잃지 않도록, 성공 후 최신 큐에서 head만 제거한다.
+          // 다른 탭이 같은 head를 먼저 제거했으면 건너뛴다 — 이중 제거로 인한 유실 방지.
+          // 중복 전송은 서버의 unique 제약이 200으로 흡수한다.
+          const current = read();
+          if (JSON.stringify(current[0]) === JSON.stringify(head)) write(current.slice(1));
         }
       } finally {
         flushing = false;

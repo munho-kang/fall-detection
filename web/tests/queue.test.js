@@ -75,4 +75,28 @@ describe("fall queue", () => {
     await first;
     expect(q.size()).toBe(0);
   });
+
+  it("전송 중 다른 탭이 head를 이미 제거했어도 다음 항목을 지우지 않는다", async () => {
+    const storage = fakeStorage();
+    const q = createFallQueue(storage);
+    q.enqueue({ id: 1 });
+    q.enqueue({ id: 2 });
+
+    let release;
+    const sent = [];
+    const flushing = q.flush(async (p) => {
+      if (p.id === 1) await new Promise((r) => (release = r));
+      sent.push(p.id);
+    });
+    await Promise.resolve(); // postFn(id 1)이 대기 상태에 들어가게 한다
+
+    // 다른 탭이 id 1을 자기 쪽에서 성공시켜 이미 제거한 상황을 재현한다
+    storage.setItem("fall_queue", JSON.stringify([{ id: 2 }]));
+
+    release();
+    await flushing;
+
+    expect(sent).toEqual([1, 2]); // 수정 전 코드는 id 2를 전송 없이 지워 [1]로 끝난다
+    expect(q.size()).toBe(0);
+  });
 });
