@@ -1,9 +1,11 @@
 # 낙상 이벤트 등록·조회·확인 API 뷰와 회원가입
 
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -56,7 +58,10 @@ class RoomListCreate(generics.ListCreateAPIView):
         return Room.objects.filter(guardian=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(guardian=self.request.user)
+        try:
+            serializer.save(guardian=self.request.user)
+        except IntegrityError:
+            raise ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
 
 
 class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -65,3 +70,9 @@ class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         # 남의 방은 존재 자체가 드러나지 않고 404가 된다
         return Room.objects.filter(guardian=self.request.user)
+
+    def perform_update(self, serializer):
+        try:
+            serializer.save()
+        except IntegrityError:
+            raise ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
