@@ -90,7 +90,7 @@ flutter run
 
 ```bash
 cd backend && .venv/bin/python -m pytest    # 33개 — 인증·소유권·방·프로필·푸시·전송 멱등성
-cd web     && npm test                       # 15개 — 상태머신 시나리오 + 오프라인 큐
+cd web     && npm test                       # 16개 — 상태머신 시나리오 + 오프라인 큐
 cd app     && flutter test                   # 6개 — 새 이벤트 판별 + 알림 소스 규칙
 ```
 
