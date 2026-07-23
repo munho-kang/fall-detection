@@ -65,3 +65,8 @@ class GuardianProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = GuardianProfile
         fields = ["elder_phone"]
+
+
+class PushDeviceSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=["fcm", "webpush"])
+    token = serializers.CharField()

@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from falls.models import FallEvent, Room
+from falls.models import FallEvent, PushDevice, Room
 
 
 @pytest.fixture
@@ -212,3 +212,37 @@ def test_profile_put_roundtrip(guardian):
     r = c.put("/api/profile/", {"elder_phone": "01012345678"}, format="json")
     assert r.status_code == 200
     assert c.get("/api/profile/").data == {"elder_phone": "01012345678"}
+
+
+# --- 푸시 기기 등록 (Task 4) ---
+
+
+def test_push_device_register(guardian):
+    r = client_for(guardian).post(
+        "/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json"
+    )
+    assert r.status_code == 201
+    device = PushDevice.objects.get(token="tok-1")
+    assert device.guardian == guardian and device.kind == "fcm"
+
+
+def test_push_device_token_moves_to_current_user(guardian, other):
+    # 같은 브라우저/기기에서 계정을 전환한 경우 — 토큰은 마지막 사용자 것이 된다
+    client_for(other).post("/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json")
+    client_for(guardian).post("/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json")
+    assert PushDevice.objects.count() == 1
+    assert PushDevice.objects.get(token="tok-1").guardian == guardian
+
+
+def test_push_device_delete(guardian):
+    PushDevice.objects.create(guardian=guardian, kind="fcm", token="tok-1")
+    r = client_for(guardian).delete("/api/push/devices/", {"token": "tok-1"}, format="json")
+    assert r.status_code == 204
+    assert PushDevice.objects.count() == 0
+
+
+def test_push_device_bad_kind_400(guardian):
+    r = client_for(guardian).post(
+        "/api/push/devices/", {"kind": "smoke-signal", "token": "t"}, format="json"
+    )
+    assert r.status_code == 400
