@@ -34,18 +34,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _load() async {
     try {
       final rooms = await widget.api.listRooms();
+      if (!mounted) return;
+      setState(() => _rooms = rooms);
       final profile = await widget.api.getProfile();
       if (!mounted) return;
-      setState(() {
-        _rooms = rooms;
-        _phone.text = profile.elderPhone;
-        _loading = false;
-      });
+      _phone.text = profile.elderPhone;
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _loading = false);
       _snack(e);
     }
+    if (mounted && _loading) setState(() => _loading = false);
   }
 
   void _snack(Object e) {
@@ -84,20 +81,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+    final nameText = name.text.trim();
+    final n = int.tryParse(number.text.trim());
+    name.dispose();
+    number.dispose();
     if (saved != true) return;
 
-    final n = int.tryParse(number.text.trim());
-    if (name.text.trim().isEmpty || n == null) {
+    if (nameText.isEmpty || n == null) {
       _snack(Exception('이름과 숫자 번호를 모두 입력하세요.'));
       return;
     }
     try {
       if (room == null) {
-        await widget.api.createRoom(name.text.trim(), n);
+        await widget.api.createRoom(nameText, n);
       } else {
-        await widget.api.renameRoom(room.id, name.text.trim(), n);
+        await widget.api.renameRoom(room.id, nameText, n);
       }
-      await _load(); // 서버 기준으로 다시 그린다
+      await _load();
     } catch (e) {
       _snack(e);
     }
