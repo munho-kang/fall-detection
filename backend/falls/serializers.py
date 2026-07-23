@@ -6,6 +6,8 @@ from rest_framework import serializers
 
 from .models import FallEvent, Room
 
+DUPLICATE_ROOM_MESSAGE = "같은 이름과 번호의 방이 이미 있습니다."
+
 
 class SignupSerializer(serializers.ModelSerializer):
     # 비밀번호가 응답 JSON에 실리지 않도록 쓰기 전용으로 막는다
@@ -55,5 +57,5 @@ class RoomSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             dup = dup.exclude(pk=self.instance.pk)
         if dup.exists():
-            raise serializers.ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
+            raise serializers.ValidationError(DUPLICATE_ROOM_MESSAGE)
         return attrs

@@ -186,3 +186,13 @@ def test_room_duplicate_create_400(guardian):
     Room.objects.create(guardian=guardian, name="안방", number=1)
     r = client_for(guardian).post("/api/rooms/", {"name": "안방", "number": 1}, format="json")
     assert r.status_code == 400
+
+
+@pytest.mark.django_db(transaction=True)
+def test_room_duplicate_race_returns_400(guardian, monkeypatch):
+    # validate의 사전 검사를 우회해 경합 시 안전망(IntegrityError → 400)을 직접 검증한다
+    monkeypatch.setattr("falls.serializers.RoomSerializer.validate", lambda self, attrs: attrs)
+    Room.objects.create(guardian=guardian, name="안방", number=1)
+    r = client_for(guardian).post("/api/rooms/", {"name": "안방", "number": 1}, format="json")
+    assert r.status_code == 400
+    assert r.data == {"non_field_errors": ["같은 이름과 번호의 방이 이미 있습니다."]}

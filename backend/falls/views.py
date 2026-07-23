@@ -10,7 +10,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import FallEvent, Room
-from .serializers import FallEventSerializer, RoomSerializer, SignupSerializer
+from .serializers import (
+    DUPLICATE_ROOM_MESSAGE,
+    FallEventSerializer,
+    RoomSerializer,
+    SignupSerializer,
+)
 
 
 @api_view(["POST"])
@@ -61,7 +66,7 @@ class RoomListCreate(generics.ListCreateAPIView):
         try:
             serializer.save(guardian=self.request.user)
         except IntegrityError:
-            raise ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
+            raise ValidationError({"non_field_errors": [DUPLICATE_ROOM_MESSAGE]})
 
 
 class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -75,4 +80,4 @@ class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
         try:
             serializer.save()
         except IntegrityError:
-            raise ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
+            raise ValidationError({"non_field_errors": [DUPLICATE_ROOM_MESSAGE]})
