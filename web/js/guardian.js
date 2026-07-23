@@ -15,12 +15,13 @@ import {
   requireToken,
   updateProfile,
 } from "./api.js";
+import { pollFailureBanner } from "./pollBanner.js";
 
 requireToken("guardian.html");
 
 const el = {};
 for (const id of [
-  "banner", "enablePush", "pushStatus", "fallEmpty", "fallList",
+  "banner", "pollBanner", "enablePush", "pushStatus", "fallEmpty", "fallList",
   "roomList", "newRoomName", "newRoomNumber", "addRoomBtn",
   "elderPhone", "savePhone", "error", "logout",
 ]) {
@@ -184,8 +185,25 @@ el.logout.addEventListener("click", async () => {
 
 // --- 초기화 ---
 
+let pollFailures = 0;
+let lastPollSuccessAt = null;
+
+function updatePollBanner() {
+  const text = pollFailureBanner(pollFailures, lastPollSuccessAt);
+  el.pollBanner.classList.toggle("hidden", !text);
+  if (text) el.pollBanner.textContent = text;
+}
+
 refreshFalls().catch(showError);
-setInterval(() => refreshFalls().catch(() => {}), 5000); // 폴링 실패는 다음 주기가 흡수한다
+setInterval(() => {
+  refreshFalls()
+    .then(() => {
+      pollFailures = 0;
+      lastPollSuccessAt = new Date();
+    })
+    .catch(() => (pollFailures += 1))
+    .finally(updatePollBanner);
+}, 5000);
 refreshRooms().catch(showError);
 getProfile()
   .then((p) => {
