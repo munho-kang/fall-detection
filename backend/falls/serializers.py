@@ -4,7 +4,7 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import FallEvent, Room
+from .models import FallEvent, GuardianProfile, Room
 
 DUPLICATE_ROOM_MESSAGE = "같은 이름과 번호의 방이 이미 있습니다."
 
@@ -59,3 +59,9 @@ class RoomSerializer(serializers.ModelSerializer):
         if dup.exists():
             raise serializers.ValidationError(DUPLICATE_ROOM_MESSAGE)
         return attrs
+
+
+class GuardianProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuardianProfile
+        fields = ["elder_phone"]

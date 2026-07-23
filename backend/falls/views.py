@@ -9,10 +9,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import FallEvent, Room
+from .models import FallEvent, GuardianProfile, Room
 from .serializers import (
     DUPLICATE_ROOM_MESSAGE,
     FallEventSerializer,
+    GuardianProfileSerializer,
     RoomSerializer,
     SignupSerializer,
 )
@@ -81,3 +82,15 @@ class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
             serializer.save()
         except IntegrityError:
             raise ValidationError({"non_field_errors": [DUPLICATE_ROOM_MESSAGE]})
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsAuthenticated])
+def profile(request):
+    prof, _ = GuardianProfile.objects.get_or_create(user=request.user)
+    if request.method == "PUT":
+        serializer = GuardianProfileSerializer(prof, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+    return Response(GuardianProfileSerializer(prof).data)

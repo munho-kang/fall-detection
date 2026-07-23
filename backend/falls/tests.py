@@ -196,3 +196,19 @@ def test_room_duplicate_race_returns_400(guardian, monkeypatch):
     r = client_for(guardian).post("/api/rooms/", {"name": "안방", "number": 1}, format="json")
     assert r.status_code == 400
     assert r.data == {"non_field_errors": ["같은 이름과 번호의 방이 이미 있습니다."]}
+
+
+# --- 프로필 (Task 3) ---
+
+
+def test_profile_get_creates_empty(guardian):
+    r = client_for(guardian).get("/api/profile/")
+    assert r.status_code == 200
+    assert r.data == {"elder_phone": ""}
+
+
+def test_profile_put_roundtrip(guardian):
+    c = client_for(guardian)
+    r = c.put("/api/profile/", {"elder_phone": "01012345678"}, format="json")
+    assert r.status_code == 200
+    assert c.get("/api/profile/").data == {"elder_phone": "01012345678"}

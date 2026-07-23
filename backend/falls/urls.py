@@ -12,4 +12,5 @@ urlpatterns = [
     path("falls/<int:pk>/acknowledge/", views.acknowledge),
     path("rooms/", views.RoomListCreate.as_view()),
     path("rooms/<int:pk>/", views.RoomDetail.as_view()),
+    path("profile/", views.profile),
 ]
