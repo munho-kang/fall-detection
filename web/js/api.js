@@ -74,9 +74,9 @@ async function postFallOnce(payload) {
   return res.json();
 }
 
-// 최대 3회 시도, 사이에 지수 백오프(0.5s → 1s)를 둔다. 마지막 시도가 실패하면
-// 기다리지 않고 바로 포기하므로 배너까지 약 1.5초다. 3회 실패하면 이 낙상은 유실된다.
-// 실제 제품이라면 localStorage 큐가 필요하지만 과제 범위에서는 배너로 알리고 포기한다.
+// 최대 3회 시도, 사이에 지수 백오프(0.5s → 1s)를 둔다. 3회 실패하면 호출자(main.js)가
+// localStorage 큐에 적재해 두었다가 연결이 돌아오면 재전송한다. 서버의 unique 제약이
+// 재전송 중복을 200으로 흡수하므로 여러 번 보내져도 행이 늘지 않는다.
 export async function postFall(payload, attempts = 3) {
   for (let i = 0; i < attempts; i += 1) {
     try {

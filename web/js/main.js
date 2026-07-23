@@ -4,6 +4,7 @@ import { postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
 import { drawSkeleton } from "./overlay.js";
 import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
+import { createFallQueue } from "./queue.js";
 import { createTuningRecorder } from "./tuning.js";
 
 requireToken();
@@ -35,6 +36,14 @@ const ctx = el.canvas.getContext("2d");
 const detector = createDetector();
 const tuning = createTuningRecorder({ peakEl: el.peak, downloadEl: el.download });
 let sentCount = 0;
+
+const queue = createFallQueue(localStorage);
+// flush 개별 항목은 1회만 시도한다 — 실패하면 어차피 다음 트리거가 다시 부른다
+const flushQueue = () => queue.flush((payload) => postFall(payload, 1));
+
+flushQueue(); // 페이지 로드 시
+window.addEventListener("online", flushQueue);
+setInterval(flushQueue, 60_000);
 
 el.start.addEventListener("click", async () => {
   el.error.textContent = "";
@@ -81,8 +90,13 @@ el.start.addEventListener("click", async () => {
         .then(() => {
           sentCount += 1;
           el.sent.textContent = `전송된 낙상 ${sentCount}건`;
+          flushQueue(); // 방금 성공했으니 밀려 있던 것도 지금 보낸다
         })
-        .catch((err) => showBanner(`낙상 전송에 실패했습니다. ${err.message}`));
+        .catch(() => {
+          // 401 로그아웃 중이어도 적재해 둔다 — 재로그인 후 flush가 되살리므로 손해가 없다
+          queue.enqueue(payload);
+          showBanner("전송 실패 — 저장해 두었다가 연결되면 다시 보냅니다");
+        });
     }
   });
 });
