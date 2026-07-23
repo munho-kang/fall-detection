@@ -3,11 +3,14 @@
 import {
   acknowledgeFall,
   createRoom,
+  deletePushDevice,
   deleteRoomById,
   getProfile,
+  getVapidKey,
   listFalls,
   listRooms,
   logoutAndRedirect,
+  registerPushDevice,
   renameRoom,
   requireToken,
   updateProfile,
@@ -23,8 +26,6 @@ for (const id of [
 ]) {
   el[id] = document.getElementById(id);
 }
-
-el.enablePush.disabled = true; // Task 11에서 켠다
 
 function showError(err) {
   el.error.textContent = err.message ?? String(err);
@@ -115,9 +116,71 @@ el.savePhone.addEventListener("click", () => {
     .catch(showError);
 });
 
+// --- 웹 푸시 ---
+
+function urlBase64ToUint8Array(base64) {
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (ch) => ch.charCodeAt(0));
+}
+
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window;
+
+async function initPushUi() {
+  if (!pushSupported()) {
+    el.enablePush.disabled = true;
+    el.pushStatus.textContent =
+      "이 브라우저는 웹 푸시를 지원하지 않습니다. iPhone은 홈 화면에 추가한 뒤 열면 켤 수 있습니다 (iOS 16.4+).";
+    return;
+  }
+  // GitHub Pages 하위 경로에서도 동작하도록 반드시 상대 경로로 등록한다 (스코프 = web/)
+  const reg = await navigator.serviceWorker.register("./sw.js");
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) {
+    el.enablePush.disabled = true;
+    el.pushStatus.textContent = "알림이 켜져 있습니다.";
+  }
+}
+
+el.enablePush.addEventListener("click", async () => {
+  el.pushStatus.textContent = "";
+  try {
+    const reg = await navigator.serviceWorker.register("./sw.js");
+    if ((await Notification.requestPermission()) !== "granted") {
+      throw new Error("알림 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.");
+    }
+    const { key } = await getVapidKey();
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(key),
+    });
+    await registerPushDevice("webpush", JSON.stringify(sub));
+    el.enablePush.disabled = true;
+    el.pushStatus.textContent = "알림이 켜졌습니다.";
+  } catch (err) {
+    el.pushStatus.textContent = err.message;
+  }
+});
+
+initPushUi().catch(() => {});
+
 // --- 로그아웃 ---
 
-el.logout.addEventListener("click", () => logoutAndRedirect());
+el.logout.addEventListener("click", async () => {
+  try {
+    // 이 브라우저 구독을 서버에서 지운다. 실패해도 로그아웃은 진행한다 —
+    // 남은 구독은 다음 발송 때 404/410으로 서버가 정리한다.
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = await reg?.pushManager.getSubscription();
+    if (sub) {
+      await deletePushDevice(JSON.stringify(sub));
+      await sub.unsubscribe();
+    }
+  } catch {
+    // 무시
+  }
+  logoutAndRedirect();
+});
 
 // --- 초기화 ---
 

@@ -1,0 +1,13 @@
+{
+  "name": "낙상 알림 보호자 페이지",
+  "short_name": "낙상 알림",
+  "start_url": "./guardian.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12141a",
+  "theme_color": "#4c8dff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

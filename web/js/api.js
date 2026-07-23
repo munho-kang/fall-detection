@@ -166,3 +166,26 @@ export async function updateProfile(elderPhone) {
   if (!res.ok) throw new Error(await firstErrorMessage(res, "연락처를 저장하지 못했습니다."));
   return res.json();
 }
+
+export async function getVapidKey() {
+  const res = await authFetch("/api/push/vapid-key/");
+  if (res.status === 503) throw new Error("서버에 웹 푸시 키가 설정되지 않았습니다.");
+  if (!res.ok) throw new Error(`푸시 키를 가져오지 못했습니다 (${res.status}).`);
+  return res.json(); // { key }
+}
+
+export async function registerPushDevice(kind, token) {
+  const res = await authFetch("/api/push/devices/", {
+    method: "POST",
+    body: JSON.stringify({ kind, token }),
+  });
+  if (!res.ok) throw new Error(`알림 등록에 실패했습니다 (${res.status}).`);
+}
+
+export async function deletePushDevice(token) {
+  const res = await authFetch("/api/push/devices/", {
+    method: "DELETE",
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) throw new Error(`알림 해제에 실패했습니다 (${res.status}).`);
+}
