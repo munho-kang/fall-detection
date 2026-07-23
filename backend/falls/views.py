@@ -39,8 +39,31 @@ class FallEventListCreate(generics.ListCreateAPIView):
         # 남의 이벤트가 절대 새어나가지 않도록 요청자로 필터링한다
         return FallEvent.objects.filter(guardian=self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save(guardian=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        lookup = {
+            "guardian": request.user,
+            "room_name": data["room_name"],
+            "room_number": data["room_number"],
+            "occurred_at": data["occurred_at"],
+        }
+
+        # 오프라인 큐 재전송 멱등성 — 같은 낙상이 다시 오면 기존 행을 돌려주고 푸시는 없다
+        existing = FallEvent.objects.filter(**lookup).first()
+        if existing is None:
+            try:
+                event = serializer.save(guardian=request.user)
+            except IntegrityError:
+                existing = FallEvent.objects.get(**lookup)  # 생성 경합 — 재조회해 200 경로로
+
+        if existing is not None:
+            return Response(self.get_serializer(existing).data, status=status.HTTP_200_OK)
+
+        # 201일 때만, 응답을 막지 않는 데몬 스레드에서 발송한다
+        push.send_to_guardian_async(event)
+        return Response(self.get_serializer(event).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["POST"])

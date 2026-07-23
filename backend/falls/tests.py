@@ -24,6 +24,12 @@ def other(db):
     return User.objects.create_user(username="g2", password="pw12345")
 
 
+@pytest.fixture(autouse=True)
+def _no_push_threads(monkeypatch):
+    # POST 테스트가 실제 발송 스레드를 띄우지 않게 막는다 (테스트 DB 보호)
+    monkeypatch.setattr("falls.push.send_to_guardian_async", lambda event: None)
+
+
 def client_for(user):
     c = APIClient()
     token, _ = Token.objects.get_or_create(user=user)
@@ -306,3 +312,45 @@ def test_vapid_key_endpoint(guardian, settings):
     r = client_for(guardian).get("/api/push/vapid-key/")
     assert r.status_code == 200
     assert len(r.data["key"]) > 40  # base64url 공개키(65바이트 비압축 점)
+
+
+# --- 멱등 POST + 푸시 트리거 (Task 6) ---
+
+
+def fall_payload(**extra):
+    return {
+        "room_name": "안방",
+        "room_number": 1,
+        "occurred_at": "2026-07-23T03:00:00Z",
+        "confidence": 0.9,
+        **extra,
+    }
+
+
+def test_duplicate_post_returns_200_and_no_new_row(guardian):
+    c = client_for(guardian)
+    first = c.post("/api/falls/", fall_payload(), format="json")
+    assert first.status_code == 201
+
+    second = c.post("/api/falls/", fall_payload(confidence=0.5), format="json")
+    assert second.status_code == 200
+    assert second.data["id"] == first.data["id"]
+    assert FallEvent.objects.count() == 1
+    assert FallEvent.objects.get().confidence == 0.9  # 기존 행이 그대로여야 한다
+
+
+def test_created_post_sends_push_once(guardian):
+    with mock.patch("falls.push.send_to_guardian_async") as sender:
+        r = client_for(guardian).post("/api/falls/", fall_payload(), format="json")
+    assert r.status_code == 201
+    sender.assert_called_once()
+    assert sender.call_args.args[0].id == r.data["id"]
+
+
+def test_duplicate_post_sends_no_push(guardian):
+    c = client_for(guardian)
+    c.post("/api/falls/", fall_payload(), format="json")
+    with mock.patch("falls.push.send_to_guardian_async") as sender:
+        r = c.post("/api/falls/", fall_payload(), format="json")
+    assert r.status_code == 200
+    sender.assert_not_called()
