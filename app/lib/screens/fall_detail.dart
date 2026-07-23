@@ -20,6 +20,17 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   late FallEvent _event = widget.event;
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.api.getProfile().then((p) {
+      if (mounted) setState(() => _elderPhone = p.elderPhone);
+    }).catchError((_) {
+      // 못 불러오면 미등록으로 취급한다. 버튼만 비활성화되고 화면은 정상 동작한다.
+      if (mounted) setState(() => _elderPhone = '');
+    });
+  }
+
   Future<void> _acknowledge() async {
     setState(() => _busy = true);
     try {
@@ -43,8 +54,8 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:'
       '${t.second.toString().padLeft(2, '0')}';
 
-  // 연락처 관리 화면은 범위 밖이므로 상수로 둔다.
-  static const _elderPhone = '01012345678';
+  // null = 아직 불러오는 중, '' = 미등록. 설정 화면에서 등록한 번호를 쓴다.
+  String? _elderPhone;
 
   // 시연 중 실수로 119에 실제 신고가 나가면 안 되므로 더미 번호다.
   // 실제 제품에서는 '119'로 바꾼다.
@@ -84,9 +95,10 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => _dial(_elderPhone),
+            // 로딩 중(null)이거나 미등록('')이면 누를 수 없다.
+            onPressed: _elderPhone == null || _elderPhone!.isEmpty ? null : () => _dial(_elderPhone!),
             icon: const Icon(Icons.phone),
-            label: const Text('어르신께 전화'),
+            label: Text(_elderPhone == '' ? '어르신께 전화 — 설정에서 번호 등록' : '어르신께 전화'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(

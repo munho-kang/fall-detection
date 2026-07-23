@@ -8,6 +8,7 @@ import '../notifications.dart';
 import '../poller.dart';
 import 'fall_detail.dart';
 import 'login.dart';
+import 'settings.dart';
 
 class FallListScreen extends StatefulWidget {
   const FallListScreen({super.key, required this.api});
@@ -98,7 +99,15 @@ class _FallListScreenState extends State<FallListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('낙상 알림'),
-        actions: [IconButton(onPressed: _logout, icon: const Icon(Icons.logout))],
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => SettingsScreen(api: widget.api)),
+            ),
+            icon: const Icon(Icons.settings),
+          ),
+          IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
