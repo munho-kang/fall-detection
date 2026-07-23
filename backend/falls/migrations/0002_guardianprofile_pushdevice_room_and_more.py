@@ -5,6 +5,22 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def dedupe_fall_events(apps, schema_editor):
+    # 구버전 POST가 남겼을 수 있는 동일 (guardian, room_name, room_number, occurred_at)
+    # 중복 행을 제약 추가 전에 정리한다 — 가장 오래된 행(min id)만 남긴다
+    FallEvent = apps.get_model("falls", "FallEvent")
+    seen = set()
+    for pk, guardian_id, room_name, room_number, occurred_at in (
+        FallEvent.objects.values_list("id", "guardian_id", "room_name", "room_number", "occurred_at")
+        .order_by("id")
+    ):
+        key = (guardian_id, room_name, room_number, occurred_at)
+        if key in seen:
+            FallEvent.objects.filter(pk=pk).delete()
+        else:
+            seen.add(key)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -45,6 +61,7 @@ class Migration(migrations.Migration):
             name='room_name',
             field=models.CharField(max_length=20),
         ),
+        migrations.RunPython(dedupe_fall_events, migrations.RunPython.noop),
         migrations.AddConstraint(
             model_name='fallevent',
             constraint=models.UniqueConstraint(fields=('guardian', 'room_name', 'room_number', 'occurred_at'), name='uniq_fall_dedup'),
