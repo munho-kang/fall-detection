@@ -1,6 +1,6 @@
 // 감지 페이지 조립 — 방 선택 → 웹캠 → MediaPipe → 상태머신 → 화면
 
-import { postFall, requireToken } from "./api.js";
+import { createRoom, listRooms, postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
 import { drawSkeleton } from "./overlay.js";
 import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
@@ -15,8 +15,12 @@ const el = {
   start: document.getElementById("start"),
   error: document.getElementById("error"),
   banner: document.getElementById("banner"),
-  roomName: document.getElementById("roomName"),
-  roomNumber: document.getElementById("roomNumber"),
+  roomSelect: document.getElementById("roomSelect"),
+  noRooms: document.getElementById("noRooms"),
+  addRoom: document.getElementById("addRoom"),
+  newRoomName: document.getElementById("newRoomName"),
+  newRoomNumber: document.getElementById("newRoomNumber"),
+  addRoomBtn: document.getElementById("addRoomBtn"),
   room: document.getElementById("room"),
   state: document.getElementById("state"),
   metrics: document.getElementById("metrics"),
@@ -45,6 +49,39 @@ flushQueue(); // 페이지 로드 시
 window.addEventListener("online", flushQueue);
 setInterval(flushQueue, 60_000);
 
+let rooms = [];
+
+async function refreshRooms(selectId) {
+  rooms = await listRooms();
+  el.roomSelect.innerHTML = "";
+  for (const room of rooms) {
+    const opt = document.createElement("option");
+    opt.value = String(room.id);
+    opt.textContent = `${room.name} ${room.number}`;
+    el.roomSelect.append(opt);
+  }
+  if (selectId != null) el.roomSelect.value = String(selectId);
+  const empty = rooms.length === 0;
+  el.noRooms.classList.toggle("hidden", !empty);
+  el.start.disabled = empty; // 방 없이는 감지를 시작할 수 없다
+  if (empty) el.addRoom.open = true; // 설치 흐름이 안 끊기게 추가 폼을 바로 펼친다
+}
+
+refreshRooms().catch((err) => {
+  el.error.textContent = err.message;
+});
+
+el.addRoomBtn.addEventListener("click", async () => {
+  el.error.textContent = "";
+  try {
+    const room = await createRoom(el.newRoomName.value.trim(), Number(el.newRoomNumber.value));
+    el.newRoomName.value = "";
+    await refreshRooms(room.id); // 방금 만든 방을 선택해 둔다
+  } catch (err) {
+    el.error.textContent = err.message;
+  }
+});
+
 el.start.addEventListener("click", async () => {
   el.error.textContent = "";
   el.start.disabled = true;
@@ -66,7 +103,8 @@ el.start.addEventListener("click", async () => {
     return;
   }
 
-  const room = { name: el.roomName.value, number: Number(el.roomNumber.value) };
+  const selected = rooms.find((r) => String(r.id) === el.roomSelect.value);
+  const room = { name: selected.name, number: selected.number };
   el.room.textContent = `${room.name} ${room.number}`;
   el.setup.classList.add("hidden");
   el.stage.classList.remove("hidden");

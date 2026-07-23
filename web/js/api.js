@@ -41,17 +41,7 @@ export async function signup(username, password) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
   });
-  if (!res.ok) {
-    // DRF 검증 에러({필드: [메시지, ...]})의 첫 메시지를 그대로 보여준다. 한국어로 내려온다.
-    let message = "회원가입에 실패했습니다.";
-    try {
-      const first = Object.values(await res.json()).flat()[0];
-      if (typeof first === "string") message = first;
-    } catch {
-      // 본문이 JSON이 아니면 기본 문구를 쓴다
-    }
-    throw new Error(message);
-  }
+  if (!res.ok) throw new Error(await firstErrorMessage(res, "회원가입에 실패했습니다."));
   const { token } = await res.json();
   return token; // 가입 즉시 발급된 토큰 — 별도 로그인이 필요 없다
 }
@@ -90,4 +80,47 @@ export async function postFall(payload, attempts = 3) {
       await sleep(500 * 2 ** i);
     }
   }
+}
+
+// DRF 검증 에러({필드: [메시지, ...]})의 첫 메시지를 꺼낸다. 한국어로 내려온다.
+async function firstErrorMessage(res, fallback) {
+  try {
+    const first = Object.values(await res.json()).flat()[0];
+    if (typeof first === "string") return first;
+  } catch {
+    // 본문이 JSON이 아니면 기본 문구를 쓴다
+  }
+  return fallback;
+}
+
+// 토큰을 붙여 호출하고 401이면 로그아웃까지 처리하는 공통 래퍼
+async function authFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Token ${getToken()}`,
+      ...(options.headers ?? {}),
+    },
+  });
+  if (res.status === 401) {
+    logoutAndRedirect();
+    throw new UnauthorizedError();
+  }
+  return res;
+}
+
+export async function listRooms() {
+  const res = await authFetch("/api/rooms/");
+  if (!res.ok) throw new Error(`방 목록을 불러오지 못했습니다 (${res.status}).`);
+  return res.json();
+}
+
+export async function createRoom(name, number) {
+  const res = await authFetch("/api/rooms/", {
+    method: "POST",
+    body: JSON.stringify({ name, number }),
+  });
+  if (!res.ok) throw new Error(await firstErrorMessage(res, "방을 추가하지 못했습니다."));
+  return res.json();
 }
