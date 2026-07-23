@@ -90,8 +90,8 @@ flutter run
 
 ```bash
 cd backend && .venv/bin/python -m pytest    # 33개 — 인증·소유권·방·프로필·푸시·전송 멱등성
-cd web     && npm test                       # 16개 — 상태머신 시나리오 + 오프라인 큐
-cd app     && flutter test                   # 6개 — 새 이벤트 판별 + 알림 소스 규칙
+cd web     && npm test                       # 20개 — 상태머신 시나리오 + 오프라인 큐
+cd app     && flutter test                   # 7개 — 새 이벤트 판별 + 알림 소스 규칙
 ```
 
 상태머신 테스트가 이 프로젝트 테스트의 핵심이다. 가짜 랜드마크 시퀀스로 "천천히 눕기 → 알림 없음", "3초 만에 일어남 → 알림 없음", "5초 유지 → 1건" 같은 시나리오를 웹캠 없이 검증한다.
