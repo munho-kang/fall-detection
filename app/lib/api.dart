@@ -112,4 +112,85 @@ class Api {
     if (res.statusCode != 200) throw Exception('확인 처리에 실패했습니다 (${res.statusCode}).');
     return FallEvent.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
   }
+
+  Future<List<Room>> listRooms() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/rooms/'), headers: _headers);
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 200) throw Exception('방 목록을 불러오지 못했습니다 (${res.statusCode}).');
+    final list = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
+    return list.map((e) => Room.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Room> createRoom(String name, int number) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/rooms/'),
+      headers: _headers,
+      body: jsonEncode({'name': name, 'number': number}),
+    );
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 201) {
+      throw Exception(_firstErrorMessage(res) ?? '방을 추가하지 못했습니다.');
+    }
+    return Room.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  Future<Room> renameRoom(int id, String name, int number) async {
+    final res = await http.patch(
+      Uri.parse('$baseUrl/api/rooms/$id/'),
+      headers: _headers,
+      body: jsonEncode({'name': name, 'number': number}),
+    );
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 200) {
+      throw Exception(_firstErrorMessage(res) ?? '방 정보를 바꾸지 못했습니다.');
+    }
+    return Room.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteRoom(int id) async {
+    final res = await http.delete(Uri.parse('$baseUrl/api/rooms/$id/'), headers: _headers);
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 204) throw Exception('방을 삭제하지 못했습니다 (${res.statusCode}).');
+  }
+
+  Future<Profile> getProfile() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/profile/'), headers: _headers);
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 200) throw Exception('프로필을 불러오지 못했습니다 (${res.statusCode}).');
+    return Profile.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  Future<Profile> updateProfile(String elderPhone) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/api/profile/'),
+      headers: _headers,
+      body: jsonEncode({'elder_phone': elderPhone}),
+    );
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 200) {
+      throw Exception(_firstErrorMessage(res) ?? '전화번호를 저장하지 못했습니다.');
+    }
+    return Profile.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
+  }
+
+  // FCM 전용이다. 웹 푸시 구독(kind=webpush)은 보호자 페이지가 등록한다.
+  Future<void> registerPushDevice(String token) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/push/devices/'),
+      headers: _headers,
+      body: jsonEncode({'kind': 'fcm', 'token': token}),
+    );
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 201) throw Exception('푸시 기기 등록에 실패했습니다 (${res.statusCode}).');
+  }
+
+  Future<void> deletePushDevice(String token) async {
+    final res = await http.delete(
+      Uri.parse('$baseUrl/api/push/devices/'),
+      headers: _headers,
+      body: jsonEncode({'token': token}),
+    );
+    if (res.statusCode == 401) throw UnauthorizedException();
+    if (res.statusCode != 204) throw Exception('푸시 기기 해제에 실패했습니다 (${res.statusCode}).');
+  }
 }
