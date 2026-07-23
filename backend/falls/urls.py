@@ -14,4 +14,5 @@ urlpatterns = [
     path("rooms/<int:pk>/", views.RoomDetail.as_view()),
     path("profile/", views.profile),
     path("push/devices/", views.push_devices),
+    path("push/vapid-key/", views.vapid_key),
 ]

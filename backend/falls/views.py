@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from . import push
 from .models import FallEvent, GuardianProfile, PushDevice, Room
 from .serializers import (
     DUPLICATE_ROOM_MESSAGE,
@@ -115,3 +116,12 @@ def push_devices(request):
         defaults={"guardian": request.user, "kind": serializer.validated_data["kind"]},
     )
     return Response(status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def vapid_key(request):
+    key = push.vapid_public_key()
+    if not key:
+        return Response({"detail": "웹 푸시가 설정되지 않았습니다."}, status=503)
+    return Response({"key": key})

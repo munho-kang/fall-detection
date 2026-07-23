@@ -1,12 +1,16 @@
 # API의 인증·소유권·멱등성을 검증하는 테스트
 
+from unittest import mock
+
 import pytest
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.utils import timezone
+from pywebpush import WebPushException
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
+from falls import push
 from falls.models import FallEvent, PushDevice, Room
 
 
@@ -246,3 +250,59 @@ def test_push_device_bad_kind_400(guardian):
         "/api/push/devices/", {"kind": "smoke-signal", "token": "t"}, format="json"
     )
     assert r.status_code == 400
+
+
+# --- 푸시 발송 (Task 5) ---
+
+TEST_VAPID_KEY = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+
+
+def test_send_skips_channels_without_keys(guardian, settings):
+    settings.FIREBASE_SERVICE_ACCOUNT = ""
+    settings.VAPID_PRIVATE_KEY = ""
+    PushDevice.objects.create(guardian=guardian, kind="fcm", token="t1")
+    PushDevice.objects.create(guardian=guardian, kind="webpush", token='{"endpoint": "e"}')
+    with mock.patch("falls.push._send_fcm") as fcm, mock.patch("falls.push._send_webpush") as wp:
+        push.send_to_guardian(make_event(guardian))
+    fcm.assert_not_called()
+    wp.assert_not_called()
+
+
+def test_webpush_dead_subscription_deleted(guardian, settings):
+    settings.VAPID_PRIVATE_KEY = TEST_VAPID_KEY
+    settings.VAPID_SUBJECT = "mailto:test@example.com"
+    device = PushDevice.objects.create(guardian=guardian, kind="webpush", token='{"endpoint": "e"}')
+    gone = WebPushException("gone", response=mock.Mock(status_code=410))
+    with mock.patch("pywebpush.webpush", side_effect=gone):
+        push.send_to_guardian(make_event(guardian))
+    assert not PushDevice.objects.filter(pk=device.pk).exists()
+
+
+def test_fcm_dead_token_deleted(guardian):
+    from firebase_admin import messaging
+
+    device = PushDevice.objects.create(guardian=guardian, kind="fcm", token="dead")
+    with (
+        mock.patch("falls.push._ensure_firebase", return_value=True),
+        mock.patch("firebase_admin.messaging.send", side_effect=messaging.UnregisteredError("x")),
+    ):
+        push.send_to_guardian(make_event(guardian))
+    assert not PushDevice.objects.filter(pk=device.pk).exists()
+
+
+def test_send_failure_never_raises(guardian, settings):
+    settings.VAPID_PRIVATE_KEY = TEST_VAPID_KEY
+    settings.VAPID_SUBJECT = "mailto:test@example.com"
+    PushDevice.objects.create(guardian=guardian, kind="webpush", token='{"endpoint": "e"}')
+    with mock.patch("pywebpush.webpush", side_effect=RuntimeError("boom")):
+        push.send_to_guardian(make_event(guardian))  # 예외가 새어나오면 테스트 실패
+
+
+def test_vapid_key_endpoint(guardian, settings):
+    settings.VAPID_PRIVATE_KEY = ""
+    assert client_for(guardian).get("/api/push/vapid-key/").status_code == 503
+
+    settings.VAPID_PRIVATE_KEY = TEST_VAPID_KEY
+    r = client_for(guardian).get("/api/push/vapid-key/")
+    assert r.status_code == 200
+    assert len(r.data["key"]) > 40  # base64url 공개키(65바이트 비압축 점)
