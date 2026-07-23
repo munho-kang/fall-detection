@@ -20,6 +20,8 @@ class Push {
   /// 푸시는 부가 기능이고 폴링이 항상 백업이므로, 실패해도 절대 던지지 않는다.
   static Future<void> register(Api api) async {
     if (!Platform.isAndroid) return;
+    // 재로그인 시 이전 세션의 성공(true)이 이번 시도의 실패를 가리지 않도록 검증 전 상태로 되돌린다.
+    active = false;
     try {
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
