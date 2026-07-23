@@ -120,3 +120,17 @@
 - [x] 발표에 인용한 수치를 기사 원문·KDI에서 재확인 (추락 사망 1,802명, 72.5% 집 안, 고독사 증가율 43.6% 등)
 - [x] `pre.html` 작성 — 14장 슬라이드, 기사 캡쳐 base64 인라인, 차트·다이어그램 SVG 자작
 - [x] 헤드리스 Chrome으로 14장 전수 렌더링 검증 (레이아웃 깨짐 4건 수정 후 재확인)
+
+## 11. 제품 완성도 라운드 — 푸시·오프라인 큐·방/연락처 관리 (2026-07-23)
+
+설계: [docs/superpowers/specs/2026-07-23-product-completeness-design.md](docs/superpowers/specs/2026-07-23-product-completeness-design.md)
+구현 계획: [docs/superpowers/plans/2026-07-23-product-completeness.md](docs/superpowers/plans/2026-07-23-product-completeness.md)
+
+- [x] 설계 문서 작성
+- [x] 구현 계획 작성 (writing-plans) — Task 16개, 결정 사항은 context-notes.md "제품 완성도 라운드 계획" 참고
+- [ ] 백엔드 (Task 1~6) — 모델 3개, 방·프로필·기기 API, 푸시 모듈, 멱등 POST. pytest 32개
+- [ ] 감지 페이지 (Task 7~9) — 오프라인 큐(TDD), 큐 통합, 방 선택 연동. vitest 15개
+- [ ] 보호자 페이지 (Task 10~11) — guardian.html, 웹 푸시, PWA
+- [ ] Flutter (Task 12~15) — 모델·API, 설정 화면, FCM, 알림 소스 단일화. flutter test 6개
+- [ ] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신
+- [ ] 수동 준비물 — Firebase 콘솔에서 google-services.json과 서비스 계정 키 발급 (계획 Task 14 Step 1)

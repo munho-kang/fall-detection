@@ -453,3 +453,20 @@ FALLING 진입이 9회, 전부 눕기·앉기다. 관문 창 hipV가 0.456·0.47
 - **두 모드는 충돌하지 않는다** — Actions 모드의 아티팩트는 web/ 내용물뿐이라 루트 index.html이 배포에 포함되지 않는다.
 - **.nojekyll 추가** — 브랜치 배포는 Jekyll 빌드를 거치므로, 예측 불가능한 빌드 개입(밑줄 파일 제외 등)을 통째로 끈다.
 - **docs/deploy-guide.html** — 요청받은 HTML판 가이드. 외부 리소스 0(오프라인에서도, Pages에 올려도 열린다), 라이트/다크 자동 대응, 인쇄 대응. 두 Pages 설정 방법을 표로 비교했고 체크리스트를 넣었다. 헤드리스 Chrome 렌더링으로 확인.
+
+---
+
+## 제품 완성도 라운드 계획 (2026-07-23)
+
+설계(specs/2026-07-23-product-completeness-design.md)를 Task 16개 계획(plans/2026-07-23-product-completeness.md)으로 옮기며 확정한 것들.
+
+- **VAPID 공개키는 저장하지 않고 개인키에서 계산한다** — py_vapid로 유도하면 Render 환경변수가 설계대로 3개(FIREBASE_SERVICE_ACCOUNT·VAPID_PRIVATE_KEY·VAPID_SUBJECT)로 끝난다. 공개키를 4번째 변수로 두면 쌍이 어긋나는 사고(구독은 옛 공개키, 발송은 새 개인키)가 가능해진다.
+- **푸시 스레드는 테스트에서 autouse로 차단** — POST 테스트 중 데몬 스레드가 별도 DB 커넥션으로 테스트 DB를 건드리는 사고를 막기 위해 `_no_push_threads` autouse 픽스처가 `send_to_guardian_async`를 무력화한다. 푸시 로직 자체는 동기 함수 `send_to_guardian`을 직접 호출해 검증한다.
+- **vapid-key 엔드포인트는 기기 API(Task 4)가 아니라 푸시 모듈(Task 5)에** — 공개키 유도 코드가 push.py에 있으므로 의존 순서상 그쪽이 맞다.
+- **queue.js는 storage 주입 순수 모듈** — localStorage를 직접 잡지 않고 인자로 받아 Vitest에서 가짜 storage로 테스트한다. flush는 건당 1회 시도(`postFall(payload, 1)`) — 실패분은 다음 트리거(재접속·online·60초 주기·전송 성공)가 다시 시도하므로 큐 안에서 재시도를 중첩하지 않는다.
+- **PWA 아이콘은 표준 라이브러리 파이썬으로 생성** — PIL 의존성 없이 struct+zlib로 단색 PNG 192/512를 만든다. 아이콘은 홈 화면 식별용이지 브랜딩이 아니다.
+- **Flutter HTTP 래퍼는 기존 관례대로 무테스트** — http 모킹 인프라가 없고 listFalls·acknowledge도 테스트가 없다. 순수 로직(알림 소스 규칙)만 TDD.
+- **알림 소스는 플랫폼당 정확히 하나** — Android=FCM(백그라운드는 OS가 notification부 표시, 포그라운드는 onMessage 로컬 알림, id=이벤트 id), iOS=폴링. 판별을 `notifiableFromPolling` 순수 함수로 빼 테스트 2개를 붙였다(Task 15).
+- **FCM E2E는 occurred_at을 매번 바꿔야 한다** — 멱등 제약이 같은 (방, 시각)을 200으로 흡수하고 푸시를 안 보내므로, 같은 curl 재실행은 "알림이 안 온다"는 가짜 실패로 보인다. 계획 Task 14 Step 12에 명시.
+- **이 머신에 개발 환경이 없다** — backend/.venv도 web/node_modules도 없는 상태(.gitignore 대상)라 계획에 "환경 준비" 절을 넣고 모든 pytest 명령을 `.venv/bin/python -m pytest`로 통일했다. npm install은 Task 7에 포함.
+- **google-services.json은 커밋, 서비스 계정 키는 금지** — 전자는 앱 식별자(비밀 아님), 후자는 발송 권한 그 자체다. 계획 Task 14 Step 1과 DEPLOYMENT 6-1절에 구분을 명시했다.
