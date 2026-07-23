@@ -5,7 +5,7 @@
 | 대상 | 배포 위치 | 결과물 |
 |------|-----------|--------|
 | `backend/` (Django) | Render 웹 서비스 + Postgres | `https://fall-backend-XXXX.onrender.com` |
-| `web/` (감지 페이지) | GitHub Pages | `https://<아이디>.github.io/<저장소>/` |
+| `web/` (감지·보호자 페이지) | GitHub Pages | `https://<아이디>.github.io/<저장소>/` — 보호자 페이지는 `guardian.html` |
 | `app/` (Flutter) | 본인 아이폰 | 홈 화면의 Fall Guardian 앱 |
 
 **순서가 중요하다.** Render 주소는 배포해 봐야 알 수 있고(랜덤 접미사가 붙는다), 그 주소를 웹과 앱 코드에 반영해야 하기 때문이다. 아래 1→5 순서대로 진행한다.
@@ -44,6 +44,8 @@ push에서 인증을 요구하면 GitHub 계정으로 로그인한다(비밀번�
 | `DJANGO_SUPERUSER_USERNAME` | 보호자 로그인 아이디 |
 | `DJANGO_SUPERUSER_EMAIL` | 이메일(형식만 맞으면 된다) |
 | `DJANGO_SUPERUSER_PASSWORD` | 보호자 비밀번호 — 길고 어렵게 |
+
+푸시 알림용 변수 3개(`FIREBASE_SERVICE_ACCOUNT`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`)도 함께 뜨는데, 지금은 비워 두어도 된다 — 아래 6번 절에서 채운다.
 
 서버가 처음 뜰 때 이 계정이 자동 생성된다(`createsuperuser --noinput`). 이 계정은 `/ansgh/` 접속용 관리 계정이다(기본 `/admin/` 경로는 숨겨 두었다). 보호자 계정은 감지 페이지나 앱의 **회원가입**으로 만들면 된다(관리 계정으로 로그인해도 동작은 같다). 웹과 앱은 반드시 **같은 계정**으로 로그인해야 알림이 이어진다.
 
@@ -90,14 +92,64 @@ flutter run --release -d <기기 이름>
 
 **무료 Apple ID 서명은 7일 뒤 만료된다.** 앱이 안 열리게 되면 2번을 다시 실행하면 된다. Apple Developer Program($99/년)에 가입하면 1년짜리 서명이 된다.
 
-## 6. 운영할 때 알아둘 것
+## 6. 푸시 알림 설정 (선택)
 
-- **알림은 앱이 떠 있을 때만 온다.** 폴링 구조라 앱이 백그라운드로 가면 멈춘다(README "알려진 한계"). 보호자 폰은 앱을 화면에 켠 채 두는 운용을 권장한다.
+푸시 없이도 전체 기능이 동작한다(앱을 켜 두면 폴링이 알린다). 아래를 설정하면 화면이 꺼져 있어도 알림이 온다. 채널은 두 개다.
+
+| 채널 | 대상 | 필요한 환경변수 |
+|------|------|-----------------|
+| FCM | Android 앱 | `FIREBASE_SERVICE_ACCOUNT` |
+| 표준 웹 푸시 | 데스크톱 브라우저·아이폰 홈 화면 PWA | `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+
+환경변수가 비어 있으면 해당 채널만 조용히 꺼지고 서버는 그대로 동작한다. 값은 Render 대시보드 → fall-backend → Environment에서 넣는다(저장하면 자동 재배포).
+
+### 6-1. Android FCM
+
+1. [Firebase 콘솔](https://console.firebase.google.com) → 프로젝트 추가(이름 자유, 애널리틱스 불필요).
+2. 프로젝트 개요 → Android 아이콘 → 앱 등록. 패키지 이름은 정확히 `com.example.fall_guardian`.
+3. `google-services.json`을 내려받아 `app/android/app/`에 둔다(저장소에 이미 커밋돼 있으면 불필요 — 이 파일은 식별자일 뿐 비밀키가 아니다).
+4. 프로젝트 설정(톱니) → 서비스 계정 → **새 비공개 키 생성** → JSON 다운로드. 이 파일은 **비밀이다. 절대 커밋하지 않는다.**
+5. JSON을 한 줄로 만들어 `FIREBASE_SERVICE_ACCOUNT`에 붙여넣는다.
+
+```bash
+python3 -c "import json; print(json.dumps(json.load(open('다운로드한파일.json'))))"
+```
+
+### 6-2. 웹 푸시 (VAPID)
+
+1. 키쌍을 만든다.
+
+```bash
+cd backend && .venv/bin/python - <<'EOF'
+import base64
+from cryptography.hazmat.primitives.asymmetric import ec
+
+key = ec.generate_private_key(ec.SECP256R1())
+raw = key.private_numbers().private_value.to_bytes(32, "big")
+print("VAPID_PRIVATE_KEY =", base64.urlsafe_b64encode(raw).rstrip(b"=").decode())
+EOF
+```
+
+2. 출력값을 `VAPID_PRIVATE_KEY`에, `mailto:본인이메일`을 `VAPID_SUBJECT`에 넣는다. 공개키는 서버가 개인키에서 계산하므로 따로 넣지 않는다.
+3. 데스크톱 크롬·엣지는 이걸로 끝이다 — 보호자 페이지(`guardian.html`)에서 **알림 켜기**를 누르면 된다.
+
+### 6-3. 아이폰에서 보호자 페이지 알림 받기 (PWA)
+
+iOS 16.4 이상에서 동작한다. **반드시 홈 화면에 추가한 아이콘으로 열어야** 알림 켜기가 가능하다 — Safari 탭에서는 iOS가 웹 푸시를 막는다.
+
+1. Safari로 `https://<아이디>.github.io/<저장소>/guardian.html` 접속 → 로그인.
+2. 공유 버튼 → **홈 화면에 추가**.
+3. 홈 화면의 아이콘으로 다시 열어 로그인 → **알림 켜기** → 허용.
+4. 확인. 감지 페이지에서 낙상을 확정시키면(또는 curl로 등록하면) 잠금 화면에 알림이 온다.
+
+## 7. 운영할 때 알아둘 것
+
+- **백그라운드 알림은 6번 절 설정에 달려 있다.** 설정했다면 Android 앱은 FCM으로, 아이폰·데스크톱은 보호자 페이지 푸시로 화면이 꺼져 있어도 알림이 온다. iOS 네이티브 앱만은 여전히 폴링이라 떠 있을 때만 알린다(README "알려진 한계"). 푸시를 설정하지 않았다면 예전처럼 앱을 화면에 켠 채 두는 운용을 권장한다.
 - **앱이 떠 있는 동안 백엔드는 잠들지 않는다.** 앱이 5초마다 폴링하기 때문이다. 반대로 아무도 안 보고 있으면 백엔드가 잠들고, 다음 첫 요청이 느려진다.
 - **무료 Postgres는 생성 30일 뒤 만료된다.** Render가 만료 전에 메일을 보낸다. 계속 쓰려면 둘 중 하나다. (a) Render에서 유료 플랜으로 업그레이드. (b) [Neon](https://neon.tech) 무료 Postgres를 만들어 Render 환경변수 `DATABASE_URL`만 그 연결 문자열로 교체 — 재배포되면 migrate와 보호자 계정 생성이 자동으로 다시 실행된다. 과거 낙상 기록까지 옮기려면 `pg_dump`/`pg_restore`가 필요하고, 안 옮기면 기록만 비워진 채 서비스는 계속된다.
 - **카메라를 옮기면** README의 검수 3기준(넘어지기 hipV ≥ 0.5, 눕기 tilt ≥ 60°, 천천히 눕기 hipV < 0.3)을 다시 통과시켜야 한다.
 
-## 7. 문제 해결
+## 8. 문제 해결
 
 | 증상 | 원인과 해결 |
 |------|-------------|
@@ -106,5 +158,5 @@ flutter run --release -d <기기 이름>
 | Pages가 404 | Settings → Pages의 Source가 GitHub Actions인지, Actions 탭의 최근 실행이 성공인지 확인 |
 | Render 빌드가 Python 버전에서 실패 | `render.yaml`의 `PYTHON_VERSION`을 `3.13.4`로 낮춰 커밋·push |
 | 앱에서 로그인 실패 | `api.dart`의 `XXXX`를 실제 주소로 바꿨는지, `--release`로 빌드했는지 확인 |
-| 폰에 알림이 안 옴 | 앱이 화면에 떠 있는지, iOS 알림 권한을 허용했는지 확인 |
+| 폰에 알림이 안 옴 | iOS 앱은 화면에 떠 있어야 한다. Android 앱은 `FIREBASE_SERVICE_ACCOUNT` 설정 여부, 아이폰 PWA는 `VAPID_*` 설정 여부와 "홈 화면 아이콘으로 열었는지"를 확인 |
 | admin 화면이 깨져 보임 | 첫 배포 직후 캐시 문제일 수 있다. 강력 새로고침(Cmd+Shift+R) |

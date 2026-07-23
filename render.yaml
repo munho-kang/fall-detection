@@ -34,3 +34,14 @@ services:
         sync: false
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
+      # ── 푸시 알림(선택). 셋 다 비우면 푸시만 꺼진 채 정상 동작한다.
+      # 설정 방법은 docs/DEPLOYMENT.md "푸시 알림 설정" 참고.
+      # Firebase 서비스 계정 JSON 전체를 한 줄로 넣는다 (Android FCM).
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      # VAPID 개인키, base64url 32바이트 (웹 푸시). 공개키는 서버가 계산한다.
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      # 웹 푸시 연락처. 예: mailto:본인이메일
+      - key: VAPID_SUBJECT
+        sync: false
