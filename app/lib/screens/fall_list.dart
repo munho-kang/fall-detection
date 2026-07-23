@@ -1,5 +1,7 @@
 // 낙상 이벤트 목록 화면
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 import '../api.dart';
@@ -33,7 +35,7 @@ class _FallListScreenState extends State<FallListScreen> {
     _poller = FallPoller(
       api: widget.api,
       onEvents: (all, fresh) {
-        for (final e in fresh) {
+        for (final e in notifiableFromPolling(fresh, isAndroid: Platform.isAndroid)) {
           Notifications.show(e);
         }
         if (!mounted) return;

@@ -5,6 +5,12 @@ import 'dart:async';
 import 'api.dart';
 import 'models.dart';
 
+/// 폴링이 발견한 새 이벤트 중 로컬 알림을 띄울 대상을 고른다.
+/// 플랫폼마다 알림 소스는 정확히 하나다 — Android는 FCM이 전담하므로(백그라운드는 OS,
+/// 포그라운드는 onMessage) 폴링은 알리지 않는다. iOS는 FCM이 없으니 폴링이 알린다.
+List<FallEvent> notifiableFromPolling(List<FallEvent> fresh, {required bool isAndroid}) =>
+    isAndroid ? const [] : fresh;
+
 class NewEventTracker {
   int? _lastSeenId;
   bool _primed = false;
