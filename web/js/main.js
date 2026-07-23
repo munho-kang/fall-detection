@@ -84,6 +84,14 @@ el.addRoomBtn.addEventListener("click", async () => {
 
 el.start.addEventListener("click", async () => {
   el.error.textContent = "";
+
+  const selected = rooms.find((r) => String(r.id) === el.roomSelect.value);
+  if (!selected) {
+    el.error.textContent = "방을 먼저 선택하세요.";
+    return;
+  }
+  const room = { name: selected.name, number: selected.number };
+
   el.start.disabled = true;
 
   let landmarker;
@@ -103,8 +111,6 @@ el.start.addEventListener("click", async () => {
     return;
   }
 
-  const selected = rooms.find((r) => String(r.id) === el.roomSelect.value);
-  const room = { name: selected.name, number: selected.number };
   el.room.textContent = `${room.name} ${room.number}`;
   el.setup.classList.add("hidden");
   el.stage.classList.remove("hidden");
