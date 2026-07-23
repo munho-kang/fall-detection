@@ -35,7 +35,8 @@ class _FallListScreenState extends State<FallListScreen> {
     _poller = FallPoller(
       api: widget.api,
       onEvents: (all, fresh) {
-        for (final e in notifiableFromPolling(fresh, isAndroid: Platform.isAndroid)) {
+        // FCM 등록 완료 전 짧은 창에서는 폴링 알림이 먼저 갈 수 있다 — 의도된 동작(무알림보다 낫다).
+        for (final e in notifiableFromPolling(fresh, isAndroid: Platform.isAndroid && Push.active)) {
           Notifications.show(e);
         }
         if (!mounted) return;

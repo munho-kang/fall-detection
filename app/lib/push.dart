@@ -13,6 +13,9 @@ class Push {
   // 로그아웃 → 재로그인을 반복해도 스트림 리스너는 한 번만 건다.
   static bool _wired = false;
 
+  // FCM 토큰 취득 + 서버 등록이 모두 성공했을 때만 true. false면 폴링 알림이 백업으로 켜진다.
+  static bool active = false;
+
   /// 로그인 상태에서 호출한다. FCM 토큰을 서버에 등록하고 토큰 갱신·포그라운드 수신을 구독한다.
   /// 푸시는 부가 기능이고 폴링이 항상 백업이므로, 실패해도 절대 던지지 않는다.
   static Future<void> register(Api api) async {
@@ -21,7 +24,10 @@ class Push {
       final messaging = FirebaseMessaging.instance;
       await messaging.requestPermission();
       final token = await messaging.getToken();
-      if (token != null) await api.registerPushDevice(token);
+      if (token != null) {
+        await api.registerPushDevice(token);
+        active = true;
+      }
 
       if (!_wired) {
         _wired = true;
