@@ -2,11 +2,12 @@
 
 import pytest
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from falls.models import FallEvent
+from falls.models import FallEvent, Room
 
 
 @pytest.fixture
@@ -119,3 +120,34 @@ def test_signup_weak_password_400(db):
     )
     assert r.status_code == 400
     assert "password" in r.data
+
+
+# --- 데이터 모델 (Task 1) ---
+
+
+def test_fall_event_room_name_is_free_text(guardian):
+    # ROOM_CHOICES가 제거되어 임의 문자열이 검증을 통과해야 한다
+    e = make_event(guardian, room_name="서재")
+    e.full_clean()  # choices가 남아 있으면 ValidationError
+
+
+def test_fall_event_rejects_exact_duplicate(guardian):
+    t = timezone.now()
+    FallEvent.objects.create(
+        guardian=guardian, room_name="안방", room_number=1, occurred_at=t, confidence=0.9
+    )
+    with pytest.raises(IntegrityError):
+        FallEvent.objects.create(
+            guardian=guardian, room_name="안방", room_number=1, occurred_at=t, confidence=0.8
+        )
+
+
+def test_room_unique_per_guardian(guardian):
+    Room.objects.create(guardian=guardian, name="안방", number=1)
+    with pytest.raises(IntegrityError):
+        Room.objects.create(guardian=guardian, name="안방", number=1)
+
+
+def test_same_room_allowed_for_other_guardian(guardian, other):
+    Room.objects.create(guardian=guardian, name="안방", number=1)
+    Room.objects.create(guardian=other, name="안방", number=1)  # 예외 없이 저장돼야 한다
