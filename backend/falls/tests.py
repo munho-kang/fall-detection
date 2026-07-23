@@ -151,3 +151,38 @@ def test_room_unique_per_guardian(guardian):
 def test_same_room_allowed_for_other_guardian(guardian, other):
     Room.objects.create(guardian=guardian, name="안방", number=1)
     Room.objects.create(guardian=other, name="안방", number=1)  # 예외 없이 저장돼야 한다
+
+
+# --- 방 CRUD (Task 2) ---
+
+
+def test_room_crud_roundtrip(guardian):
+    c = client_for(guardian)
+    r = c.post("/api/rooms/", {"name": "안방", "number": 1}, format="json")
+    assert r.status_code == 201
+    room_id = r.data["id"]
+
+    assert [x["name"] for x in c.get("/api/rooms/").data] == ["안방"]
+
+    r = c.patch(f"/api/rooms/{room_id}/", {"name": "서재"}, format="json")
+    assert r.status_code == 200 and r.data["name"] == "서재"
+
+    assert c.delete(f"/api/rooms/{room_id}/").status_code == 204
+    assert c.get("/api/rooms/").data == []
+
+
+def test_room_list_excludes_other_users(guardian, other):
+    Room.objects.create(guardian=other, name="부엌", number=1)
+    assert client_for(guardian).get("/api/rooms/").data == []
+
+
+def test_room_patch_other_users_404(guardian, other):
+    theirs = Room.objects.create(guardian=other, name="부엌", number=1)
+    r = client_for(guardian).patch(f"/api/rooms/{theirs.id}/", {"name": "x"}, format="json")
+    assert r.status_code == 404
+
+
+def test_room_duplicate_create_400(guardian):
+    Room.objects.create(guardian=guardian, name="안방", number=1)
+    r = client_for(guardian).post("/api/rooms/", {"name": "안방", "number": 1}, format="json")
+    assert r.status_code == 400

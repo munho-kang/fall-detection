@@ -4,7 +4,7 @@ from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import FallEvent
+from .models import FallEvent, Room
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -39,3 +39,21 @@ class FallEventSerializer(serializers.ModelSerializer):
         ]
         # guardian은 필드에 없다. 요청자로 강제되므로 클라이언트가 건드릴 수 없다.
         read_only_fields = ["id", "created_at", "acknowledged_at"]
+
+
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ["id", "name", "number"]
+
+    def validate(self, attrs):
+        # DB의 unique 제약을 IntegrityError(500) 대신 400으로 돌려주기 위한 사전 검사
+        user = self.context["request"].user
+        name = attrs.get("name", getattr(self.instance, "name", None))
+        number = attrs.get("number", getattr(self.instance, "number", None))
+        dup = Room.objects.filter(guardian=user, name=name, number=number)
+        if self.instance is not None:
+            dup = dup.exclude(pk=self.instance.pk)
+        if dup.exists():
+            raise serializers.ValidationError("같은 이름과 번호의 방이 이미 있습니다.")
+        return attrs

@@ -10,4 +10,6 @@ urlpatterns = [
     path("auth/signup/", views.signup),
     path("falls/", views.FallEventListCreate.as_view()),
     path("falls/<int:pk>/acknowledge/", views.acknowledge),
+    path("rooms/", views.RoomListCreate.as_view()),
+    path("rooms/<int:pk>/", views.RoomDetail.as_view()),
 ]

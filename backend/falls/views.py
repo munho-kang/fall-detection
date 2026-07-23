@@ -7,8 +7,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import FallEvent
-from .serializers import FallEventSerializer, SignupSerializer
+from .models import FallEvent, Room
+from .serializers import FallEventSerializer, RoomSerializer, SignupSerializer
 
 
 @api_view(["POST"])
@@ -47,3 +47,21 @@ def acknowledge(request, pk):
         event.save(update_fields=["acknowledged_at"])
 
     return Response(FallEventSerializer(event).data)
+
+
+class RoomListCreate(generics.ListCreateAPIView):
+    serializer_class = RoomSerializer
+
+    def get_queryset(self):
+        return Room.objects.filter(guardian=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(guardian=self.request.user)
+
+
+class RoomDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RoomSerializer
+
+    def get_queryset(self):
+        # 남의 방은 존재 자체가 드러나지 않고 404가 된다
+        return Room.objects.filter(guardian=self.request.user)
