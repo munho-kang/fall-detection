@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- 보호자용 페이지 — 낙상 목록·알림 구독·방/연락처 관리 -->
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>낙상 감지 — 보호자</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="banner" class="banner hidden"></div>
+
+    <div class="card">
+      <h1>보호자 페이지</h1>
+
+      <section id="pushSection">
+        <button id="enablePush" type="button">알림 켜기</button>
+        <p class="metric" id="pushStatus"></p>
+      </section>
+
+      <h2>낙상 알림</h2>
+      <p class="metric hidden" id="fallEmpty">아직 감지된 낙상이 없습니다.</p>
+      <ul id="fallList" class="plain-list"></ul>
+
+      <h2>방 관리</h2>
+      <ul id="roomList" class="plain-list"></ul>
+      <label for="newRoomName">방 이름</label>
+      <input id="newRoomName" maxlength="20" placeholder="안방" />
+      <label for="newRoomNumber">방 번호</label>
+      <input id="newRoomNumber" type="number" value="1" min="1" max="99" />
+      <button id="addRoomBtn" type="button">방 추가</button>
+
+      <h2>어르신 연락처</h2>
+      <label for="elderPhone">전화번호</label>
+      <input id="elderPhone" maxlength="20" placeholder="01012345678" />
+      <button id="savePhone" type="button">저장</button>
+
+      <p class="error" id="error"></p>
+      <button id="logout" type="button">로그아웃</button>
+    </div>
+
+    <script type="module" src="js/guardian.js"></script>
+  </body>
+</html>

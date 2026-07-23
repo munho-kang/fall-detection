@@ -18,9 +18,10 @@ export function logoutAndRedirect() {
   location.href = "index.html";
 }
 
-export function requireToken() {
+export function requireToken(next) {
   const token = getToken();
-  if (!token) location.href = "index.html";
+  // 로그인 후 원래 가려던 페이지로 돌아올 수 있게 next를 남긴다 (index.html이 화이트리스트 검사)
+  if (!token) location.href = next ? `index.html?next=${encodeURIComponent(next)}` : "index.html";
   return token;
 }
 
@@ -122,5 +123,46 @@ export async function createRoom(name, number) {
     body: JSON.stringify({ name, number }),
   });
   if (!res.ok) throw new Error(await firstErrorMessage(res, "방을 추가하지 못했습니다."));
+  return res.json();
+}
+
+export async function listFalls() {
+  const res = await authFetch("/api/falls/");
+  if (!res.ok) throw new Error(`목록을 불러오지 못했습니다 (${res.status}).`);
+  return res.json();
+}
+
+export async function acknowledgeFall(id) {
+  const res = await authFetch(`/api/falls/${id}/acknowledge/`, { method: "POST" });
+  if (!res.ok) throw new Error(`확인 처리에 실패했습니다 (${res.status}).`);
+  return res.json();
+}
+
+export async function renameRoom(id, name) {
+  const res = await authFetch(`/api/rooms/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error(await firstErrorMessage(res, "이름을 바꾸지 못했습니다."));
+  return res.json();
+}
+
+export async function deleteRoomById(id) {
+  const res = await authFetch(`/api/rooms/${id}/`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`방을 삭제하지 못했습니다 (${res.status}).`);
+}
+
+export async function getProfile() {
+  const res = await authFetch("/api/profile/");
+  if (!res.ok) throw new Error(`연락처를 불러오지 못했습니다 (${res.status}).`);
+  return res.json();
+}
+
+export async function updateProfile(elderPhone) {
+  const res = await authFetch("/api/profile/", {
+    method: "PUT",
+    body: JSON.stringify({ elder_phone: elderPhone }),
+  });
+  if (!res.ok) throw new Error(await firstErrorMessage(res, "연락처를 저장하지 못했습니다."));
   return res.json();
 }

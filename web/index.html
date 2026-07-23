@@ -19,6 +19,7 @@
       </form>
       <p class="error" id="error"></p>
       <p class="alt-link">계정이 없나요? <a href="signup.html">회원가입</a></p>
+      <p class="alt-link">보호자이신가요? <a href="guardian.html">보호자 페이지</a></p>
       <p class="privacy">
         이 페이지는 웹캠 영상을 브라우저 안에서만 처리합니다. 영상과 관절 좌표는 서버로 전송되지
         않습니다.
@@ -37,8 +38,11 @@
         const button = form.querySelector("button");
         button.disabled = true;
         try {
+          const next = new URLSearchParams(location.search).get("next");
+          // 오픈 리다이렉트 방지 — 우리 페이지 2개만 허용한다
+          const target = ["guardian.html", "detect.html"].includes(next) ? next : "detect.html";
           setToken(await login(form.username.value, form.password.value));
-          location.href = "detect.html";
+          location.href = target;
         } catch (err) {
           error.textContent = err.message;
           button.disabled = false;
