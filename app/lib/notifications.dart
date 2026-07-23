@@ -37,9 +37,17 @@ class Notifications {
     );
 
     if (Platform.isAndroid) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestNotificationsPermission();
+      // 백그라운드 FCM 알림이 이 채널로 뜬다(AndroidManifest의 default_notification_channel_id).
+      // show()가 쓰는 채널 id와 같아야 사용자 알림 설정이 한 곳에 모인다.
+      await android?.createNotificationChannel(const AndroidNotificationChannel(
+        'falls',
+        '낙상 알림',
+        description: '낙상이 감지되면 즉시 알립니다',
+        importance: Importance.max,
+      ));
     }
   }
 
