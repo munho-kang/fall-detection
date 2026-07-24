@@ -470,3 +470,34 @@ FALLING 진입이 9회, 전부 눕기·앉기다. 관문 창 hipV가 0.456·0.47
 - **FCM E2E는 occurred_at을 매번 바꿔야 한다** — 멱등 제약이 같은 (방, 시각)을 200으로 흡수하고 푸시를 안 보내므로, 같은 curl 재실행은 "알림이 안 온다"는 가짜 실패로 보인다. 계획 Task 14 Step 12에 명시.
 - **이 머신에 개발 환경이 없다** — backend/.venv도 web/node_modules도 없는 상태(.gitignore 대상)라 계획에 "환경 준비" 절을 넣고 모든 pytest 명령을 `.venv/bin/python -m pytest`로 통일했다. npm install은 Task 7에 포함.
 - **google-services.json은 커밋, 서비스 계정 키는 금지** — 전자는 앱 식별자(비밀 아님), 후자는 발송 권한 그 자체다. 계획 Task 14 Step 1과 DEPLOYMENT 6-1절에 구분을 명시했다.
+
+## E2E 검증 라운드 (2026-07-24)
+
+남은 수동 검증 중 이 머신에서 가능한 3건을 실행했다 — ① 감지 페이지 오프라인→온라인 큐 재전송 브라우저 E2E ② VAPID 키 생성 + 데스크톱 웹 푸시 E2E ③ iOS 시뮬레이터 첫 기동. 시작 전 3종 자동 테스트 기준선은 전부 통과(pytest 33 · vitest 20 · flutter 7). E2E 스크립트는 `scripts/e2e/`에 커밋했다(실행법은 그 README).
+
+### iOS — Firebase SwiftPM이 배포 타깃 15.0을 요구한다
+
+`flutter build ios --simulator` 첫 시도가 실패했다. `firebase-core`/`firebase-messaging` SwiftPM 패키지(CocoaPods 아님 — Podfile 없음)가 최소 iOS 15.0을 요구하는데 Runner가 13.0이었다. 에러 메시지 안내대로 `project.pbxproj`의 `IPHONEOS_DEPLOYMENT_TARGET` 3곳(Debug/Release/Profile)을 15.0으로 올리니 빌드 성공(37.7초). 시뮬레이터·실기기 모두 iOS 26.5라 15.0 인상의 실사용 영향은 없다.
+
+- iPhone 17 Pro 시뮬레이터에 설치·실행 — 첫 실행이라 알림 권한 다이얼로그('Fall Guardian'에서 알림을 보내고자 합니다)가 떴고, 이는 `Notifications.init()`의 정상 동작이다. 프로세스 7분+ 생존, DiagnosticReports에 크래시 리포트 없음. iOS 경로는 `Platform.isAndroid` 가드 덕에 GoogleService-Info.plist 없이도 Firebase 초기화를 건너뛴다 — 설계대로다.
+- `xcrun simctl privacy`는 `notifications` 서비스를 지원하지 않아(이 Xcode 기준) 다이얼로그를 프로그램으로 걷어낼 수 없었다. 화면 검증이 더 필요하면 Simulator GUI에서 허용을 누르면 된다.
+
+### 큐 재전송 E2E — 8개 체크 통과
+
+실제 Chrome(playwright-core, `channel: "chrome"`)으로 detect.html을 띄우고, API 오리진만 차단(`route.abort`)한 채 토큰+큐 2건을 심어 로드 → 차단 해제 후 `setOffline(true→false)`로 진짜 `online` 이벤트를 발화시켰다.
+
+- 차단 중 POST 시도는 정확히 1건이었다 — flush가 head 실패 시 그 자리에서 중단하는 설계 그대로. online 후 2건 순서대로 재전송, 큐 비움, 서버 DB의 방·발생시각 일치, 보낸 건 재적재 시 200 흡수·행 수 불변까지 확인.
+- 실제 낙상→적재(enqueue) 경로는 카메라가 필요해 큐 선적재로 대체했다. 낙상→POST 자체는 3차 실측에서, 실패→적재 배선은 main.js의 catch 한 줄이라 위험이 낮다.
+
+### 웹 푸시 E2E — 함정 3개를 넘어 9개 체크 통과
+
+VAPID 키는 DEPLOYMENT 6-2의 명령 그대로 생성해 환경변수로 주입했다(문서 절차 검증 겸). 구독 공개키가 서버 파생(`/api/push/vapid-key/`)과 일치해 FCM 엔드포인트 구독·발송·수신이 한 번에 이어졌고, **헤드리스에서도 실수신까지 된다** — 재검증을 CI처럼 돌릴 수 있다는 뜻이다. 도달한 함정 3개는 scripts/e2e/README에도 요약했다.
+
+- **Playwright 기본 컨텍스트는 시크릿 취급** — Chrome이 Push API를 의도적으로 막는다(기능 감지도 불가). `launchPersistentContext`로 일반 프로필을 써야 한다.
+- **기본 인자 `--disable-background-networking`이 GCM 소켓을 끊는다** — 구독·기기 등록·발송(FCM 2xx)까지 전부 성공하는데 수신만 조용히 안 되는, 원인 찾기 고약한 증상이었다. 서버 로그에 발송 실패가 없다는 것으로 서버 쪽을 소거한 뒤 이 플래그를 지목했다. `ignoreDefaultArgs`로 제거하면 헤드리스에서도 수신된다.
+- **알림 감지→수집을 두 evaluate로 나누면 레이스** — `waitForFunction`이 알림을 보고도 직후 스냅숏에서 사라져 있었다. 한 evaluate 안에서 100ms 간격 샘플링으로 감지와 캡처를 원자화해 해결.
+- 덤으로 확인한 것 — pywebpush 기본 `ttl=0`(즉시 전달 아니면 폐기)이라 보호자 브라우저가 순간이라도 끊겨 있으면 그 푸시는 유실된다. 보호자 페이지 5초 폴링과 낙상 목록이 백업이라 제품 동작상 치명적이지 않아 `push.py`는 건드리지 않았다. 나중에 유실이 문제가 되면 `webpush(..., ttl=60)` 한 줄이 후보다.
+
+### 남은 수동 검증
+
+Android 실기기/에뮬레이터 백그라운드 FCM 수신(Firebase 콘솔 발급 필요), iPhone 홈 화면 PWA 푸시(HTTPS 배포 필요) — 둘 다 이 머신 밖 준비물이 필요하다.

@@ -128,9 +128,19 @@
 
 - [x] 설계 문서 작성
 - [x] 구현 계획 작성 (writing-plans) — Task 16개, 결정 사항은 context-notes.md "제품 완성도 라운드 계획" 참고
-- [ ] 백엔드 (Task 1~6) — 모델 3개, 방·프로필·기기 API, 푸시 모듈, 멱등 POST. pytest 32개
-- [ ] 감지 페이지 (Task 7~9) — 오프라인 큐(TDD), 큐 통합, 방 선택 연동. vitest 15개
-- [ ] 보호자 페이지 (Task 10~11) — guardian.html, 웹 푸시, PWA
-- [ ] Flutter (Task 12~15) — 모델·API, 설정 화면, FCM, 알림 소스 단일화. flutter test 6개
-- [ ] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신
+- [x] 백엔드 (Task 1~6) — 모델 3개, 방·프로필·기기 API, 푸시 모듈, 멱등 POST. pytest 33개 통과 (계획 32개에서 1개 늘었다)
+- [x] 감지 페이지 (Task 7~9) — 오프라인 큐(TDD), 큐 통합, 방 선택 연동. vitest 20개 통과 (다중 탭 flush 경합 등이 추가돼 계획 15개에서 늘었다)
+- [x] 보호자 페이지 (Task 10~11) — guardian.html, 웹 푸시, PWA
+- [x] Flutter (Task 12~15) — 모델·API, 설정 화면, FCM, 알림 소스 단일화. flutter test 7개 통과
+- [x] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신
 - [ ] 수동 준비물 — Firebase 콘솔에서 google-services.json과 서비스 계정 키 발급 (계획 Task 14 Step 1)
+
+### 검증 라운드 (2026-07-24)
+
+절차와 함정은 context-notes.md "E2E 검증 라운드", 재실행 방법은 [scripts/e2e/README.md](scripts/e2e/README.md).
+
+- [x] 감지 페이지 오프라인→온라인 큐 재전송 브라우저 E2E — 실제 Chrome에서 8개 체크 통과 (`scripts/e2e/queue-e2e.mjs`)
+- [x] VAPID 키 생성(DEPLOYMENT 6-2 절차 그대로) + 데스크톱 브라우저 웹 푸시 E2E — 구독→발송→서비스 워커 알림 표시, 9개 체크 통과, 헤드리스에서도 실수신 (`scripts/e2e/push-e2e.mjs`)
+- [x] iOS 시뮬레이터 첫 기동 — Firebase SwiftPM이 iOS 15를 요구해 배포 타깃 13.0→15.0 인상 후 빌드 성공. iPhone 17 Pro(26.5)에서 실행, 알림 권한 다이얼로그 표시, 7분+ 생존·크래시 리포트 없음
+- [ ] Android 실기기/에뮬레이터 백그라운드 FCM 수신 — google-services.json·서비스 계정 키 발급 뒤 (docs/firebase-setup.html)
+- [ ] iPhone 홈 화면 PWA 푸시 — HTTPS 배포 뒤 실기기로
