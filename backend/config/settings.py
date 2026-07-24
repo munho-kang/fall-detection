@@ -134,7 +134,6 @@ REST_FRAMEWORK = {
 # 특정할 수 없다. 로컬 네트워크 전용 서버라 전부 허용한다.
 CORS_ALLOW_ALL_ORIGINS = True
 
-# 푸시 발송 설정. 미설정이면 해당 채널만 조용히 비활성화된다 (falls/push.py).
-FIREBASE_SERVICE_ACCOUNT = os.environ.get("FIREBASE_SERVICE_ACCOUNT", "")
+# 웹 푸시 발송 설정. 미설정이면 조용히 비활성화된다 (falls/push.py).
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "")

@@ -10,8 +10,8 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  # firebase_messaging의 Swift Package Manager 체크아웃(build/ios/SourcePackages)에
-  # 딸려오는 test/example 소스가 분석 대상에 잡히는 것을 막는다. build/는 생성물이라 무해하다.
+  # build/는 생성물이라 분석 대상에서 뺀다 — SwiftPM 체크아웃 등에 딸려오는
+  # test/example 소스가 분석에 잡히는 것을 막는다.
   exclude:
     - build/**
 

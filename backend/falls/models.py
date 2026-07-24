@@ -60,13 +60,13 @@ class GuardianProfile(models.Model):
 
 
 class PushDevice(models.Model):
-    KIND_CHOICES = [("fcm", "fcm"), ("webpush", "webpush")]
+    KIND_CHOICES = [("webpush", "webpush")]
 
     guardian = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_devices"
     )
     kind = models.CharField(max_length=10, choices=KIND_CHOICES)
-    # FCM 등록 토큰 또는 Web Push 구독 JSON 문자열
+    # Web Push 구독 JSON 문자열
     token = models.TextField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

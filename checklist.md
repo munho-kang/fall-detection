@@ -62,7 +62,7 @@
 - [x] 프로젝트 생성 (`app/`)
 - [x] 의존성 추가 (http, flutter_local_notifications, shared_preferences, url_launcher)
 - [x] `models.dart` — FallEvent
-- [x] `api.dart` — 토큰 저장/헤더, `10.0.2.2:8000` 주의
+- [x] `api.dart` — 토큰 저장/헤더
 - [x] `login.dart`
 - [x] `fall_list.dart` — 방·시각·처리상태
 - [x] `fall_detail.dart`
@@ -91,7 +91,7 @@
 
 Render(백엔드)·GitHub Pages(감지 페이지) 배포를 준비했으나, 2026-07-24 **배포하지 않기로 결정**하고 관련 코드·설정·문서(render.yaml, GitHub Actions 워크플로, build.sh, DEPLOYMENT.md, deploy-guide.html, 루트 리다이렉트 등)를 모두 제거했다. 같은 와이파이(LAN) 실행 전용이다 — 실행 방법은 README. HTTPS가 전제였던 아이폰 홈 화면 PWA 푸시도 함께 범위 밖이 됐다. 경위는 context-notes.md "배포 제거".
 
-- [x] Android 릴리즈 매니페스트 INTERNET 권한 — 배포와 무관하게 유효 (실기기 LAN 접속에 필요)
+- [x] ~~Android 릴리즈 매니페스트 INTERNET 권한~~ — 2026-07-24 Android 지원 제거로 소멸 (12절)
 
 ## 9. 회원가입 (2026-07-18)
 
@@ -121,7 +121,7 @@ Render(백엔드)·GitHub Pages(감지 페이지) 배포를 준비했으나, 202
 - [x] 보호자 페이지 (Task 10~11) — guardian.html, 웹 푸시, PWA
 - [x] Flutter (Task 12~15) — 모델·API, 설정 화면, FCM, 알림 소스 단일화. flutter test 7개 통과
 - [x] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신 (2026-07-24 배포 제거로 render.yaml·DEPLOYMENT.md는 삭제, 푸시 절차는 README로 이관)
-- [ ] 수동 준비물 — Firebase 콘솔에서 google-services.json과 서비스 계정 키 발급 (계획 Task 14 Step 1)
+- ~~수동 준비물 — Firebase 콘솔에서 google-services.json과 서비스 계정 키 발급~~ — 2026-07-24 Android 지원 제거로 폐기 (12절)
 
 ### 검증 라운드 (2026-07-24)
 
@@ -130,4 +130,14 @@ Render(백엔드)·GitHub Pages(감지 페이지) 배포를 준비했으나, 202
 - [x] 감지 페이지 오프라인→온라인 큐 재전송 브라우저 E2E — 실제 Chrome에서 8개 체크 통과 (`scripts/e2e/queue-e2e.mjs`)
 - [x] VAPID 키 생성(절차는 현재 README "푸시 알림 (선택)" 절) + 데스크톱 브라우저 웹 푸시 E2E — 구독→발송→서비스 워커 알림 표시, 9개 체크 통과, 헤드리스에서도 실수신 (`scripts/e2e/push-e2e.mjs`)
 - [x] iOS 시뮬레이터 첫 기동 — Firebase SwiftPM이 iOS 15를 요구해 배포 타깃 13.0→15.0 인상 후 빌드 성공. iPhone 17 Pro(26.5)에서 실행, 알림 권한 다이얼로그 표시, 7분+ 생존·크래시 리포트 없음
-- [ ] Android 실기기/에뮬레이터 백그라운드 FCM 수신 — google-services.json·서비스 계정 키 발급 뒤 (docs/firebase-setup.html)
+- ~~Android 실기기/에뮬레이터 백그라운드 FCM 수신~~ — 2026-07-24 Android 지원 제거로 폐기 (12절)
+
+## 12. Android 지원 제거 (2026-07-24)
+
+Android에서 실행하지 않기로 결정 — Android 플랫폼 디렉터리와, Android만을 위해 존재하던 FCM 스택 전체를 제거했다. 경위는 context-notes.md "Android 지원 제거".
+
+- [x] `app/android/` 삭제, `.metadata`·`.gitignore`의 android 항목 정리
+- [x] 앱에서 FCM 제거 — push.dart·firebase 의존성 삭제, notifiableFromPolling 제거(폴링이 항상 알림)
+- [x] 백엔드에서 FCM 제거 — `_send_fcm`·firebase_admin·`FIREBASE_SERVICE_ACCOUNT` 삭제, PushDevice.kind는 webpush만 (마이그레이션 0003)
+- [x] 문서 정리 — README에서 Android·FCM 제거, docs/firebase-setup.html 삭제, 과거 설계/플랜 문서에 제거 공지
+- [x] 검증 — flutter analyze 클린, flutter test 4개, backend pytest 32개, iOS 시뮬레이터 빌드 성공

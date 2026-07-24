@@ -45,12 +45,4 @@ void main() {
 
     expect(tracker.newEvents([ev(1)]).map((e) => e.id), [1]);
   });
-
-  test('Android에서는 폴링 새 이벤트로 알리지 않는다 — 알림은 FCM 한 소스에서만 온다', () {
-    expect(notifiableFromPolling([ev(2), ev(1)], isAndroid: true), isEmpty);
-  });
-
-  test('iOS에서는 FCM이 없으므로 폴링 새 이벤트가 그대로 알림 대상이다', () {
-    expect(notifiableFromPolling([ev(2), ev(1)], isAndroid: false).map((e) => e.id), [2, 1]);
-  });
 }

@@ -68,5 +68,5 @@ class GuardianProfileSerializer(serializers.ModelSerializer):
 
 
 class PushDeviceSerializer(serializers.Serializer):
-    kind = serializers.ChoiceField(choices=["fcm", "webpush"])
+    kind = serializers.ChoiceField(choices=["webpush"])
     token = serializers.CharField()

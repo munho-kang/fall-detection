@@ -513,3 +513,15 @@ Android 실기기/에뮬레이터 백그라운드 FCM 수신(Firebase 콘솔 발
 - **Django는 로컬 고정** — RENDER 분기, Postgres(dj-database-url·psycopg), whitenoise, gunicorn을 걷어내고 DEBUG=True·SQLite 고정. LAN 접속을 받으려면 `runserver 0.0.0.0:8000`으로 띄운다(README 갱신 — 기본 127.0.0.1 바인딩이면 폰이 못 붙는다).
 - **웹 푸시는 localhost 한정이 됐다** — 서비스 워커·Push API는 보안 컨텍스트(https 또는 localhost)를 요구한다. https가 사라졌으므로 "알림 켜기"는 Mac 브라우저(127.0.0.1)에서만 되고, **아이폰 홈 화면 PWA 푸시는 범위 밖이 됐다**(checklist 항목 제거). 발송 자체는 로컬 서버로도 나간다 — 푸시 서비스는 브라우저 벤더의 인터넷 서버라서다. getUserMedia도 같은 제약이라 감지 페이지는 종전대로 Mac에서 연다.
 - **VAPID·FCM 설정 절차는 README "푸시 알림 (선택)" 절로 이관** — DEPLOYMENT.md 6절이 유일한 사본이었다. docs/firebase-setup.html의 "Render 환경변수" 단계는 "환경변수를 붙여 runserver 실행"으로 고쳤다.
+
+## Android 지원 제거 (2026-07-24)
+
+"이 프로젝트는 Android에서 실행하지 않는다"는 결정에 따라 Android 관련 코드·설정·문서를 걷어냈다. 이 저장소에서 Firebase(FCM)는 오직 Android 백그라운드 푸시 한 가지를 위해 존재했으므로(제거 전 firebase-setup.html에 명시) FCM 스택 전체가 함께 나갔다.
+
+- **삭제한 것** — app/android/ 전체, app/lib/push.dart(+push_test.dart), firebase_core·firebase_messaging 의존성, 백엔드의 `_send_fcm`·`_ensure_firebase`·firebase_admin 의존성과 `FIREBASE_SERVICE_ACCOUNT`, docs/firebase-setup.html.
+- **"플랫폼당 알림 소스 1개" 규칙이 소멸했다** — Android=FCM / iOS=폴링 분리를 위해 있던 `notifiableFromPolling`(과 그 테스트 2개, push_test 1개)을 제거하고 폴링이 항상 알린다. 앱 테스트 7→4개, 백엔드 33→32개.
+- **PushDevice.kind는 webpush 단일 choice로 남겼다** — 필드를 없애면 웹 쪽 API 계약(guardian.js가 kind를 보낸다)까지 바뀌므로 choices만 좁혔다(마이그레이션 0003). `kind="fcm"`은 이제 400이다(테스트로 고정).
+- **iOS 배포 타깃 15.0은 유지** — Firebase SwiftPM 때문에 올렸지만 되돌릴 실익이 없고 이미 15.0으로 빌드 검증됐다. Firebase가 빠지면서 원격 SwiftPM 의존성이 0이 되어 Package.resolved 두 파일은 빌드가 삭제했다(정상). 빌드도 수 분 → 12초로 줄었다.
+- **web 쪽 코드는 변경 없음** — 웹 푸시는 표준 VAPID(pywebpush)라 Firebase와 무관하다.
+- **pubspec.lock의 shared_preferences_android 등은 남는다** — 유지하는 플러그인들의 연합(federated) 플랫폼 패키지라 pub이 관리하는 잔존이고, iOS 빌드에 포함되지 않는다.
+- **과거 설계·플랜 문서(docs/superpowers/)는 이력으로 보존** — 본문을 다시 쓰는 대신 문서 머리에 제거 공지를 달았다.

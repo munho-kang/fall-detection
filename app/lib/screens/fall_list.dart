@@ -1,14 +1,11 @@
 // 낙상 이벤트 목록 화면
 
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../models.dart';
 import '../notifications.dart';
 import '../poller.dart';
-import '../push.dart';
 import 'fall_detail.dart';
 import 'login.dart';
 import 'settings.dart';
@@ -31,12 +28,10 @@ class _FallListScreenState extends State<FallListScreen> {
   @override
   void initState() {
     super.initState();
-    Push.register(widget.api); // Android면 FCM 토큰을 서버에 등록한다. 실패해도 폴링이 백업이다.
     _poller = FallPoller(
       api: widget.api,
       onEvents: (all, fresh) {
-        // FCM 등록 완료 전 짧은 창에서는 폴링 알림이 먼저 갈 수 있다 — 의도된 동작(무알림보다 낫다).
-        for (final e in notifiableFromPolling(fresh, isAndroid: Platform.isAndroid && Push.active)) {
+        for (final e in fresh) {
           Notifications.show(e);
         }
         if (!mounted) return;
@@ -89,8 +84,6 @@ class _FallListScreenState extends State<FallListScreen> {
   }
 
   Future<void> _logout() async {
-    // 인증 토큰을 지우기 전에 서버의 푸시 등록부터 지운다. 로그아웃 뒤 알림이 오면 안 된다.
-    await Push.unregister(widget.api);
     await widget.api.clearToken();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(

@@ -1,7 +1,5 @@
 // flutter_local_notifications 래퍼
 
-import 'dart:io' show Platform;
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'models.dart';
@@ -10,13 +8,6 @@ class Notifications {
   static final _plugin = FlutterLocalNotificationsPlugin();
 
   static const _details = NotificationDetails(
-    android: AndroidNotificationDetails(
-      'falls',
-      '낙상 알림',
-      channelDescription: '낙상이 감지되면 즉시 알립니다',
-      importance: Importance.max,
-      priority: Priority.high,
-    ),
     iOS: DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
@@ -27,7 +18,6 @@ class Notifications {
   static Future<void> init() async {
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(
           requestAlertPermission: true,
           requestBadgePermission: true,
@@ -35,20 +25,6 @@ class Notifications {
         ),
       ),
     );
-
-    if (Platform.isAndroid) {
-      final android = _plugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      await android?.requestNotificationsPermission();
-      // 백그라운드 FCM 알림이 이 채널로 뜬다(AndroidManifest의 default_notification_channel_id).
-      // show()가 쓰는 채널 id와 같아야 사용자 알림 설정이 한 곳에 모인다.
-      await android?.createNotificationChannel(const AndroidNotificationChannel(
-        'falls',
-        '낙상 알림',
-        description: '낙상이 감지되면 즉시 알립니다',
-        importance: Importance.max,
-      ));
-    }
   }
 
   static Future<void> show(FallEvent event) async {

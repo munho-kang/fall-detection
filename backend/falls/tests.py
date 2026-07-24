@@ -229,33 +229,37 @@ def test_profile_put_roundtrip(guardian):
 
 def test_push_device_register(guardian):
     r = client_for(guardian).post(
-        "/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json"
+        "/api/push/devices/", {"kind": "webpush", "token": "tok-1"}, format="json"
     )
     assert r.status_code == 201
     device = PushDevice.objects.get(token="tok-1")
-    assert device.guardian == guardian and device.kind == "fcm"
+    assert device.guardian == guardian and device.kind == "webpush"
 
 
 def test_push_device_token_moves_to_current_user(guardian, other):
     # 같은 브라우저/기기에서 계정을 전환한 경우 — 토큰은 마지막 사용자 것이 된다
-    client_for(other).post("/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json")
-    client_for(guardian).post("/api/push/devices/", {"kind": "fcm", "token": "tok-1"}, format="json")
+    client_for(other).post(
+        "/api/push/devices/", {"kind": "webpush", "token": "tok-1"}, format="json"
+    )
+    client_for(guardian).post(
+        "/api/push/devices/", {"kind": "webpush", "token": "tok-1"}, format="json"
+    )
     assert PushDevice.objects.count() == 1
     assert PushDevice.objects.get(token="tok-1").guardian == guardian
 
 
 def test_push_device_delete(guardian):
-    PushDevice.objects.create(guardian=guardian, kind="fcm", token="tok-1")
+    PushDevice.objects.create(guardian=guardian, kind="webpush", token="tok-1")
     r = client_for(guardian).delete("/api/push/devices/", {"token": "tok-1"}, format="json")
     assert r.status_code == 204
     assert PushDevice.objects.count() == 0
 
 
 def test_push_device_bad_kind_400(guardian):
-    r = client_for(guardian).post(
-        "/api/push/devices/", {"kind": "smoke-signal", "token": "t"}, format="json"
-    )
-    assert r.status_code == 400
+    c = client_for(guardian)
+    for kind in ("smoke-signal", "fcm"):  # fcm은 Android 지원 제거로 더 이상 유효하지 않다
+        r = c.post("/api/push/devices/", {"kind": kind, "token": "t"}, format="json")
+        assert r.status_code == 400
 
 
 # --- 푸시 발송 (Task 5) ---
@@ -263,14 +267,11 @@ def test_push_device_bad_kind_400(guardian):
 TEST_VAPID_KEY = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
 
 
-def test_send_skips_channels_without_keys(guardian, settings):
-    settings.FIREBASE_SERVICE_ACCOUNT = ""
+def test_send_skips_when_vapid_unset(guardian, settings):
     settings.VAPID_PRIVATE_KEY = ""
-    PushDevice.objects.create(guardian=guardian, kind="fcm", token="t1")
     PushDevice.objects.create(guardian=guardian, kind="webpush", token='{"endpoint": "e"}')
-    with mock.patch("falls.push._send_fcm") as fcm, mock.patch("falls.push._send_webpush") as wp:
+    with mock.patch("falls.push._send_webpush") as wp:
         push.send_to_guardian(make_event(guardian))
-    fcm.assert_not_called()
     wp.assert_not_called()
 
 
@@ -280,18 +281,6 @@ def test_webpush_dead_subscription_deleted(guardian, settings):
     device = PushDevice.objects.create(guardian=guardian, kind="webpush", token='{"endpoint": "e"}')
     gone = WebPushException("gone", response=mock.Mock(status_code=410))
     with mock.patch("pywebpush.webpush", side_effect=gone):
-        push.send_to_guardian(make_event(guardian))
-    assert not PushDevice.objects.filter(pk=device.pk).exists()
-
-
-def test_fcm_dead_token_deleted(guardian):
-    from firebase_admin import messaging
-
-    device = PushDevice.objects.create(guardian=guardian, kind="fcm", token="dead")
-    with (
-        mock.patch("falls.push._ensure_firebase", return_value=True),
-        mock.patch("firebase_admin.messaging.send", side_effect=messaging.UnregisteredError("x")),
-    ):
         push.send_to_guardian(make_event(guardian))
     assert not PushDevice.objects.filter(pk=device.pk).exists()
 

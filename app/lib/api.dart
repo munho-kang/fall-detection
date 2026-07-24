@@ -1,7 +1,6 @@
 // Django API 호출과 토큰 보관
 
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,12 +13,12 @@ class Api {
   static const _tokenKey = 'fall_token';
 
   // 우선순위: --dart-define=API_HOST(같은 와이파이의 Mac IP) > 시뮬레이터 기본값.
-  // Android 에뮬레이터는 호스트를 10.0.2.2로, iOS 시뮬레이터·데스크톱은 127.0.0.1로 본다.
+  // iOS 시뮬레이터·데스크톱은 호스트를 127.0.0.1로 본다.
   // 실기기는 같은 LAN의 Mac IP가 필요하므로 API_HOST로 지정한다.
   static String get baseUrl {
     const host = String.fromEnvironment('API_HOST');
     if (host.isNotEmpty) return 'http://$host:8000';
-    return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+    return 'http://127.0.0.1:8000';
   }
 
   String? _token;
@@ -166,26 +165,5 @@ class Api {
       throw Exception(_firstErrorMessage(res) ?? '전화번호를 저장하지 못했습니다.');
     }
     return Profile.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
-  }
-
-  // FCM 전용이다. 웹 푸시 구독(kind=webpush)은 보호자 페이지가 등록한다.
-  Future<void> registerPushDevice(String token) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/push/devices/'),
-      headers: _headers,
-      body: jsonEncode({'kind': 'fcm', 'token': token}),
-    );
-    if (res.statusCode == 401) throw UnauthorizedException();
-    if (res.statusCode != 201) throw Exception('푸시 기기 등록에 실패했습니다 (${res.statusCode}).');
-  }
-
-  Future<void> deletePushDevice(String token) async {
-    final res = await http.delete(
-      Uri.parse('$baseUrl/api/push/devices/'),
-      headers: _headers,
-      body: jsonEncode({'token': token}),
-    );
-    if (res.statusCode == 401) throw UnauthorizedException();
-    if (res.statusCode != 204) throw Exception('푸시 기기 해제에 실패했습니다 (${res.statusCode}).');
   }
 }

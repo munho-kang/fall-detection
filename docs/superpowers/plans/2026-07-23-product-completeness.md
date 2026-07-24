@@ -1,5 +1,7 @@
 # 제품 완성도 라운드 구현 계획 — 푸시·오프라인 큐·방/연락처 관리
 
+> **2026-07-24: Android 지원 제거됨.** 이 문서의 Android·FCM 관련 내용은 작성 시점의 이력이다. 현재 앱은 iOS 전용이며 FCM 스택은 저장소에서 제거됐다 — 경위는 루트 context-notes.md "Android 지원 제거".
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 낙상 파이프라인에 백그라운드 푸시(Android FCM + 표준 웹 푸시), 오프라인 전송 큐, 방·연락처 CRUD, 보호자 웹 페이지를 추가한다.

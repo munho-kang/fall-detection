@@ -1,5 +1,7 @@
 # 노인 낙상 감지 시스템 구현 계획
 
+> **2026-07-24: Android 지원 제거됨.** 이 문서의 Android 관련 내용은 작성 시점의 이력이다. 현재 앱은 iOS 전용이다 — 경위는 루트 context-notes.md "Android 지원 제거".
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 브라우저에서 낙상을 감지해 영상을 밖으로 내보내지 않고 보호자 앱에 알림을 보내는 시스템을 만든다.
