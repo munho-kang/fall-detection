@@ -2,7 +2,7 @@
 
 혼자 사는 노인의 낙상을 카메라로 감지해 보호자 앱에 알린다. **영상은 기기를 벗어나지 않는다.**
 
-과제 제출용으로 시작한 프로젝트다. 지금은 실서비스 배포를 지원한다 — 백엔드는 Render, 감지 페이지는 GitHub Pages, 앱은 실기기 설치. 절차는 [배포 가이드](docs/DEPLOYMENT.md) 참고.
+과제 제출용 프로젝트다. 외부 배포 없이 **같은 와이파이(LAN) 안에서 전부 실행한다** — 백엔드와 감지 페이지는 Mac에서 띄우고, 폰은 Mac의 IP로 접속한다.
 
 ## 사생활 보호
 
@@ -29,7 +29,7 @@
    FCM 푸시(즉시)   웹 푸시(즉시)   GET /api/falls/ ← 5초 폴링
         │             │              │
   [Flutter 앱      [보호자 페이지   [Flutter 앱 iOS]
-   Android]         PWA·브라우저]    새 id 발견 시 로컬 알림  (app/)
+   Android]         브라우저]        새 id 발견 시 로컬 알림  (app/)
 ```
 
 ## 감지 알고리즘 — 세 관문
@@ -50,7 +50,7 @@ STANDING ──속도──▶ FALLING ──자세──▶ FALLEN ──시간
 
 ## 실행 방법
 
-터미널 3개가 필요하다.
+배포 없이 전부 한 대의 Mac에서 띄우고, 폰은 같은 와이파이로 접속한다. 터미널 3개가 필요하다.
 
 ### 1. Django (`:8000`)
 
@@ -60,7 +60,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python manage.py migrate
 .venv/bin/python manage.py createsuperuser   # admin 계정. 보호자 계정은 웹·앱의 회원가입으로 만든다
-.venv/bin/python manage.py runserver 8000
+.venv/bin/python manage.py runserver 0.0.0.0:8000   # 0.0.0.0 — 같은 와이파이 기기의 접속을 받는다
 ```
 
 ### 2. 감지 페이지 (`:5500`)
@@ -74,17 +74,50 @@ npx serve -l 5500 .
 
 보호자 페이지는 `http://127.0.0.1:5500/guardian.html`이다. 같은 계정으로 로그인하면 낙상 목록 확인, 방·연락처 관리, 브라우저 푸시 구독을 할 수 있다.
 
-포트가 **5500이어야 한다.** Django의 `CORS_ALLOWED_ORIGINS`가 이 포트만 허용한다. `getUserMedia`는 보안 컨텍스트를 요구하지만 `localhost`는 예외라 HTTPS는 불필요하다.
+**감지 페이지는 Mac에서 연다.** `getUserMedia`(카메라)는 보안 컨텍스트를 요구하는데 `localhost`만 예외라 HTTPS 없이 동작한다. 같은 와이파이의 다른 기기에서 `http://<Mac IP>:5500`으로 열면 로그인·목록·방 관리는 되지만 카메라와 웹 푸시는 브라우저가 막는다. API 주소는 접속한 호스트를 그대로 따라가므로(`web/js/api.js`) 별도 설정은 없다. Mac IP는 `ipconfig getifaddr en0`으로 확인한다.
 
 ### 3. Flutter 앱
 
 ```bash
 cd app
 flutter pub get
-flutter run
+flutter run                                   # 시뮬레이터·에뮬레이터
+flutter run --dart-define=API_HOST=<Mac IP>   # 실기기 — 같은 와이파이의 Mac IP
 ```
 
-서버 주소는 플랫폼에 따라 자동으로 갈린다 — Android 에뮬레이터는 `10.0.2.2:8000`, iOS 시뮬레이터는 `127.0.0.1:8000`. 릴리즈 빌드는 Render 배포 주소를 쓴다(`app/lib/api.dart`).
+시뮬레이터는 서버 주소가 자동으로 잡힌다 — Android 에뮬레이터는 `10.0.2.2:8000`, iOS 시뮬레이터는 `127.0.0.1:8000`. 실기기는 같은 와이파이에 물린 Mac의 IP를 `API_HOST`로 넘긴다(`app/lib/api.dart`). 릴리즈 설치도 같다 — `flutter run --release --dart-define=API_HOST=<Mac IP>`.
+
+## 푸시 알림 (선택)
+
+푸시 없이도 전체 기능이 동작한다(앱·보호자 페이지를 켜 두면 5초 폴링이 알린다). 아래 환경변수를 붙여 Django를 실행하면 화면이 꺼져 있어도 알림이 온다. 비워 두면 해당 채널만 조용히 꺼진다.
+
+| 채널 | 대상 | 필요한 환경변수 |
+|------|------|-----------------|
+| FCM | Android 앱 | `FIREBASE_SERVICE_ACCOUNT` — 발급·배치는 [docs/firebase-setup.html](docs/firebase-setup.html) |
+| 표준 웹 푸시 | 데스크톱 브라우저(보호자 페이지) | `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+
+웹 푸시 키는 한 번만 만들면 된다. 공개키는 서버가 개인키에서 계산하므로 따로 없다.
+
+```bash
+cd backend && .venv/bin/python - <<'EOF'
+import base64
+from cryptography.hazmat.primitives.asymmetric import ec
+
+key = ec.generate_private_key(ec.SECP256R1())
+raw = key.private_numbers().private_value.to_bytes(32, "big")
+print("VAPID_PRIVATE_KEY =", base64.urlsafe_b64encode(raw).rstrip(b"=").decode())
+EOF
+```
+
+환경변수를 붙여 서버를 띄운 뒤, 보호자 페이지(`http://127.0.0.1:5500/guardian.html`)에서 **알림 켜기**를 누른다.
+
+```bash
+cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> \
+  FIREBASE_SERVICE_ACCOUNT='<한 줄 JSON — firebase-setup.html 4단계>' \
+  .venv/bin/python manage.py runserver 0.0.0.0:8000
+```
+
+웹 푸시 구독은 보안 컨텍스트가 필요해서 `localhost`로 연 페이지에서만 켤 수 있다. 발송은 로컬 서버로도 된다 — 푸시 서비스 자체는 브라우저 벤더의 인터넷 서버라서다.
 
 ## 테스트
 
@@ -105,7 +138,7 @@ cd app     && flutter test                   # 7개 — 새 이벤트 판별 + �
 - **카메라를 옮기면 반드시 아래 세 검수를 다시 통과시켜야 한다** — 높이·거리 수치보다 이 합격 기준이 우선이다. ① 빠르게 넘어져서 튜닝 패널의 **hipV 피크가 0.5 이상**일 것(실측 낙상 5회는 0.515~0.641). 못 넘으면 너무 내려다보는 것이다. ② 옆·정면·대각선으로 누워 **tilt가 셋 다 60° 이상**일 것(실측 88° 이상). 못 넘는 방향이 있으면 너무 수평이다. ③ 천천히 누워서 **hipV 피크가 0.3 미만**이고 ①의 낙상 피크와 최소 0.2 벌어질 것. ①②는 각 관문이 열리는지만 보고, 눕기와 낙상을 **가를 수 있는지**는 ③만 본다. 3차 배치는 ①②를 통과하고도 ③에서 떨어졌다(눕기 hipV 0.541이 낙상과 겹침).
 - **누워 있는 사람의 큰 움직임** — `STANDING` 상태의 실제 의미는 "서 있음"이 아니라 "낙하 중이 아님"이고, 여기에 "천천히 누워서 이미 수평인 상태"가 포함된다. 이 상태에서 hipV가 임계값을 넘으면 tilt가 이미 60°를 넘어 있으므로 한 프레임 만에 FALLEN이 되고, 5초간 안 일어나면 오탐지 알림이 나간다. 실측에서 수평 상태의 hipV 최대치는 0.381이라 현재 0.45로는 뚫리지 않지만 **여유가 0.069뿐이다.** 관문 1에 "tilt < 45°" 조건을 추가하면 닫히는데, 그러면 허리를 굽힌 자세에서 쓰러지는 낙상을 통째로 놓치므로 넣지 않았다. 미탐지를 오탐지보다 무겁게 본 결정이다.
 - **FALLEN_HOLD는 검증됨, 단 유효 배치는 아직 미확정** — `FALLEN_HOLD` 5초 경로는 2026-07-17 3차 측정에서 실측 검증됐다(넘어져 5초 유지 4회 → ALERTED → POST 4건 DB 도달, 4.6초에 일어난 1회는 알림 없음). 이 검증은 배치와 무관하게 유효하다. 그러나 4차에서 그 배치(150/180/83)의 눕기·앉기를 재보니 **불합격**이었다 — 눕기 hipV(최대 0.541)가 낙상(0.456~0.540)과 겹쳐 관문 1이 둘을 못 가르고, 눕기 하나가 오탐지를 5° 차이로 비켜갔다. 1차 스위트스팟(눕기 0.052~0.194, 낙상 0.515~0.641)은 이 분리가 있었지만 수치를 안 적어놨다. 낙상 감지·5초 알림·파이프라인은 다 되지만, 오탐지 여유까지 확보된 배치는 아직 확정하지 못했다.
-- **iOS 네이티브 앱만 백그라운드 알림이 없다** — Android 앱은 FCM으로, 브라우저·아이폰은 보호자 페이지(guardian.html)를 홈 화면에 추가한 PWA의 표준 웹 푸시로 백그라운드에서도 알림을 받는다(2026-07-23 추가, iOS 16.4+). iOS 네이티브 푸시(APNs)는 유료 개발자 계정이 필요해 범위 밖에 남겼다 — 아이폰 보호자는 PWA를 쓰면 된다.
+- **아이폰은 백그라운드 알림이 없다** — Android 앱은 FCM으로, 데스크톱 브라우저는 보호자 페이지(guardian.html)의 표준 웹 푸시로 백그라운드에서도 알림을 받는다(2026-07-23 추가). 웹 푸시 구독은 보안 컨텍스트(https 또는 localhost)에서만 켤 수 있는데 이 프로젝트는 https로 배포하지 않으므로, 아이폰 홈 화면 PWA가 웹 푸시를 받는 경로는 배포 제거(2026-07-24)와 함께 막혔다. iOS 네이티브 푸시(APNs)도 유료 개발자 계정이 필요해 범위 밖이다. 아이폰 보호자는 앱(또는 보호자 페이지)을 켜 두면 5초 폴링이 알린다.
 - **프레임 밖 낙상** — 넘어지며 화면을 벗어나면 `NO_PERSON`이 되어 감지되지 않는다.
 - **끊긴 뒤 영영 재검출되지 않는 낙상** — 넘어진 사람이 가구에 완전히 가리거나 화면 밖으로 옮겨져 다시는 검출되지 않으면 알림이 끝내 발생하지 않는다. 재검출된 경우에는 tilt를 보고 FALLEN을 복원해 hold 시계를 이어가지만, 재검출 자체가 없으면 판단할 근거가 없다. 반대로 "일정 시간 미검출이면 알림"으로 만들면 스스로 일어나 화면 밖으로 걸어 나간 사람에게도 오탐지가 발생하므로, 이 트레이드오프는 의도적으로 감수했다.
 - **다중 인물** — `numPoses: 1`, 독거 전제다.
@@ -116,7 +149,8 @@ cd app     && flutter test                   # 7개 — 새 이벤트 판별 + �
 
 ## 문서
 
-- [배포 가이드](docs/DEPLOYMENT.md) ([HTML판](docs/deploy-guide.html))
+- [Firebase(FCM) 설정 가이드](docs/firebase-setup.html)
+- [백엔드 구현 설명](docs/backend-architecture.html)
 - [설계 — 감지 파이프라인 (2026-07-17)](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
 - [구현 계획 — 감지 파이프라인 (2026-07-17)](docs/superpowers/plans/2026-07-17-fall-detection.md)
 - [설계 — 제품 완성도 라운드 (2026-07-23)](docs/superpowers/specs/2026-07-23-product-completeness-design.md)

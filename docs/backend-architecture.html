@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- backend/ Django REST API의 구현 구조(모델·인증·엔드포인트·배포)를 설명하는 문서 -->
+<!-- backend/ Django REST API의 구현 구조(모델·인증·엔드포인트·실행 환경)를 설명하는 문서 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -175,7 +175,7 @@
 
   <div class="box">
     <b>한 줄 요약.</b>
-    <b>Django 6.0 + Django REST Framework</b> 기반 REST 서버. 인증은 DRF 토큰, DB는 로컬 SQLite / 배포 Postgres 자동 전환, 배포는 Render에서 <code>gunicorn</code> + <code>whitenoise</code>. 앱은 딱 둘 — <code>config</code>(설정)와 <code>falls</code>(도메인). 실질 로직은 전부 <code>falls</code>에 있다.
+    <b>Django 6.0 + Django REST Framework</b> 기반 REST 서버. 인증은 DRF 토큰, DB는 SQLite. 배포 없이 같은 와이파이(LAN) 안에서 <code>runserver</code>로 돌린다. 앱은 딱 둘 — <code>config</code>(설정)와 <code>falls</code>(도메인). 실질 로직은 전부 <code>falls</code>에 있다.
   </div>
 
   <p class="toc">
@@ -186,9 +186,8 @@
     <a href="#api">3. 엔드포인트</a> ·
     <a href="#views">4. 뷰 로직</a> ·
     <a href="#serializers">5. 시리얼라이저</a> ·
-    <a href="#env">6. 환경 분기</a> ·
-    <a href="#deploy">7. 배포</a> ·
-    <a href="#tests">8. 테스트</a>
+    <a href="#env">6. 실행 환경</a> ·
+    <a href="#tests">7. 테스트</a>
   </p>
 
   <h2 id="stack">전체 그림</h2>
@@ -203,9 +202,9 @@
 
 <pre><code>backend/
 ├─ config/          # 프로젝트 설정
-│  ├─ settings.py   # DRF·DB·CORS·환경 분기
+│  ├─ settings.py   # DRF·DB·CORS 설정
 │  ├─ urls.py       # 루트 라우팅 + 헬스체크 + admin(/ansgh/)
-│  └─ wsgi.py       # gunicorn 진입점
+│  └─ wsgi.py       # WSGI 진입점 (Django 기본 골격)
 ├─ falls/           # 유일한 도메인 앱
 │  ├─ models.py       # FallEvent (모델 1개)
 │  ├─ serializers.py  # SignupSerializer / FallEventSerializer
@@ -213,15 +212,14 @@
 │  ├─ urls.py         # /api/ 하위 엔드포인트
 │  └─ tests.py        # 인증·소유권·멱등성 검증
 ├─ requirements.txt
-├─ build.sh         # Render 빌드 (install + collectstatic)
 └─ manage.py</code></pre>
 
   <table>
     <tr><th>구성</th><th>선택</th></tr>
     <tr><td>프레임워크</td><td>Django 6.0 + Django REST Framework</td></tr>
     <tr><td>인증</td><td>DRF <code>TokenAuthentication</code> (헤더 <code>Authorization: Token &lt;키&gt;</code>)</td></tr>
-    <tr><td>DB</td><td>로컬 SQLite / 배포 Postgres (<code>dj-database-url</code>로 자동 전환)</td></tr>
-    <tr><td>배포</td><td>Render 웹 서비스 · <code>gunicorn</code> 구동 · <code>whitenoise</code> 정적 서빙</td></tr>
+    <tr><td>DB</td><td>SQLite (<code>db.sqlite3</code>)</td></tr>
+    <tr><td>실행</td><td>로컬 <code>runserver 0.0.0.0:8000</code> — 같은 와이파이 기기는 Mac IP로 접속</td></tr>
     <tr><td>CORS</td><td><code>django-cors-headers</code> — 감지 페이지 오리진 허용</td></tr>
   </table>
 
@@ -280,7 +278,7 @@
 
   <h3>루트 <code>/</code> — <span class="tag">config/urls.py</span></h3>
   <ul>
-    <li><span class="pill get">GET</span><code>/</code> — <code>{"status":"ok", ...}</code> 헬스체크. Render 헬스체크 겸 "배포 살아있나" 육안 확인용.</li>
+    <li><span class="pill get">GET</span><code>/</code> — <code>{"status":"ok", ...}</code> 헬스체크. 서버가 살아 있는지 육안 확인용.</li>
     <li>admin은 기본 <code>/admin/</code>이 아니라 <b><code>/ansgh/</code></b>로 숨겨 자동 스캐너를 피한다.</li>
   </ul>
 
@@ -349,40 +347,22 @@ def acknowledge(request, pk):
     기본 <code>create()</code>는 비밀번호를 평문으로 저장한다. <code>User.objects.create_user(**data)</code>가 해시해서 저장하므로 반드시 이쪽을 쓴다.
   </div>
 
-  <h2 id="env"><span class="step">6</span>환경 분기 — 로컬 vs Render</h2>
+  <h2 id="env"><span class="step">6</span>실행 환경 — 로컬 네트워크 전용</h2>
 
-  <p><code>settings.py</code>가 <code>RENDER</code> 환경변수 유무로 두 모드를 자동 전환한다.</p>
+  <p>이 서버는 배포하지 않는다. 같은 와이파이(LAN) 안에서만 실행하는 전제라 <code>settings.py</code>가 단순하다.</p>
 
   <table>
-    <tr><th></th><th>로컬 개발</th><th>Render 배포</th></tr>
-    <tr><td><code>DEBUG</code></td><td>True</td><td>False</td></tr>
-    <tr><td>DB</td><td>SQLite (<code>db.sqlite3</code>)</td><td>Postgres (<code>DATABASE_URL</code>)</td></tr>
-    <tr><td><code>ALLOWED_HOSTS</code></td><td><code>['*']</code></td><td>Render 도메인만</td></tr>
-    <tr><td>쿠키</td><td>평문</td><td>Secure + CSRF/프록시 SSL 헤더</td></tr>
+    <tr><th>설정</th><th>값</th><th>이유</th></tr>
+    <tr><td><code>DEBUG</code></td><td><code>True</code></td><td>로컬 전용 — <code>runserver</code>가 admin 정적 파일까지 서빙한다</td></tr>
+    <tr><td>DB</td><td>SQLite (<code>db.sqlite3</code>)</td><td>단일 Mac에서 돌므로 파일 DB로 충분하다</td></tr>
+    <tr><td><code>ALLOWED_HOSTS</code></td><td><code>['*']</code></td><td>실기기 폰이 같은 LAN의 Mac IP로 접속한다</td></tr>
   </table>
 
-  <div class="box warn">
-    <b>배포 DB는 반드시 외부 Postgres.</b>
-    Render 무료 웹서비스의 디스크는 재배포·슬립마다 초기화된다. SQLite를 그대로 쓰면 보호자 계정과 낙상 기록이 전부 사라지므로, <code>dj-database-url</code>로 Postgres에 붙인다.
-  </div>
+  <p><b>CORS.</b> 감지·보호자 페이지는 다른 오리진(정적 서버 <code>:5500</code>)에서 뜨고, 같은 와이파이의 다른 기기는 <code>http://&lt;Mac IP&gt;:5500</code> 오리진으로 접속해 오리진을 미리 특정할 수 없다. 로컬 네트워크 전용 서버라 <code>CORS_ALLOW_ALL_ORIGINS = True</code>로 전부 허용한다.</p>
 
-  <p><b>CORS.</b> 감지 페이지는 다른 오리진(로컬 Live Server <code>:5500</code>, 배포 시 GitHub Pages)에서 뜬다. 배포 오리진은 <code>CORS_ALLOWED_ORIGINS</code> 환경변수(쉼표 구분)로 주입한다.</p>
+  <p><b>같은 와이파이 기기의 접속을 받으려면</b> <code>runserver 0.0.0.0:8000</code>으로 띄운다(기본 바인딩은 127.0.0.1이라 폰이 못 붙는다).</p>
 
-  <h2 id="deploy"><span class="step">7</span>배포 파이프라인</h2>
-
-  <p><code>render.yaml</code> 블루프린트로 <b>웹 서비스 + 무료 Postgres</b>를 한 번에 생성한다.</p>
-
-  <ul>
-    <li><b>빌드</b> — <code>build.sh</code> → <code>pip install</code> + <code>collectstatic</code></li>
-    <li><b>시작</b> — <code>migrate</code> → <code>createsuperuser --noinput</code>(보호자 계정 자동 생성) → <code>gunicorn config.wsgi</code></li>
-    <li><code>SECRET_KEY</code>는 Render가 자동 생성, 슈퍼유저 계정은 환경변수로 주입.</li>
-  </ul>
-
-<pre><code>startCommand: python manage.py migrate --noinput \
-  &amp;&amp; (python manage.py createsuperuser --noinput || true) \
-  &amp;&amp; gunicorn config.wsgi:application</code></pre>
-
-  <h2 id="tests"><span class="step">8</span>테스트</h2>
+  <h2 id="tests"><span class="step">7</span>테스트</h2>
 
   <p><code>falls/tests.py</code>가 pytest로 백엔드의 보안·불변식을 고정한다. 위에서 설명한 설계 의도가 그대로 테스트로 남아 있다.</p>
 
@@ -398,7 +378,7 @@ def acknowledge(request, pk):
 
   <div class="box">
     <b>마무리.</b>
-    모델 하나, 엔드포인트 넷으로 끝나는 최소 API지만 <b>토큰 인증 · 소유권 격리 · 멱등 확인 · 환경별 DB 전환</b>이라는 핵심 안전장치가 빠짐없이 들어가 있다.
+    모델 하나, 엔드포인트 넷으로 끝나는 최소 API지만 <b>토큰 인증 · 소유권 격리 · 멱등 확인</b>이라는 핵심 안전장치가 빠짐없이 들어가 있다.
   </div>
 </main>
 </body>

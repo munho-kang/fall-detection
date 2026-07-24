@@ -501,3 +501,15 @@ VAPID 키는 DEPLOYMENT 6-2의 명령 그대로 생성해 환경변수로 주입
 ### 남은 수동 검증
 
 Android 실기기/에뮬레이터 백그라운드 FCM 수신(Firebase 콘솔 발급 필요), iPhone 홈 화면 PWA 푸시(HTTPS 배포 필요) — 둘 다 이 머신 밖 준비물이 필요하다.
+
+## 배포 제거 (2026-07-24)
+
+"배포 준비 (2026-07-18)"의 결정을 되돌렸다. Render·GitHub Pages에 배포하지 않기로 하고, **같은 와이파이(LAN) 안에서만 실행하는 전제**로 코드·문서를 정리했다.
+
+- **삭제한 것** — render.yaml, .github/workflows/deploy-pages.yml, backend/build.sh, .nojekyll, 루트 index.html·pre.html(Pages 브랜치 배포 안전망), docs/DEPLOYMENT.md, docs/deploy-guide.html.
+- **웹 API 주소는 접속 호스트를 따라간다** — web/js/api.js가 `http://${location.hostname}:8000`. 정적 서버와 Django가 같은 Mac에서 뜨므로 localhost로 열든 Mac IP로 열든 항상 맞는 주소가 된다. PROD 분기(onrender.com)는 삭제.
+- **앱은 실기기에 API_HOST가 필수가 됐다** — kReleaseMode 분기(릴리즈=배포 주소)를 제거해 우선순위가 API_HOST > 시뮬레이터 기본값뿐이다. 실기기는 디버그·릴리즈 모두 `--dart-define=API_HOST=<Mac IP>`.
+- **CORS는 전부 허용** — 같은 와이파이 기기가 `http://<Mac IP>:5500` 오리진으로 접속해 오리진을 특정할 수 없으므로 `CORS_ALLOW_ALL_ORIGINS = True`. 이로써 "포트 5500 강제"도 풀렸다(e2e 스크립트는 여전히 5500을 하드코딩하니 관례로 유지).
+- **Django는 로컬 고정** — RENDER 분기, Postgres(dj-database-url·psycopg), whitenoise, gunicorn을 걷어내고 DEBUG=True·SQLite 고정. LAN 접속을 받으려면 `runserver 0.0.0.0:8000`으로 띄운다(README 갱신 — 기본 127.0.0.1 바인딩이면 폰이 못 붙는다).
+- **웹 푸시는 localhost 한정이 됐다** — 서비스 워커·Push API는 보안 컨텍스트(https 또는 localhost)를 요구한다. https가 사라졌으므로 "알림 켜기"는 Mac 브라우저(127.0.0.1)에서만 되고, **아이폰 홈 화면 PWA 푸시는 범위 밖이 됐다**(checklist 항목 제거). 발송 자체는 로컬 서버로도 나간다 — 푸시 서비스는 브라우저 벤더의 인터넷 서버라서다. getUserMedia도 같은 제약이라 감지 페이지는 종전대로 Mac에서 연다.
+- **VAPID·FCM 설정 절차는 README "푸시 알림 (선택)" 절로 이관** — DEPLOYMENT.md 6절이 유일한 사본이었다. docs/firebase-setup.html의 "Render 환경변수" 단계는 "환경변수를 붙여 runserver 실행"으로 고쳤다.

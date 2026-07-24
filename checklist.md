@@ -87,23 +87,11 @@
 - [x] README — 실행 방법, 아키텍처, 사생활 보호 설명
 - [x] README — 범위 밖 / 한계 명시 (설계 문서 12절)
 
-## 8. 배포 (2026-07-18)
+## 8. 배포 (2026-07-18) — 2026-07-24 제거
 
-코드 준비는 완료. 계정이 필요한 실행 단계는 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) 순서대로 진행한다.
+Render(백엔드)·GitHub Pages(감지 페이지) 배포를 준비했으나, 2026-07-24 **배포하지 않기로 결정**하고 관련 코드·설정·문서(render.yaml, GitHub Actions 워크플로, build.sh, DEPLOYMENT.md, deploy-guide.html, 루트 리다이렉트 등)를 모두 제거했다. 같은 와이파이(LAN) 실행 전용이다 — 실행 방법은 README. HTTPS가 전제였던 아이폰 홈 화면 PWA 푸시도 함께 범위 밖이 됐다. 경위는 context-notes.md "배포 제거".
 
-- [x] Django 프로덕션 설정 — 환경변수 분기, whitenoise, Postgres(DATABASE_URL) 지원, gunicorn
-- [x] `render.yaml` 블루프린트 + `backend/build.sh`
-- [x] 웹/앱 배포 주소 분기 (`web/js/api.js`, `app/lib/api.dart`)
-- [x] GitHub Pages 워크플로 (`.github/workflows/deploy-pages.yml`)
-- [x] Android 릴리즈 매니페스트 INTERNET 권한
-- [x] 검증 — pytest 7·vitest 10·flutter 4 통과, 프로덕션 시뮬레이션(헬스체크 200, CORS 허용/차단), iOS 릴리즈 빌드 컴파일
-- [x] 브랜치 배포 모드 안전망 — 루트 `index.html` → `web/` 리다이렉트 + `.nojekyll`
-- [x] 배포 가이드 HTML판 (`docs/deploy-guide.html`) — 헤드리스 Chrome 렌더링 확인
-- [ ] GitHub 저장소 생성 + push + Pages Source를 GitHub Actions로 설정
-- [ ] Render Blueprint 배포 + 환경변수 4개 입력
-- [ ] 배포된 Render 주소를 두 파일의 `XXXX`에 반영 후 push
-- [ ] 감지 페이지 로그인 → 감지 시작 동작 확인
-- [ ] 아이폰 `flutter run --release` 설치 + 알림 수신 확인
+- [x] Android 릴리즈 매니페스트 INTERNET 권한 — 배포와 무관하게 유효 (실기기 LAN 접속에 필요)
 
 ## 9. 회원가입 (2026-07-18)
 
@@ -132,7 +120,7 @@
 - [x] 감지 페이지 (Task 7~9) — 오프라인 큐(TDD), 큐 통합, 방 선택 연동. vitest 20개 통과 (다중 탭 flush 경합 등이 추가돼 계획 15개에서 늘었다)
 - [x] 보호자 페이지 (Task 10~11) — guardian.html, 웹 푸시, PWA
 - [x] Flutter (Task 12~15) — 모델·API, 설정 화면, FCM, 알림 소스 단일화. flutter test 7개 통과
-- [x] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신
+- [x] 배포·문서 (Task 16) — render.yaml 환경변수 3개, DEPLOYMENT 푸시 절, README 갱신 (2026-07-24 배포 제거로 render.yaml·DEPLOYMENT.md는 삭제, 푸시 절차는 README로 이관)
 - [ ] 수동 준비물 — Firebase 콘솔에서 google-services.json과 서비스 계정 키 발급 (계획 Task 14 Step 1)
 
 ### 검증 라운드 (2026-07-24)
@@ -140,7 +128,6 @@
 절차와 함정은 context-notes.md "E2E 검증 라운드", 재실행 방법은 [scripts/e2e/README.md](scripts/e2e/README.md).
 
 - [x] 감지 페이지 오프라인→온라인 큐 재전송 브라우저 E2E — 실제 Chrome에서 8개 체크 통과 (`scripts/e2e/queue-e2e.mjs`)
-- [x] VAPID 키 생성(DEPLOYMENT 6-2 절차 그대로) + 데스크톱 브라우저 웹 푸시 E2E — 구독→발송→서비스 워커 알림 표시, 9개 체크 통과, 헤드리스에서도 실수신 (`scripts/e2e/push-e2e.mjs`)
+- [x] VAPID 키 생성(절차는 현재 README "푸시 알림 (선택)" 절) + 데스크톱 브라우저 웹 푸시 E2E — 구독→발송→서비스 워커 알림 표시, 9개 체크 통과, 헤드리스에서도 실수신 (`scripts/e2e/push-e2e.mjs`)
 - [x] iOS 시뮬레이터 첫 기동 — Firebase SwiftPM이 iOS 15를 요구해 배포 타깃 13.0→15.0 인상 후 빌드 성공. iPhone 17 Pro(26.5)에서 실행, 알림 권한 다이얼로그 표시, 7분+ 생존·크래시 리포트 없음
 - [ ] Android 실기기/에뮬레이터 백그라운드 FCM 수신 — google-services.json·서비스 계정 키 발급 뒤 (docs/firebase-setup.html)
-- [ ] iPhone 홈 화면 PWA 푸시 — HTTPS 배포 뒤 실기기로

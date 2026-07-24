@@ -134,7 +134,7 @@ async function initPushUi() {
       "이 브라우저는 웹 푸시를 지원하지 않습니다. iPhone은 홈 화면에 추가한 뒤 열면 켤 수 있습니다 (iOS 16.4+).";
     return;
   }
-  // GitHub Pages 하위 경로에서도 동작하도록 반드시 상대 경로로 등록한다 (스코프 = web/)
+  // 어떤 경로에서 서빙되든 동작하도록 상대 경로로 등록한다 (스코프 = 현재 디렉터리)
   const reg = await navigator.serviceWorker.register("./sw.js");
   const sub = await reg.pushManager.getSubscription();
   if (sub) {

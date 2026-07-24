@@ -13,10 +13,10 @@
 ```bash
 cd scripts/e2e && npm install                     # playwright-core 하나뿐이다
 
-# 터미널 1 — Django (푸시 E2E는 VAPID 환경변수가 필요하다. 생성법은 docs/DEPLOYMENT.md 6-2절)
+# 터미널 1 — Django (푸시 E2E는 VAPID 환경변수가 필요하다. 생성법은 README "푸시 알림 (선택)" 절)
 cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<이메일> .venv/bin/python manage.py runserver 8000
 
-# 터미널 2 — 감지 페이지 정적 서버 (CORS 때문에 반드시 5500)
+# 터미널 2 — 감지 페이지 정적 서버 (스크립트가 5500을 하드코딩하고 있다)
 python3 -m http.server 5500 -d web
 ```
 
