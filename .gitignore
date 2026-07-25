@@ -1,14 +1,5 @@
 .DS_Store
 
-# Python / Django
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-db.sqlite3
-.pytest_cache/
-staticfiles/
-
 # Node
 node_modules/
 

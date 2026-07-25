@@ -23,7 +23,7 @@
            └─ 낙상 확정 시에만 1회
               POST /api/falls/  (Token 헤더, 재전송 중복은 서버가 흡수)
                       │
-                 [Django + SQLite]  (backend/)
+                 [Spring Boot + PostgreSQL]  (backend/)
                       │
              ┌────────┴────────┐
         웹 푸시(즉시)   GET /api/falls/ ← 5초 폴링
@@ -52,15 +52,12 @@ STANDING ──속도──▶ FALLING ──자세──▶ FALLEN ──시간
 
 배포 없이 전부 한 대의 Mac에서 띄우고, 폰은 같은 와이파이로 접속한다. 터미널 3개가 필요하다.
 
-### 1. Django (`:8000`)
+### 1. Spring Boot (`:8000`)
 
 ```bash
 cd backend
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py createsuperuser   # admin 계정. 보호자 계정은 웹·앱의 회원가입으로 만든다
-.venv/bin/python manage.py runserver 0.0.0.0:8000   # 0.0.0.0 — 같은 와이파이 기기의 접속을 받는다
+createdb fall_detection        # 최초 1회 (postgresql@18 서비스는 이미 실행 중)
+./gradlew bootRun              # 0.0.0.0:8000 — 같은 와이파이 기기의 접속을 받는다
 ```
 
 ### 2. 감지 페이지 (`:5500`)
@@ -89,7 +86,7 @@ iOS 시뮬레이터는 서버 주소(`127.0.0.1:8000`)가 자동으로 잡힌다
 
 ## 푸시 알림 (선택)
 
-푸시 없이도 전체 기능이 동작한다(앱·보호자 페이지를 켜 두면 5초 폴링이 알린다). 아래 환경변수를 붙여 Django를 실행하면 화면이 꺼져 있어도 알림이 온다. 비워 두면 해당 채널만 조용히 꺼진다.
+푸시 없이도 전체 기능이 동작한다(앱·보호자 페이지를 켜 두면 5초 폴링이 알린다). 아래 환경변수를 붙여 백엔드를 실행하면 화면이 꺼져 있어도 알림이 온다. 비워 두면 해당 채널만 조용히 꺼진다.
 
 | 채널 | 대상 | 필요한 환경변수 |
 |------|------|-----------------|
@@ -98,21 +95,13 @@ iOS 시뮬레이터는 서버 주소(`127.0.0.1:8000`)가 자동으로 잡힌다
 웹 푸시 키는 한 번만 만들면 된다. 공개키는 서버가 개인키에서 계산하므로 따로 없다.
 
 ```bash
-cd backend && .venv/bin/python - <<'EOF'
-import base64
-from cryptography.hazmat.primitives.asymmetric import ec
-
-key = ec.generate_private_key(ec.SECP256R1())
-raw = key.private_numbers().private_value.to_bytes(32, "big")
-print("VAPID_PRIVATE_KEY =", base64.urlsafe_b64encode(raw).rstrip(b"=").decode())
-EOF
+npx web-push generate-vapid-keys   # 출력의 Private Key가 VAPID_PRIVATE_KEY다
 ```
 
 환경변수를 붙여 서버를 띄운 뒤, 보호자 페이지(`http://127.0.0.1:5500/guardian.html`)에서 **알림 켜기**를 누른다.
 
 ```bash
-cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> \
-  .venv/bin/python manage.py runserver 0.0.0.0:8000
+cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> ./gradlew bootRun
 ```
 
 웹 푸시 구독은 보안 컨텍스트가 필요해서 `localhost`로 연 페이지에서만 켤 수 있다. 발송은 로컬 서버로도 된다 — 푸시 서비스 자체는 브라우저 벤더의 인터넷 서버라서다.
@@ -120,9 +109,9 @@ cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> \
 ## 테스트
 
 ```bash
-cd backend && .venv/bin/python -m pytest    # 32개 — 인증·소유권·방·프로필·푸시·전송 멱등성
-cd web     && npm test                       # 20개 — 상태머신 시나리오 + 오프라인 큐
-cd app     && flutter test                   # 4개 — 새 이벤트 판별
+cd backend && ./gradlew test    # 36개 — 인증·소유권·방·프로필·푸시·전송 멱등성 (fall_detection_test DB 필요: createdb fall_detection_test)
+cd web     && npm test          # 20개 — 상태머신 시나리오 + 오프라인 큐
+cd app     && flutter test      # 4개 — 새 이벤트 판별
 ```
 
 상태머신 테스트가 이 프로젝트 테스트의 핵심이다. 가짜 랜드마크 시퀀스로 "천천히 눕기 → 알림 없음", "3초 만에 일어남 → 알림 없음", "5초 유지 → 1건" 같은 시나리오를 웹캠 없이 검증한다.
@@ -147,9 +136,10 @@ cd app     && flutter test                   # 4개 — 새 이벤트 판별
 
 ## 문서
 
-- [백엔드 구현 설명](docs/backend-architecture.html)
 - [설계 — 감지 파이프라인 (2026-07-17)](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
 - [구현 계획 — 감지 파이프라인 (2026-07-17)](docs/superpowers/plans/2026-07-17-fall-detection.md)
 - [설계 — 제품 완성도 라운드 (2026-07-23)](docs/superpowers/specs/2026-07-23-product-completeness-design.md)
 - [구현 계획 — 제품 완성도 라운드 (2026-07-23)](docs/superpowers/plans/2026-07-23-product-completeness.md)
+- [설계 — 백엔드 Spring Boot 교체 (2026-07-24)](docs/superpowers/specs/2026-07-24-spring-boot-backend-design.md)
+- [구현 계획 — 백엔드 Spring Boot 교체 (2026-07-25)](docs/superpowers/plans/2026-07-25-spring-boot-backend.md)
 - [결정 기록](context-notes.md)
