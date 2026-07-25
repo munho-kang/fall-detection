@@ -141,3 +141,18 @@ Android에서 실행하지 않기로 결정 — Android 플랫폼 디렉터리�
 - [x] 백엔드에서 FCM 제거 — `_send_fcm`·firebase_admin·`FIREBASE_SERVICE_ACCOUNT` 삭제, PushDevice.kind는 webpush만 (마이그레이션 0003)
 - [x] 문서 정리 — README에서 Android·FCM 제거, docs/firebase-setup.html 삭제, 과거 설계/플랜 문서에 제거 공지
 - [x] 검증 — flutter analyze 클린, flutter test 4개, backend pytest 32개, iOS 시뮬레이터 빌드 성공
+
+## 13. 백엔드 Spring Boot 교체 (2026-07-25)
+
+Django 백엔드를 Java 21 + Spring Boot 4.1.0 + PostgreSQL 18로 완전 교체 — 클라이언트 무수정, API 계약(경로·상태 코드·snake_case·고정 문자열 2개) 보존. 설계는 docs/superpowers/specs/2026-07-24-spring-boot-backend-design.md, 계획은 docs/superpowers/plans/2026-07-25-spring-boot-backend.md, 경위는 context-notes.md "백엔드 Spring Boot 교체".
+
+- [x] Task 1 — 스캐폴딩·헬스체크·SecurityConfig 초기판 (Boot 4.1.0·Jackson 3 확인)
+- [x] Task 2 — 도메인 6종·Flyway V1(유니크 제약 이름 SQL 고정)·리포지토리·TRUNCATE 테스트 베이스
+- [x] Task 3 — 토큰 필터·로그인·가입·DRF 호환 에러 핸들러·공통 비밀번호 500개
+- [x] Task 4 — 방 CRUD(중복 400 고정 문자열·경합 안전망)·프로필 get-or-create
+- [x] Task 5 — 푸시 기기 등록(토큰 계정 이전)·해제(항상 204)
+- [x] Task 6 — 웹 푸시 발송: VAPID 공개키 EC 파생·@Async best-effort·만료 구독 정리
+- [x] Task 7 — 낙상 API: 멱등 POST(중복 200·푸시 없음)·acknowledge·201에만 비동기 푸시
+- [x] Task 8 — 통합 검증: 서버 36·웹 20·앱 4·E2E 2종 통과 (web-push AES128GCM fix 포함)
+- [x] Task 9 — Django 제거·README Spring 기준 갱신
+- [x] 최종 브랜치 전체 리뷰 + 문서 정리(정적 서버 명령·e2e README·RFC 주석·package-lock)
