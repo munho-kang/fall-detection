@@ -14,13 +14,17 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.weniv.falls.repository.AuthTokenRepository;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, AuthTokenRepository authTokenRepository)
+            throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults())
@@ -28,9 +32,12 @@ public class SecurityConfig {
             .httpBasic(b -> b.disable())
             .formLogin(f -> f.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/").permitAll()
+                // permitAll은 이 셋뿐 (스펙 6절) — 나머지는 전부 인증 필수
+                .requestMatchers("/", "/api/auth/login/", "/api/auth/signup/").permitAll()
                 .anyRequest().authenticated())
-            .exceptionHandling(e -> e.authenticationEntryPoint(SecurityConfig::unauthorized));
+            .exceptionHandling(e -> e.authenticationEntryPoint(SecurityConfig::unauthorized))
+            .addFilterBefore(new TokenAuthFilter(authTokenRepository),
+                UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
