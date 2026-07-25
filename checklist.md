@@ -156,3 +156,11 @@ Django 백엔드를 Java 21 + Spring Boot 4.1.0 + PostgreSQL 18로 완전 교체
 - [x] Task 8 — 통합 검증: 서버 36·웹 20·앱 4·E2E 2종 통과 (web-push AES128GCM fix 포함)
 - [x] Task 9 — Django 제거·README Spring 기준 갱신
 - [x] 최종 브랜치 전체 리뷰 + 문서 정리(정적 서버 명령·e2e README·RFC 주석·package-lock)
+
+## 14. ALERTED 재무장 버그 수정 (2026-07-25)
+
+전체 코드 점검에서 나온 확인된 버그 1건이다. `ALERTED` 상태에서 2초 이상 미검출된 뒤 여전히 바닥에 누운 채 재검출되면 상태가 `STANDING`으로 떨어져, 같은 낙상이 두 번 전송될 수 있었다. 경위는 context-notes.md "ALERTED 재무장 버그".
+
+- [x] RED — `detector.test.js`에 재현 테스트 2개 추가(재검출 직후 상태 유지, 누운 채 뒤척임 시 중복 없음) → 실패 확인
+- [x] GREEN — `detector.js` NO_PERSON 복귀 조건에 `ALERTED` 분기 추가 → 통과 확인
+- [x] 검증 — 웹 22 / 서버 36 / 앱 4 전부 통과

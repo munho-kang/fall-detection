@@ -86,7 +86,14 @@ export function createDetector(config = CONFIG) {
         // 둘 다 놔두면 확정 대기 중이던 낙상이 조용히 사라진다 — tilt로 여전히 누워 있는지
         // 확인하고 맞으면 FALLEN으로 복귀시킨다. FALLEN이었으면 원래 fallenAt부터 hold 시계를
         // 이어가고, FALLING이었으면 fallenAt이 아직 없었으므로 지금(재검출 시각)부터 새로 시작한다.
-        if ((stateBeforeGap === "FALLEN" || stateBeforeGap === "FALLING") && tilt > c.TILT_FALLEN) {
+        // ALERTED였던 경우도 같은 이유로 STANDING에 내려놓을 수 없다 — 아래 첫 분기다.
+        if (stateBeforeGap === "ALERTED" && tilt > c.TILT_FALLEN) {
+          // 이미 전송을 마친 낙상이다. 여전히 누워 있으니 아직 일어난 것이 아니므로
+          // 재무장하지 않는다. STANDING으로 내리면 이미 수평이라 2차 관문이 한 프레임에
+          // 열려 같은 낙상이 두 번 전송된다 — 서버 dedup 키는 occurred_at이고 두 번째
+          // fallingAt은 다른 값이라 흡수되지 않는다.
+          state = "ALERTED";
+        } else if ((stateBeforeGap === "FALLEN" || stateBeforeGap === "FALLING") && tilt > c.TILT_FALLEN) {
           if (stateBeforeGap === "FALLING") fallenAt = t;
           state = "FALLEN";
         } else {

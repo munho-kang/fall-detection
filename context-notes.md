@@ -545,3 +545,13 @@ Android 실기기/에뮬레이터 백그라운드 FCM 수신(Firebase 콘솔 발
 
 - **발견 1 — 정적 서버는 `npx serve`가 아니라 `python3 -m http.server`여야 한다.** `npx serve -l 5500 .`(serve 14.2.6)의 기본 clean-URL 동작이 `.html` 요청을 301로 확장자 없는 경로로 리다이렉트하면서 쿼리스트링까지 통째로 버린다 — `curl -sI "http://127.0.0.1:5500/index.html?next=guardian.html"` → `Location: /index`(next 소실). `queue-e2e.mjs`의 `detect.html` URL 유지 검사, `push-e2e.mjs`의 로그인 후 `guardian.html` 리다이렉트 검사가 이 때문에 실패했다 — 리다이렉트가 정적 서버 계층(포트 5500)에서 백엔드 요청 전에 이미 일어나므로 Django든 Spring이든 무관하게 재현된다. `scripts/e2e/README.md`가 원래 지정한 `python3 -m http.server 5500 -d web`으로 바꾸자 두 실패 모두 사라졌다 — 코드 변경 없이 서버 기동 명령만 README 원본대로 쓰면 되는 문제였다.
 - **발견 2(서버 fix) — `nl.martijndwars:web-push`의 인자 없는 `send(Notification)`이 레거시 인코딩으로 기본 동작해 FCM이 거부했다.** 웹 푸시 E2E의 실제 수신 단계가 헤드리스·헤디드 모두에서 실패했고, 서버 로그에 `403 permission denied: crypto-key header had invalid format`이 남았다(VAPID 키 파생·구독 자체는 정상 — `/api/push/vapid-key/` 응답이 `npx web-push generate-vapid-keys`의 Public Key와 정확히 일치함을 확인). javap로 뜯어보니 `send(Notification)`은 구식 `Encoding.AESGCM`(별도 `Crypto-Key` 헤더 조합)으로 기본 설정되는데, FCM이 이 조합을 더 이상 받아주지 않는다. `MartijnDwarsWebPushClient.send()`에서 `Encoding.AES128GCM`(RFC 8292 표준 — VAPID를 `Authorization: vapid t=...,k=...` 헤더 하나로 통합)을 명시 지정해 해결(fix 커밋 `7bb96d3`). `WebPushClient` 인터페이스는 그대로라 서버 테스트 36개는 재실행해도 36/0 그대로였고, 이 수정 후 재실행한 push-e2e는 헤드리스에서도 9개 체크 전부 통과(알림 제목 "낙상 감지", 본문 "부엌 3에서 낙상 감지"까지 확인).
+
+## ALERTED 재무장 버그 (2026-07-25)
+
+전체 코드 점검에서 찾은 확인된 버그 1건이다. `detector.js`의 `NO_PERSON` 복귀 분기가 `stateBeforeGap`으로 `FALLEN`·`FALLING`만 다루고 `ALERTED`를 빠뜨렸다. 그래서 알림이 나간 뒤 넘어진 사람이 가구에 2초 이상 가려졌다가 **여전히 바닥에 누운 채** 재검출되면 상태가 `STANDING`으로 떨어졌다. 바로 아래 `case "ALERTED"`의 주석이 단정한 불변식("다시 일어나야만 재무장된다")을 코드가 스스로 깨고 있었다.
+
+- **증상은 미탐지가 아니라 중복 알림이다** — 재무장된 뒤에는 이미 `tilt`가 60°를 넘어 있으므로, 누운 채 몸을 크게 뒤척여 `hipVelocity`가 임계값을 넘으면 2차 관문이 **한 프레임에** 열려 `FALLEN`이 되고 5초 후 두 번째 전송이 나간다. 재현 테스트에서 fall 2건을 확인했다.
+- **서버 멱등성으로는 막을 수 없다** — `uniq_fall_dedup` 키가 `(guardian, room_name, room_number, occurred_at)`이고 `occurred_at`은 `fallingAt`이다. 두 번째 `fallingAt`은 다른 값이라 새 행 + 새 푸시가 된다. 오프라인 큐 재전송 중복과 달리 이건 DB 계층에서 흡수할 방법이 없어서 판정 쪽을 고쳐야 했다.
+- **왜 이 경로만 비어 있었나** — `FALLEN`·`FALLING` 복귀에는 테스트가 3개(끊김 후 바닥 재검출, FALLING 중 끊김, 끊긴 동안 자가 회복) 있었는데 `ALERTED` 중 끊김만 없었다. 세 관문을 통과한 *뒤*의 상태 전이가 사각지대였다.
+- **수정은 첫 분기 추가 하나** — `stateBeforeGap === "ALERTED" && tilt > TILT_FALLEN`이면 `ALERTED`로 되돌린다. `fallenAt`은 건드리지 않는다(ALERTED가 쓰지 않는 값이다). 기존 `FALLEN`/`FALLING` 분기는 그대로 뒀다. 나중에 실제로 일어나면 `case "ALERTED"`의 `tilt < TILT_UPRIGHT` 조건이 정상적으로 재무장한다.
+- **같이 점검했으나 버그가 아니었던 것** — "`NO_PERSON_TIMEOUT`(2초) 미만의 짧은 미검출은 Δt를 줄여 가짜 속도를 증폭시킨다"는 가설도 세워 테스트로 확인했는데 재현되지 않았다. `EMA_ALPHA` 0.4가 단일 프레임 스파이크를 눌러서, 임계값을 넘기려면 raw 속도가 1.125 이상이어야 한다. 짧은 끊김은 `resetMotion()`을 타지 않지만 EMA가 실질적 방어가 되고 있다.
