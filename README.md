@@ -64,7 +64,7 @@ createdb fall_detection        # 최초 1회 (postgresql@18 서비스는 이미 
 
 ```bash
 cd web
-npx serve -l 5500 .
+python3 -m http.server 5500
 ```
 
 `http://127.0.0.1:5500`에서 로그인(첫 사용이면 회원가입) → 방 선택(없으면 그 자리에서 추가) → 감지 시작 → 카메라 권한 허용.

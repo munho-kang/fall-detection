@@ -13,8 +13,8 @@
 ```bash
 cd scripts/e2e && npm install                     # playwright-core 하나뿐이다
 
-# 터미널 1 — Django (푸시 E2E는 VAPID 환경변수가 필요하다. 생성법은 README "푸시 알림 (선택)" 절)
-cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<이메일> .venv/bin/python manage.py runserver 8000
+# 터미널 1 — Spring Boot (푸시 E2E는 VAPID 환경변수가 필요하다. 생성법은 README "푸시 알림 (선택)" 절)
+cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<이메일> ./gradlew bootRun
 
 # 터미널 2 — 감지 페이지 정적 서버 (스크립트가 5500을 하드코딩하고 있다)
 python3 -m http.server 5500 -d web
@@ -28,7 +28,7 @@ node scripts/e2e/push-e2e.mjs            # 헤드리스로도 실수신까지 �
 node scripts/e2e/push-e2e.mjs --headed   # 알림이 뜨는 걸 눈으로 보고 싶을 때
 ```
 
-매 실행 `e2e_queue_*` / `e2e_push_*` 계정을 새로 만들어 로컬 `db.sqlite3`에 남는다.
+매 실행 `e2e_queue_*` / `e2e_push_*` 계정을 새로 만들어 로컬 `fall_detection` DB(PostgreSQL)에 남는다.
 전부 통과하면 종료 코드 0, 하나라도 실패하면 1이다.
 
 ## 주의 — 이 스크립트가 우회하는 함정 3개
