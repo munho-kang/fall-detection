@@ -34,13 +34,17 @@ class AuthApiTest extends IntegrationTestBase {
             .andExpect(jsonPath("$.non_field_errors").isArray());
     }
 
-    // Task 7에서 "그 토큰으로 GET /api/falls/ 200" 검증이 추가된다 (엔드포인트가 그때 생긴다)
     @Test
     void signup_returns_token_and_logs_in() throws Exception {
-        mockMvc.perform(post("/api/auth/signup/").contentType(MediaType.APPLICATION_JSON)
+        String body = mockMvc.perform(post("/api/auth/signup/").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\": \"new1\", \"password\": \"tough-pass-9x\"}"))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.token").isNotEmpty());
+            .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String token = com.jayway.jsonpath.JsonPath.read(body, "$.token");
+
+        // 발급된 토큰이 곧바로 유효해야 한다 — 별도 로그인 없이 보호 API 접근
+        mockMvc.perform(get("/api/falls/").header("Authorization", "Token " + token))
+            .andExpect(status().isOk());
     }
 
     @Test
