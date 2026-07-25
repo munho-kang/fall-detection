@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.Subscription;
 
@@ -31,7 +32,10 @@ public class MartijnDwarsWebPushClient implements WebPushClient {
             new Subscription.Keys(
                 node.at("/keys/p256dh").asString(),
                 node.at("/keys/auth").asString()));
-        var response = delegate().send(new Notification(subscription, payload));
+        // 명시적으로 AES128GCM(RFC 8292 표준 — VAPID를 Authorization 헤더 하나로 통합)을 지정한다.
+        // 인자 없는 send()는 레거시 AESGCM(별도 Crypto-Key 헤더)로 기본 설정되는데, FCM이
+        // 이를 "crypto-key header had invalid format"라며 403으로 거부한다.
+        var response = delegate().send(new Notification(subscription, payload), Encoding.AES128GCM);
         return response.getStatusLine().getStatusCode();
     }
 
