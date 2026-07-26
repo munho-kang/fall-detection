@@ -49,6 +49,37 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
     }
   }
 
+  Future<void> _delete() async {
+    // 완전 삭제라 되돌릴 수 없다. 웹의 confirm()과 같은 무게로 확인을 받는다.
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('기록을 삭제할까요?'),
+        content: Text('${_event.roomLabel} · ${_fmt(_event.occurredAt)}\n\n삭제하면 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('삭제')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (!mounted) return;   // 다이얼로그가 열려 있는 사이 화면이 사라졌으면 setState가 터진다
+
+    setState(() => _busy = true);
+    try {
+      await widget.api.deleteFall(_event.id);
+      if (!mounted) return;
+      // 결과 없이 pop 한다. 목록이 null 경로에서 서버 상태로 다시 그린다.
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
   String _fmt(DateTime t) =>
       '${t.year}년 ${t.month}월 ${t.day}일 '
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:'
@@ -78,7 +109,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       appBar: AppBar(
         title: Text(_event.roomLabel),
         // 목록이 확인 상태를 즉시 반영할 수 있도록 갱신된 이벤트를 돌려준다.
-        // iOS 스와이프 백으로 나가면 null이 되지만, 5초 폴링이 곧 목록을 새로 고친다.
+        // 삭제와 iOS 스와이프 백은 null이 되고, 목록이 그때 서버에서 다시 받아 그린다.
         leading: BackButton(onPressed: () => Navigator.of(context).pop(_event)),
       ),
       body: ListView(
@@ -105,6 +136,16 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
             onPressed: () => _dial(_emergencyPhone),
             icon: const Icon(Icons.local_hospital),
             label: const Text('119 신고 (시연용 더미 번호)'),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            // 서버가 400으로 막는 규칙(확인한 기록만 삭제)을 화면이 미리 설명한다.
+            onPressed: _busy || !_event.isAcknowledged ? null : _delete,
+            icon: const Icon(Icons.delete_outline),
+            label: Text(_event.isAcknowledged ? '기록 삭제' : '확인한 뒤 삭제할 수 있습니다'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
           ),
         ],
       ),

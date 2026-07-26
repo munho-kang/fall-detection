@@ -154,6 +154,9 @@ class _FallListScreenState extends State<FallListScreen> {
                                   if (updated != null) {
                                     final idx = _events.indexWhere((x) => x.id == updated.id);
                                     if (idx != -1) setState(() => _events[idx] = updated);
+                                  } else {
+                                    // 삭제했거나 스와이프 백으로 나왔다 — 서버 상태로 다시 그린다.
+                                    await _refresh();
                                   }
                                 },
                               );

@@ -107,6 +107,15 @@ class Api {
     return FallEvent.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
   }
 
+  Future<void> deleteFall(int id) async {
+    final res = await http.delete(Uri.parse('$baseUrl/api/falls/$id/'), headers: _headers);
+    if (res.statusCode == 401) throw UnauthorizedException();
+    // 미확인 기록 삭제는 서버가 400 + 한국어 문구로 거절한다. 문구를 새로 짓지 말고 그대로 올린다.
+    if (res.statusCode != 204) {
+      throw Exception(_firstErrorMessage(res) ?? '기록을 삭제하지 못했습니다 (${res.statusCode}).');
+    }
+  }
+
   Future<List<Room>> listRooms() async {
     final res = await http.get(Uri.parse('$baseUrl/api/rooms/'), headers: _headers);
     if (res.statusCode == 401) throw UnauthorizedException();
