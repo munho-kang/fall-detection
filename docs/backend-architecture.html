@@ -1,0 +1,1006 @@
+<!doctype html>
+<!-- backend/ Spring Boot API의 구현 구조와 동작(요청 흐름·인증·소유권·멱등성·푸시)을 설명하는 문서 -->
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>낙상 감지 시스템 — 백엔드 구현 설명</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c2333;
+    --muted: #5b6577;
+    --line: #e3e7ef;
+    --card: #f6f8fb;
+    --accent: #2f6fed;
+    --accent-soft: #e8effd;
+    --warn-bg: #fff4e5;
+    --warn-line: #f0b429;
+    --ok-bg: #e9f7ef;
+    --ok-line: #2f9e63;
+    --code-bg: #10141f;
+    --code-fg: #e8eaf0;
+    --code-dim: #8b93a7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141a;
+      --fg: #e8eaf0;
+      --muted: #8b93a7;
+      --line: #2b3040;
+      --card: #1a1d26;
+      --accent: #6ea1ff;
+      --accent-soft: #1d2a45;
+      --warn-bg: #2c2412;
+      --warn-line: #f0b429;
+      --ok-bg: #12281c;
+      --ok-line: #3dbb78;
+      --code-bg: #0b0e15;
+      --code-fg: #e8eaf0;
+      --code-dim: #6b7488;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.75 -apple-system, "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  }
+  main { max-width: 840px; margin: 0 auto; padding: 40px 20px 90px; }
+  h1 { font-size: 28px; margin: 0 0 8px; line-height: 1.35; }
+  .subtitle { color: var(--muted); margin: 0 0 8px; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 32px; }
+  h2 {
+    font-size: 21px;
+    margin: 52px 0 16px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    line-height: 1.4;
+  }
+  h2 .step {
+    display: inline-block;
+    min-width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    margin-right: 10px;
+  }
+  h3 { font-size: 17px; margin: 28px 0 8px; line-height: 1.5; }
+  h4 { font-size: 15px; margin: 20px 0 6px; color: var(--muted); }
+  p { margin: 10px 0; }
+  ol, ul { padding-left: 24px; }
+  li { margin: 7px 0; }
+  a { color: var(--accent); }
+  code {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 14px 16px;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.65;
+    margin: 12px 0;
+  }
+  pre code { background: none; border: 0; padding: 0; color: inherit; font-size: inherit; }
+  pre .c { color: var(--code-dim); }
+  .src {
+    display: block;
+    font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--muted);
+    margin: 14px 0 -6px;
+  }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--card); font-weight: 600; }
+  td code, th code { white-space: nowrap; }
+  .box {
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 18px 0;
+    border: 1px solid var(--line);
+    background: var(--card);
+  }
+  .box.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .box.ok { background: var(--ok-bg); border-color: var(--ok-line); }
+  /* 직계 자식만 — 문단 안 첫 b 강조까지 블록이 되면 문장이 끊긴다 */
+  .box > b:first-child { display: block; margin-bottom: 4px; }
+  .box p:first-of-type { margin-top: 0; }
+  .box p:last-child { margin-bottom: 0; }
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 24px 0 0;
+  }
+  .toc b { display: block; margin-bottom: 8px; font-size: 14px; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 22px; }
+  .toc li { margin: 4px 0; }
+  .layers { margin: 20px 0; }
+  .layer {
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 0 0 6px;
+    font-size: 14.5px;
+  }
+  .layer b { display: inline-block; min-width: 108px; color: var(--accent); }
+  .layer span { color: var(--muted); }
+  .down { text-align: center; color: var(--muted); margin: 2px 0 4px; font-size: 13px; }
+  .flow { counter-reset: fstep; margin: 18px 0; }
+  .fstep {
+    position: relative;
+    border-left: 2px solid var(--line);
+    padding: 0 0 18px 22px;
+    margin-left: 13px;
+  }
+  .fstep:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .fstep::before {
+    counter-increment: fstep;
+    content: counter(fstep);
+    position: absolute;
+    left: -14px;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .fstep h4 { margin: 2px 0 4px; color: var(--fg); font-size: 15.5px; }
+  .fstep p { margin: 6px 0; }
+  .pill {
+    display: inline-block;
+    min-width: 52px;
+    text-align: center;
+    padding: 1px 7px;
+    border-radius: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: #fff;
+    margin-right: 6px;
+    vertical-align: 1px;
+  }
+  .pill.get { background: #2f9e63; }
+  .pill.post { background: #2f6fed; }
+  .pill.put { background: #d97706; }
+  .pill.del { background: #d64545; }
+  .tag {
+    font: 12.5px ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--muted);
+    background: var(--accent-soft);
+    border-radius: 5px;
+    padding: 1px 7px;
+  }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 40px 0; }
+  .end { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>낙상 감지 시스템 — 백엔드 구현 설명</h1>
+  <p class="subtitle">Java 21 · Spring Boot 4.1.0 · PostgreSQL 18 — <code>backend/</code>가 어떻게 만들어졌고 어떻게 동작하는가.</p>
+  <p class="meta">2026-07-26 기준. Spring의 기본 개념(어노테이션·의존성 주입·JPA)은 안다고 전제하고, 이 프로젝트가 <b>왜 그렇게 했는지</b>에 지면을 쓴다.</p>
+
+  <div class="toc">
+    <b>목차</b>
+    <ol>
+      <li><a href="#map">전체 지도 — 무엇으로 만들어졌나</a></li>
+      <li><a href="#journey">요청 한 건의 여정 — <code>POST /api/falls/</code></a></li>
+      <li><a href="#auth">인증 — 토큰 하나로 끝내기</a></li>
+      <li><a href="#ownership">소유권 격리 — 왜 전부 404인가</a></li>
+      <li><a href="#idempotency">멱등성 — 같은 낙상은 두 번 저장되지 않는다</a></li>
+      <li><a href="#validation">검증과 에러 계약 — 형태가 요구사항이다</a></li>
+      <li><a href="#push">웹 푸시 — 실패해도 되는 기능</a></li>
+      <li><a href="#ops">마이그레이션 · 테스트 · 실행</a></li>
+    </ol>
+  </div>
+
+  <h2 id="map"><span class="step">1</span>전체 지도 — 무엇으로 만들어졌나</h2>
+
+  <p>이 백엔드가 하는 일은 한 줄로 요약된다. <b>브라우저가 판정한 낙상을 받아 저장하고, 보호자에게 알리고, 보호자만 볼 수 있게 돌려준다.</b> 영상도 관절 좌표도 서버에 오지 않는다 — 낙상이 확정된 순간 4개 필드만 한 번 도착한다.</p>
+
+  <p>원래 Django + DRF로 만들어져 있었고 2026-07-25에 Spring Boot로 전면 교체됐다. 이때 <b>클라이언트(웹·Flutter 앱)를 한 줄도 고치지 않는 것</b>이 최우선 제약이었다. 이 문서에 반복해서 나오는 "기존 계약"이라는 말은 전부 이 제약을 가리킨다. 경로의 끝 슬래시, 상태 코드, snake_case 필드명, 에러 JSON의 모양까지 전부 Django 시절 그대로여야 했다.</p>
+
+  <h3>스택</h3>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>항목</th><th>선택</th><th>이유</th></tr>
+    <tr><td>언어</td><td>Java 21 (LTS)</td><td><code>record</code>로 DTO를 한 줄에 쓴다</td></tr>
+    <tr><td>프레임워크</td><td>Spring Boot 4.1.0</td><td>—</td></tr>
+    <tr><td>빌드</td><td>Gradle + 래퍼</td><td>Gradle 미설치 환경에서도 <code>./gradlew</code>로 동작</td></tr>
+    <tr><td>DB</td><td>PostgreSQL 18</td><td>유니크 제약이 멱등성의 근거라 실제 RDB가 필요했다</td></tr>
+    <tr><td>ORM</td><td>Spring Data JPA (Hibernate)</td><td>—</td></tr>
+    <tr><td>마이그레이션</td><td>Flyway (<code>V1__init.sql</code>)</td><td>제약 <b>이름</b>을 SQL로 못박기 위해 (8절)</td></tr>
+    <tr><td>인증</td><td>Spring Security + 커스텀 토큰 필터</td><td>DRF <code>TokenAuthentication</code> 등가 (3절)</td></tr>
+    <tr><td>웹 푸시</td><td><code>nl.martijndwars:web-push</code> + BouncyCastle</td><td>RFC 8291 암호화 발송 (7절)</td></tr>
+    <tr><td>테스트</td><td>JUnit 5 + MockMvc + 실 Postgres</td><td>36개 (8절)</td></tr>
+  </table>
+  </div>
+
+  <h3>패키지 구조</h3>
+
+  <p>표준 레이어드 아키텍처다. 도메인이 6개뿐이라 패키지-바이-피처는 이점이 없다고 보고 계층별로 나눴다.</p>
+
+<pre><code>backend/src/main/java/com/weniv/falls/
+├─ FallsApplication.java      <span class="c"># 진입점</span>
+├─ config/                    <span class="c"># 횡단 설정</span>
+│  ├─ SecurityConfig.java       <span class="c"># 필터체인·인가 규칙·BCrypt 빈</span>
+│  ├─ TokenAuthFilter.java      <span class="c"># Authorization 헤더 → SecurityContext</span>
+│  ├─ CorsConfig.java           <span class="c"># 전 오리진 허용</span>
+│  └─ AsyncConfig.java          <span class="c"># 푸시 전용 스레드풀</span>
+├─ controller/                <span class="c"># HTTP 경계 — 얇다</span>
+│  ├─ AuthController · FallController · RoomController
+│  └─ ProfileController · PushController · HealthController
+├─ service/                   <span class="c"># 비즈니스 규칙 — 두껍다</span>
+│  ├─ AuthService · FallService · RoomService · ProfileService
+│  └─ PushDeviceService · PushService · VapidService
+│     └─ WebPushClient (인터페이스) ← MartijnDwarsWebPushClient
+├─ repository/                <span class="c"># Spring Data 파생 쿼리 인터페이스 6개</span>
+├─ domain/                    <span class="c"># JPA 엔티티 6개</span>
+├─ dto/                       <span class="c"># 요청·응답 record 11개</span>
+└─ error/                     <span class="c"># 예외 2종 + GlobalExceptionHandler</span>
+
+backend/src/main/resources/
+├─ application.yml
+├─ common-passwords.txt        <span class="c"># 가입 시 흔한 비밀번호 차단용</span>
+└─ db/migration/V1__init.sql   <span class="c"># 스키마의 유일한 정의</span></code></pre>
+
+  <h3>요청이 지나는 계층</h3>
+
+  <div class="layers">
+    <div class="layer"><b>filter</b> <span>토큰을 확인하고 "누구인가"를 확정한다. 실패해도 여기서 응답하지 않는다.</span></div>
+    <div class="down">↓</div>
+    <div class="layer"><b>controller</b> <span>HTTP만 안다. 상태 코드를 고르고 DTO로 변환한다. 로직은 없다.</span></div>
+    <div class="down">↓</div>
+    <div class="layer"><b>service</b> <span>규칙이 사는 곳. 소유권·멱등성·검증이 전부 여기 있다.</span></div>
+    <div class="down">↓</div>
+    <div class="layer"><b>repository</b> <span>메서드 이름이 곧 쿼리다. 구현체를 쓰지 않는다.</span></div>
+    <div class="down">↓</div>
+    <div class="layer"><b>domain</b> <span>테이블에 대응하는 엔티티. 상태를 바꾸는 메서드를 스스로 갖는다.</span></div>
+  </div>
+
+  <p>계층 규칙은 하나다. <b>컨트롤러는 얇게, 서비스는 두껍게.</b> <code>FallController</code> 전체가 46줄이고 그중 로직이라 부를 만한 것은 "생성됐으면 201과 푸시, 아니면 200"이라는 한 줄뿐이다. 나머지 판단은 전부 <code>FallService</code>에 있다.</p>
+
+  <h3>데이터 모델 — 엔티티 6개</h3>
+
+  <p>전부 <code>guardian</code>(보호자 계정)에 매달려 있다. 계정을 지우면 그 계정의 데이터가 <code>ON DELETE CASCADE</code>로 전부 따라 지워진다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>엔티티</th><th>역할</th><th>핵심 제약</th></tr>
+    <tr>
+      <td><code>Guardian</code></td>
+      <td>보호자 계정. Django의 <code>User</code>를 대체하며 <code>username</code>·<code>password</code>만 쓴다.</td>
+      <td><code>username</code> 유니크</td>
+    </tr>
+    <tr>
+      <td><code>AuthToken</code></td>
+      <td>로그인 토큰. <b>PK가 40자 hex 키 문자열 자체다.</b></td>
+      <td><code>guardian_id</code> 유니크 — 보호자당 1개</td>
+    </tr>
+    <tr>
+      <td><code>FallEvent</code></td>
+      <td>낙상 1건. 방 정보를 <code>Room</code> FK가 아니라 <b>문자열로 복사해</b> 들고 있다.</td>
+      <td><code>uniq_fall_dedup</code> — 5절의 핵심</td>
+    </tr>
+    <tr>
+      <td><code>Room</code></td>
+      <td>보호자가 등록한 방(이름 + 번호).</td>
+      <td>보호자별 <code>(name, number)</code> 유니크</td>
+    </tr>
+    <tr>
+      <td><code>GuardianProfile</code></td>
+      <td>"어르신께 전화" 번호 하나. 접근할 때 없으면 만든다.</td>
+      <td><code>guardian_id</code> 유니크</td>
+    </tr>
+    <tr>
+      <td><code>PushDevice</code></td>
+      <td>웹 푸시 구독. <code>token</code>은 브라우저가 준 구독 JSON 문자열 통째다.</td>
+      <td><code>token</code> <b>전역</b> 유니크 (7절)</td>
+    </tr>
+  </table>
+  </div>
+
+  <div class="box">
+    <b>방 정보를 왜 FK가 아니라 문자열로 복사하나.</b>
+    <p>보호자가 "안방 1"을 삭제해도 <b>과거 낙상 기록은 그대로 남아야 한다</b>. FK로 묶으면 방 삭제가 기록을 깨거나(CASCADE) 방 삭제 자체를 막는다(RESTRICT). 낙상 기록은 "그때 그 방에서 일어난 일"이라는 사실이고, 방 테이블의 현재 상태와는 별개다. 그래서 <code>FallEvent</code>는 <code>room_name</code>·<code>room_number</code>를 <b>사건 발생 시점의 스냅샷</b>으로 저장한다.</p>
+  </div>
+
+  <h3>API 한눈에 보기</h3>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>메서드 · 경로</th><th>동작</th></tr>
+    <tr><td><span class="pill get">GET</span><code>/</code></td><td>헬스체크. 인증 없이 열려 있다.</td></tr>
+    <tr><td><span class="pill post">POST</span><code>/api/auth/login/</code></td><td>아이디·비번 → <code>{"token"}</code>. 실패 400.</td></tr>
+    <tr><td><span class="pill post">POST</span><code>/api/auth/signup/</code></td><td>가입 후 <b>즉시 토큰까지</b> 201로 발급.</td></tr>
+    <tr><td><span class="pill get">GET</span><code>/api/falls/</code></td><td>내 낙상 목록, 최신순(<code>id</code> 역순).</td></tr>
+    <tr><td><span class="pill post">POST</span><code>/api/falls/</code></td><td>낙상 등록. 신규 201 + 푸시 / 재전송 200 + 푸시 없음.</td></tr>
+    <tr><td><span class="pill post">POST</span><code>/api/falls/{id}/acknowledge/</code></td><td>확인 처리. 멱등 — 첫 확인 시각을 덮어쓰지 않는다.</td></tr>
+    <tr><td><span class="pill get">GET</span><code>/api/rooms/</code> 외 5개</td><td>방 CRUD. <code>PUT</code>·<code>PATCH</code>·<code>DELETE</code> 포함.</td></tr>
+    <tr><td><span class="pill get">GET</span><span class="pill put">PUT</span><code>/api/profile/</code></td><td>어르신 연락처 조회·수정. 없으면 만들어서 준다.</td></tr>
+    <tr><td><span class="pill post">POST</span><span class="pill del">DEL</span><code>/api/push/devices/</code></td><td>푸시 구독 등록(201) · 해제(항상 204).</td></tr>
+    <tr><td><span class="pill get">GET</span><code>/api/push/vapid-key/</code></td><td>공개키. 서버에 키가 없으면 503.</td></tr>
+  </table>
+  </div>
+
+  <h2 id="journey"><span class="step">2</span>요청 한 건의 여정 — <code>POST /api/falls/</code></h2>
+
+  <p>이 절 하나로 백엔드 전체의 골격이 잡힌다. 가장 중요한 요청 하나가 도착해서 응답이 나갈 때까지를 끝까지 따라간다. 나머지 절은 여기서 스쳐 지나간 것들을 하나씩 파고드는 것이다.</p>
+
+  <p>감지 브라우저가 낙상을 확정하면 이 요청 하나를 보낸다.</p>
+
+<pre><code>curl -X POST http://127.0.0.1:8000/api/falls/ \
+  -H "Authorization: Token 9f3c1a…(40자)" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "room_name":   "안방",
+        "room_number": 1,
+        "occurred_at": "2026-07-26T14:30:00+09:00",
+        "confidence":  0.94
+      }'</code></pre>
+
+  <div class="flow">
+
+    <div class="fstep">
+      <h4>토큰 필터가 "누구인가"를 확정한다 <span class="tag">config/TokenAuthFilter.java:29</span></h4>
+      <p>Spring Security의 필터체인이 먼저 요청을 받는다. 커스텀 필터가 <code>Authorization</code> 헤더를 읽어 <code>auth_token</code> 테이블과 대조한다.</p>
+<pre><code>String header = request.getHeader("Authorization");
+if (header != null &amp;&amp; header.startsWith(PREFIX)) {      <span class="c">// PREFIX = "Token "</span>
+    String key = header.substring(PREFIX.length()).trim();
+    <span class="c">// 키가 틀리면 컨텍스트를 비워둔 채 통과 — 뒤의 인가 단계가 401 엔트리포인트로 보낸다</span>
+    authTokenRepository.findById(key).ifPresent(token -&gt;
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(token.getGuardian(), null, List.of())));
+}
+chain.doFilter(request, response);</code></pre>
+      <p><code>AuthToken</code>의 PK가 키 문자열이라서 <code>findById(key)</code> 한 번이 곧 토큰 대조다. 별도 조회 메서드가 필요 없다.</p>
+      <p><b>여기서 401을 던지지 않는 것</b>이 요점이다. 자세한 이유는 3절에 있다.</p>
+    </div>
+
+    <div class="fstep">
+      <h4>인가 단계가 통과 여부를 결정한다 <span class="tag">config/SecurityConfig.java:34</span></h4>
+      <p><code>/api/falls/</code>는 <code>permitAll</code> 목록에 없으므로 <code>authenticated()</code>가 적용된다. 앞 단계에서 <code>SecurityContext</code>가 채워졌으면 통과하고, 비어 있으면 여기서 401 JSON이 나가고 요청은 끝난다.</p>
+    </div>
+
+    <div class="fstep">
+      <h4>컨트롤러가 인증 주체와 본문을 받는다 <span class="tag">controller/FallController.java:37</span></h4>
+<pre><code>@PostMapping("/api/falls/")
+public ResponseEntity&lt;FallEventResponse&gt; create(@AuthenticationPrincipal Guardian guardian,
+                                                @Valid @RequestBody FallEventRequest request) {</code></pre>
+      <p><code>@AuthenticationPrincipal Guardian</code>이 1단계에서 넣어둔 <code>Guardian</code> 엔티티를 그대로 꺼내 준다. <b>클라이언트가 보낸 값이 아니라 토큰에서 유도된 값</b>이라는 점이 4절의 출발점이다.</p>
+      <p><code>@Valid</code>가 붙어 있으므로 이 메서드 본문이 실행되기 <b>전에</b> DTO의 제약(<code>@NotBlank</code>·<code>@Size</code>·<code>@Min</code>…)이 검사된다. 하나라도 어기면 예외가 던져져 6절의 핸들러가 400을 만든다.</p>
+    </div>
+
+    <div class="fstep">
+      <h4>서비스가 "이미 있는 낙상인가"를 먼저 묻는다 <span class="tag">service/FallService.java:33</span></h4>
+<pre><code>public CreateResult create(Guardian guardian, FallEventRequest request) {
+    Instant occurredAt = request.occurredAt().toInstant();   <span class="c">// +09:00 입력 → UTC 저장</span>
+
+    Optional&lt;FallEvent&gt; existing = findDuplicate(guardian, request, occurredAt);
+    if (existing.isPresent()) {
+        return new CreateResult(existing.get(), false);   <span class="c">// 재전송 — 기존 행, 푸시 없음</span>
+    }
+    try {
+        FallEvent saved = fallEventRepository.saveAndFlush(new FallEvent(
+            guardian, request.roomName(), request.roomNumber(), occurredAt,
+            request.confidence()));
+        return new CreateResult(saved, true);
+    } catch (DataIntegrityViolationException e) {
+        <span class="c">// 생성 경합 — uniq_fall_dedup에 걸렸으면 재조회해 200 경로로</span>
+        return new CreateResult(findDuplicate(guardian, request, occurredAt).orElseThrow(), false);
+    }
+}</code></pre>
+      <p>반환 타입이 엔티티가 아니라 <code>CreateResult(event, created)</code>인 이유가 있다. 컨트롤러가 <b>201과 200을 갈라야</b> 하는데, 저장된 엔티티만 봐서는 그게 방금 만든 것인지 원래 있던 것인지 알 수 없다. 그래서 서비스가 "새로 만들었다"는 사실을 함께 돌려준다.</p>
+      <p>왜 <code>save</code>가 아니라 <code>saveAndFlush</code>인지, 왜 <code>try/catch</code>가 필요한지는 5절에서 다룬다.</p>
+    </div>
+
+    <div class="fstep">
+      <h4>컨트롤러가 상태 코드를 고르고 푸시를 건다 <span class="tag">controller/FallController.java:40</span></h4>
+<pre><code>FallService.CreateResult result = fallService.create(guardian, request);
+if (result.created()) {
+    pushService.sendToGuardianAsync(result.event());   <span class="c">// 201일 때만 발송</span>
+}
+return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
+    .body(FallEventResponse.from(result.event()));</code></pre>
+      <p>컨트롤러의 로직은 이게 전부다. <b>푸시가 <code>created()</code> 안쪽에 있는 것</b>이 중요하다 — 감지 브라우저가 오프라인 큐에 쌓아둔 낙상을 재전송해도 보호자 폰이 다시 울리지 않는다.</p>
+    </div>
+
+    <div class="fstep">
+      <h4>응답은 즉시 나가고, 푸시는 다른 스레드에서 진행된다 <span class="tag">service/PushService.java:36</span></h4>
+      <p><code>sendToGuardianAsync</code>에는 <code>@Async("pushExecutor")</code>가 붙어 있다. 호출은 즉시 반환되고 실제 발송은 전용 스레드풀에서 일어난다. <b>브라우저 벤더의 푸시 서버가 응답할 때까지 기다리느라 낙상 등록 응답이 늦어지면 안 되기 때문이다.</b></p>
+<pre><code>HTTP/1.1 201 Created
+
+{
+  "id": 42,
+  "room_name": "안방",
+  "room_number": 1,
+  "occurred_at": "2026-07-26T05:30:00Z",     <span class="c">// +09:00이 UTC로 변환됐다</span>
+  "created_at": "2026-07-26T05:30:01.882Z",  <span class="c">// 서버 저장 시각</span>
+  "confidence": 0.94,
+  "acknowledged_at": null                    <span class="c">// 아직 보호자가 확인 전</span>
+}</code></pre>
+    </div>
+
+  </div>
+
+  <div class="box ok">
+    <b><code>occurred_at</code>과 <code>created_at</code>은 다른 시각이다.</b>
+    <p><code>occurred_at</code>은 <b>브라우저가 판정한 낙상 순간</b>이고, <code>created_at</code>은 서버에 도착해 저장된 시각이다. 평소엔 1초 차이지만, 감지 기기가 오프라인이었다가 나중에 재전송하면 몇 시간 벌어질 수 있다. 보호자에게는 <code>occurred_at</code>을 보여줘야 한다 — 알림이 늦게 왔다고 넘어진 시각까지 늦어지는 것은 아니기 때문이다.</p>
+  </div>
+
+  <p>이제 이 여정에서 스쳐 간 것들을 하나씩 본다. <b>누구인지 확정하는 방법</b>(3절), <b>남의 데이터를 막는 방법</b>(4절), <b>중복을 흡수하는 방법</b>(5절), <b>에러를 만드는 방법</b>(6절), <b>푸시를 보내는 방법</b>(7절)이다.</p>
+
+  <h2 id="auth"><span class="step">3</span>인증 — 토큰 하나로 끝내기</h2>
+
+  <p>로그인하면 40자 hex 문자열 하나를 받고, 이후 모든 요청에 그것을 헤더로 붙인다. 그게 전부다.</p>
+
+<pre><code>Authorization: Token 9f3c1a4b8e2d7c6f5a0b1e3d9c8a7f6b5e4d3c2a</code></pre>
+
+  <h3>왜 JWT가 아닌가</h3>
+
+  <p>이 토큰은 DB에 저장되는 <b>불투명 토큰</b>이다. JWT처럼 자체적으로 정보를 담지 않고, 그냥 <code>auth_token</code> 테이블의 PK다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>성질</th><th>이 프로젝트의 DB 토큰</th><th>JWT였다면</th></tr>
+    <tr><td>검증</td><td>DB 조회 1회</td><td>서명 검증만, DB 불필요</td></tr>
+    <tr><td>만료</td><td><b>없다</b></td><td>보통 짧게 두고 리프레시 토큰 병행</td></tr>
+    <tr><td>즉시 무효화</td><td>행을 지우면 끝</td><td>어렵다 — 블랙리스트가 필요</td></tr>
+    <tr><td>보호자당 개수</td><td>1개 (유니크 제약)</td><td>발급할 때마다 새로 생김</td></tr>
+  </table>
+  </div>
+
+  <p>선택의 근거는 <b>제품 요구</b>였다. 보호자는 "한 번 로그인하면 계속 로그인된 상태"여야 한다 — 새벽에 낙상 알림을 받았는데 토큰이 만료돼 다시 로그인해야 한다면 그건 실패다. 만료 없는 DB 토큰이 이 요구를 가장 단순하게 만족시킨다. 그리고 이 프로젝트는 같은 와이파이 안에서만 도는 과제 제출용이라 JWT가 해결하는 문제(무상태 확장, 여러 서버 간 검증 공유)가 애초에 없다.</p>
+
+  <p>재로그인해도 <b>같은 키</b>가 나온다. Django DRF의 <code>Token.objects.get_or_create</code>를 그대로 옮긴 것이다.</p>
+
+  <p class="src">service/AuthService.java:112</p>
+<pre><code><span class="c">// DRF Token.objects.get_or_create 등가 — 재로그인해도 같은 키를 돌려준다</span>
+private String tokenFor(Guardian guardian) {
+    return authTokenRepository.findByGuardianId(guardian.getId())
+        .orElseGet(() -&gt; authTokenRepository.save(new AuthToken(AuthToken.newKey(), guardian)))
+        .getKey();
+}</code></pre>
+
+  <p>키 자체는 <code>SecureRandom</code>으로 만든 20바이트를 hex 40자로 편 것이다(<code>domain/AuthToken.java:38</code>). 예측 불가능해야 하므로 <code>Random</code>이 아니라 <code>SecureRandom</code>이어야 한다.</p>
+
+  <h3>필터가 401을 직접 던지지 않는 이유</h3>
+
+  <p>2절에서 봤듯 <code>TokenAuthFilter</code>는 키가 틀려도 그냥 통과시킨다. 얼핏 이상해 보이지만 이게 Spring Security의 정석이다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>역할</th><th>담당</th><th>답하는 질문</th></tr>
+    <tr><td>인증 (Authentication)</td><td><code>TokenAuthFilter</code></td><td>이 요청은 <b>누구</b>인가? (모르면 익명)</td></tr>
+    <tr><td>인가 (Authorization)</td><td><code>authorizeHttpRequests</code></td><td>이 사람이 <b>여기</b> 들어가도 되나?</td></tr>
+    <tr><td>거부 응답</td><td><code>authenticationEntryPoint</code></td><td>안 되면 <b>어떻게</b> 돌려보내나?</td></tr>
+  </table>
+  </div>
+
+  <p>필터가 401을 던져버리면 <b>토큰 없이도 접근 가능한 엔드포인트</b>가 막힌다. 회원가입·로그인이 바로 그런 곳이다. 판단은 인가 단계로 미루고, 필터는 "누구인지 알아낼 수 있으면 알아내기"만 한다.</p>
+
+  <p class="src">config/SecurityConfig.java:28</p>
+<pre><code>http
+    .csrf(csrf -&gt; csrf.disable())
+    .cors(Customizer.withDefaults())
+    .sessionManagement(s -&gt; s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+    .httpBasic(b -&gt; b.disable())
+    .formLogin(f -&gt; f.disable())
+    .authorizeHttpRequests(auth -&gt; auth
+        <span class="c">// permitAll은 이 셋뿐 — 나머지는 전부 인증 필수</span>
+        .requestMatchers("/", "/api/auth/login/", "/api/auth/signup/").permitAll()
+        .anyRequest().authenticated())
+    .exceptionHandling(e -&gt; e.authenticationEntryPoint(SecurityConfig::unauthorized))
+    .addFilterBefore(new TokenAuthFilter(authTokenRepository),
+        UsernamePasswordAuthenticationFilter.class);</code></pre>
+
+  <p><code>anyRequest().authenticated()</code>가 마지막에 있는 게 핵심이다. <b>기본값이 "잠김"이고 열어줄 곳만 명시</b>하는 구조라, 나중에 엔드포인트를 추가할 때 인증을 깜빡해도 안전한 쪽으로 실패한다. 반대로 짰다면(기본 열림 + 잠글 곳 명시) 실수가 곧 데이터 유출이 된다.</p>
+
+  <p>나머지 설정도 전부 "토큰 인증"이라는 한 가지 선택에서 따라 나온다.</p>
+
+  <ul>
+    <li><b><code>STATELESS</code></b> — 세션을 아예 만들지 않는다. 매 요청이 토큰만으로 자립한다.</li>
+    <li><b>CSRF 비활성</b> — CSRF 공격은 브라우저가 쿠키를 <b>자동으로</b> 붙여주기 때문에 성립한다. 이 API는 쿠키를 안 쓰고 JS가 명시적으로 헤더를 붙여야 하므로 공격 자체가 성립하지 않는다.</li>
+    <li><b><code>httpBasic</code>·<code>formLogin</code> 비활성</b> — Boot 기본값으로 켜지는 인증 방식들이다. 안 쓰면 꺼서 진입점을 줄인다.</li>
+  </ul>
+
+  <div class="box">
+    <b>CORS를 전 오리진 허용해도 되는 이유.</b>
+    <p><code>CorsConfig</code>는 <code>addAllowedOriginPattern("*")</code>로 모든 오리진을 연다. 보통은 위험한 설정이지만 여기선 그렇지 않다 — <b>인증 정보가 쿠키가 아니라 헤더</b>에 있기 때문이다. 다른 사이트의 JS가 이 API를 호출해도 사용자의 토큰을 알 방법이 없으므로 남의 데이터에 접근할 수 없다. 반대로 쿠키 인증이었다면 브라우저가 자동으로 자격 증명을 붙여줘서 그대로 뚫린다.</p>
+    <p>그리고 이 설정이 필요한 실제 사정이 있다. 감지 페이지는 <code>:5500</code>에서 뜨고, 같은 와이파이의 폰은 <code>http://&lt;Mac IP&gt;:5500</code>으로 붙는다. IP가 매번 달라져 오리진을 미리 특정할 수 없다.</p>
+  </div>
+
+  <h3>비밀번호</h3>
+
+  <p><code>BCryptPasswordEncoder</code>로 해시해서 저장한다(<code>SecurityConfig.java:52</code>). BCrypt는 <b>느리게 설계된</b> 해시라 무차별 대입에 강하고, 솔트를 해시 문자열 안에 함께 담아서 별도 컬럼이 필요 없다.</p>
+
+  <p>가입 검증은 Django의 기본 규칙을 그대로 옮겼다(<code>AuthService.java:64</code>). 여기서 눈여겨볼 것은 <b>에러를 즉시 던지지 않고 전부 모은다</b>는 점이다.</p>
+
+<pre><code>List&lt;String&gt; passwordErrors = new ArrayList&lt;&gt;();
+if (password == null || password.isBlank()) {
+    passwordErrors.add(REQUIRED_MESSAGE);
+} else {
+    if (password.length() &lt; 8) {
+        passwordErrors.add("비밀번호가 너무 짧습니다. 최소 8자를 포함해야 합니다.");
+    }
+    if (password.chars().allMatch(Character::isDigit)) {
+        passwordErrors.add("비밀번호가 전부 숫자로 되어 있습니다.");
+    }
+    if (commonPasswords.contains(password.toLowerCase())) {
+        passwordErrors.add("비밀번호가 너무 일상적인 단어입니다.");
+    }
+}</code></pre>
+
+  <p>첫 번째 위반에서 바로 던지면 사용자가 "8자 이상" 고치고 다시 제출했을 때 "숫자만 안 됨"을 새로 듣는다. 한 번에 다 알려주는 편이 낫다. <code>commonPasswords</code>는 기동할 때 <code>common-passwords.txt</code>를 읽어 <code>Set</code>으로 들고 있는다 — 매번 파일을 읽지 않는다.</p>
+
+  <h2 id="ownership"><span class="step">4</span>소유권 격리 — 왜 전부 404인가</h2>
+
+  <p>이 백엔드는 여러 보호자 계정을 담는다. 그러니 <b>남의 낙상 기록이 새어나가지 않는 것</b>이 가장 중요한 안전장치다. 방법은 세 겹이다.</p>
+
+  <h3>(a) 소유자는 요청에서 받지 않고 토큰에서 유도한다</h3>
+
+  <p><code>FallEventRequest</code>에는 <code>guardian</code> 필드가 <b>아예 없다</b>. 클라이언트가 <code>{"guardian": 7}</code>을 보내도 DTO에 담길 자리가 없다.</p>
+
+  <p class="src">dto/FallEventRequest.java</p>
+<pre><code><span class="c">// body의 guardian 등 잉여 필드는 무시한다 — 요청자로 강제되므로 클라이언트가 건드릴 수 없다</span>
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record FallEventRequest(
+    @JsonProperty("room_name")  String  roomName,        <span class="c">// 실제 파일에는 각 필드에</span>
+    @JsonProperty("room_number") Integer roomNumber,     <span class="c">// @NotBlank·@Size·@Min 같은</span>
+    @JsonProperty("occurred_at") OffsetDateTime occurredAt,  <span class="c">// 검증 어노테이션이 더 붙어 있다</span>
+    Double confidence) { }</code></pre>
+
+  <p>소유자는 서비스가 <code>@AuthenticationPrincipal</code>로 받은 <code>Guardian</code>을 그대로 쓴다. <b>위조할 통로가 존재하지 않는다</b> — 검증으로 막는 게 아니라 구조로 막는 방식이다.</p>
+
+  <h3>(b) 조회에 항상 소유자 조건을 함께 건다</h3>
+
+  <p>리포지토리 메서드 이름을 보면 규칙이 한눈에 보인다. <code>ById</code>로 끝나는 메서드가 없다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>용도</th><th>메서드</th></tr>
+    <tr><td>낙상 목록</td><td><code>findByGuardianIdOrderByIdDesc(guardianId)</code></td></tr>
+    <tr><td>낙상 1건</td><td><code>findByIdAndGuardianId(id, guardianId)</code></td></tr>
+    <tr><td>방 1건</td><td><code>findByIdAndGuardianId(id, guardianId)</code></td></tr>
+    <tr><td>방 목록</td><td><code>findByGuardianIdOrderByNameAscNumberAsc(guardianId)</code></td></tr>
+    <tr><td>푸시 기기 해제</td><td><code>deleteByGuardianIdAndToken(guardianId, token)</code></td></tr>
+  </table>
+  </div>
+
+  <p>Spring Data JPA는 이 메서드 <b>이름을 파싱해서</b> 쿼리를 만든다. 구현 코드를 쓰지 않으므로 "WHERE 절에 guardian을 빼먹는" 실수 자체가 일어나기 어렵다.</p>
+
+  <h3>(c) 남의 것은 403이 아니라 404다</h3>
+
+  <p class="src">service/FallService.java:51</p>
+<pre><code>public FallEvent acknowledge(Guardian guardian, Long id) {
+    <span class="c">// guardian까지 걸어 조회 — 남의 이벤트는 존재 자체가 드러나지 않고 404가 된다</span>
+    FallEvent event = fallEventRepository.findByIdAndGuardianId(id, guardian.getId())
+        .orElseThrow(NotFoundException::new);
+    event.acknowledgeNow();
+    return fallEventRepository.save(event);
+}</code></pre>
+
+  <p>여기가 초보자가 놓치기 쉬운 지점이다. "권한이 없다"는 뜻이면 403 Forbidden이 맞아 보인다. 그런데 <b>403은 그 자체로 정보를 흘린다.</b></p>
+
+  <div class="box warn">
+    <b>403과 404가 흘리는 정보의 차이.</b>
+    <p>공격자가 <code>/api/falls/1/acknowledge/</code>부터 순서대로 찔러본다고 하자.</p>
+    <ul>
+      <li><b>403을 주면</b> — "이 id는 존재하지만 네 것이 아니다"라는 뜻이 된다. 403이 오는 id를 세면 <b>서버에 낙상 기록이 몇 건 있는지</b> 알 수 있고, 404와 403의 경계로 <b>다른 계정의 활동 시점</b>까지 추정된다.</li>
+      <li><b>404를 주면</b> — 없는 것과 남의 것이 구별되지 않는다. 아무것도 알아낼 수 없다.</li>
+    </ul>
+    <p>이것을 <b>열거 공격 방어</b>라고 한다. 데이터 자체는 어느 쪽이든 안 나가지만, "존재한다"는 사실도 정보라는 관점이다.</p>
+  </div>
+
+  <p>이 패턴이 서비스 전체에 일관되게 적용돼 있다. <code>RoomService.get</code>도 같은 모양이고(<code>RoomService.java:34</code>), 방 수정·삭제는 전부 이 <code>get</code>을 먼저 통과하므로 자동으로 같은 보호를 받는다.</p>
+
+  <h2 id="idempotency"><span class="step">5</span>멱등성 — 같은 낙상은 두 번 저장되지 않는다</h2>
+
+  <p>이 절이 이 백엔드에서 가장 흥미로운 부분이다. 문제는 서버가 아니라 <b>감지 브라우저 쪽 사정</b>에서 시작한다.</p>
+
+  <p>감지 페이지는 낙상을 확정하면 즉시 POST를 보낸다. 그런데 그 순간 와이파이가 끊겨 있으면 어떻게 하나. 알림을 포기할 수는 없으니 <code>localStorage</code> 큐에 넣어두고, 온라인이 되면 재전송한다. 문제는 <b>"응답을 못 받았을 뿐 서버에는 저장됐을 수도 있다"</b>는 것이다.</p>
+
+  <p>그래서 재전송은 반드시 일어나야 하고, <b>중복 저장은 반드시 막혀야 한다.</b></p>
+
+  <h3>같은 낙상을 정의한다</h3>
+
+  <p>중복을 막으려면 먼저 "같은 낙상"이 뭔지 정해야 한다. 이 프로젝트의 답은 DB 제약에 박혀 있다.</p>
+
+  <p class="src">resources/db/migration/V1__init.sql:27</p>
+<pre><code><span class="c">-- 오프라인 큐 재전송 멱등성의 근거 — 같은 낙상은 두 행이 될 수 없다</span>
+CONSTRAINT uniq_fall_dedup UNIQUE (guardian_id, room_name, room_number, occurred_at)</code></pre>
+
+  <p><b>누가 · 어느 방에서 · 언제</b> 넘어졌는지가 같으면 같은 낙상이다. <code>occurred_at</code>은 브라우저가 판정한 시각이라 재전송해도 값이 변하지 않는다 — 그래서 열쇠로 쓸 수 있다. 만약 서버 도착 시각(<code>created_at</code>)을 썼다면 재전송마다 값이 달라져 중복 판정이 불가능했을 것이다.</p>
+
+  <div class="box ok">
+    <b>왜 애플리케이션 코드가 아니라 DB 제약인가.</b>
+    <p>"저장 전에 조회해서 있으면 건너뛴다"만으로는 <b>동시에 두 요청이 오면 뚫린다</b>. 둘 다 조회에서 "없음"을 보고 둘 다 저장하는 경합이 생긴다. DB 유니크 제약은 이걸 원천적으로 막는다 — 어느 쪽이 이기든 하나는 반드시 실패한다. 애플리케이션 검사는 <b>최적화이고, 제약이 진짜 방어선</b>이다.</p>
+  </div>
+
+  <h3>3단 방어 구조</h3>
+
+  <p>2절에서 본 <code>FallService.create</code>를 다시 보면 세 단계가 겹쳐 있다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th></th><th>단계</th><th>담당</th></tr>
+    <tr><td>1</td><td><code>findDuplicate</code>로 먼저 조회</td><td>흔한 경우를 빠르게 처리 (재전송 대부분)</td></tr>
+    <tr><td>2</td><td><code>saveAndFlush</code>로 즉시 저장</td><td>DB 제약이 최종 판정</td></tr>
+    <tr><td>3</td><td><code>catch</code> 후 재조회</td><td>1과 2 사이의 경합을 흡수</td></tr>
+  </table>
+  </div>
+
+  <h4>왜 <code>save</code>가 아니라 <code>saveAndFlush</code>인가</h4>
+
+  <p>JPA의 <code>save()</code>는 SQL을 <b>즉시 보내지 않는다.</b> 영속성 컨텍스트에 올려두고 트랜잭션이 끝날 때 몰아서 보낸다. 그러면 제약 위반 예외도 그때 터진다 — <b>이미 컨트롤러를 빠져나간 뒤</b>다. 그 시점엔 <code>try/catch</code>로 잡을 수도, 200으로 바꿔 응답할 수도 없다.</p>
+
+  <p><code>saveAndFlush()</code>는 그 자리에서 <code>INSERT</code>를 보낸다. 그래서 제약 위반이 <b>이 줄에서</b> 터지고, 바로 아래 <code>catch</code>가 잡아 200 경로로 돌릴 수 있다.</p>
+
+  <h4>클래스에 <code>@Transactional</code>을 일부러 안 붙였다</h4>
+
+  <p><code>FallService</code> 맨 위 주석이 이렇게 시작한다.</p>
+
+  <p class="src">service/FallService.java:2</p>
+<pre><code><span class="c">// 클래스 @Transactional을 쓰지 않는다: 제약 위반 후 재조회가 새 트랜잭션이어야 하기 때문</span></code></pre>
+
+  <p>보통 서비스 클래스에는 <code>@Transactional</code>을 붙이는 게 관행이다. 여기서 그렇게 하면 <b>3단계가 동작하지 않는다.</b></p>
+
+  <div class="box warn">
+    <b>PostgreSQL은 실패한 트랜잭션을 되살려주지 않는다.</b>
+    <p>트랜잭션 안에서 제약 위반이 나면 그 트랜잭션은 <b>중단(aborted) 상태</b>가 되고, 이후 모든 쿼리가 <code>current transaction is aborted, commands ignored until end of transaction block</code>으로 거부된다. 예외를 잡아도 소용없다 — 트랜잭션 자체가 죽어 있다.</p>
+    <p>즉 클래스에 <code>@Transactional</code>이 있었다면 <code>catch</code> 안의 <code>findDuplicate</code> 재조회가 <b>반드시 실패</b>한다. 트랜잭션 경계를 각 리포지토리 호출 단위로 두어(Spring Data의 기본 동작), 실패한 <code>INSERT</code>와 이어지는 <code>SELECT</code>가 <b>서로 다른 트랜잭션</b>이 되게 한 것이다.</p>
+  </div>
+
+  <p>이것은 Django가 기본으로 하던 <code>autocommit</code> 동작을 의도적으로 재현한 것이다. 관행을 따르지 않은 자리에는 이렇게 이유가 있고, 그래서 파일 맨 위에 주석으로 남아 있다.</p>
+
+  <h3>결과 — 재전송했을 때 실제로 일어나는 일</h3>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th></th><th>첫 전송</th><th>재전송 (같은 낙상)</th></tr>
+    <tr><td>DB</td><td>새 행 1개</td><td>변화 없음</td></tr>
+    <tr><td>상태 코드</td><td><b>201</b> Created</td><td><b>200</b> OK</td></tr>
+    <tr><td>응답 본문</td><td>새 이벤트</td><td><b>기존 이벤트</b> (같은 <code>id</code>)</td></tr>
+    <tr><td>푸시</td><td>발송</td><td><b>안 함</b></td></tr>
+  </table>
+  </div>
+
+  <p>재전송에도 <b>에러가 아니라 200</b>을 주는 게 핵심이다. 클라이언트 입장에서 "이미 처리됨"과 "방금 처리됨"은 둘 다 성공이다. 400을 주면 클라이언트가 큐에서 지워야 할지 재시도해야 할지 판단할 수 없다.</p>
+
+  <h3><code>acknowledge</code>도 멱등이다</h3>
+
+  <p>보호자가 알림 확인을 두 번 눌러도 <b>첫 확인 시각이 유지</b>돼야 한다.</p>
+
+  <p class="src">domain/FallEvent.java:64</p>
+<pre><code><span class="c">// 첫 확인 시각을 보존한다 — 두 번째 호출부터는 무시 (멱등)</span>
+public void acknowledgeNow() {
+    if (acknowledgedAt == null) {
+        acknowledgedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+}</code></pre>
+
+  <p>판단이 서비스가 아니라 <b>엔티티 안</b>에 있다. "확인 시각은 한 번만 찍힌다"는 것은 이 데이터의 성질이지 특정 서비스의 사정이 아니므로, 데이터를 가진 쪽이 스스로 지키게 한 것이다.</p>
+
+  <div class="box">
+    <b>마이크로초로 자르는 이유.</b>
+    <p><code>Instant.now()</code>는 나노초까지 담을 수 있지만 PostgreSQL <code>timestamptz</code>는 <b>마이크로초</b>까지만 저장한다. 자르지 않으면 응답에 실린 값(메모리)과 나중에 DB에서 다시 읽은 값이 미세하게 달라진다. 저장 가능한 정밀도로 미리 맞춰 두 값이 항상 같게 만든 것이다.</p>
+  </div>
+
+  <div class="box warn">
+    <b>이 멱등성이 막지 못하는 것도 있다.</b>
+    <p>열쇠에 <code>occurred_at</code>이 들어 있으므로, <b>감지 로직이 같은 낙상을 다른 시각으로 두 번 판정하면</b> 서버는 다른 낙상으로 본다. 실제로 그런 버그가 있었다 — 알림 후 사람이 가구에 가려졌다가 누운 채 재검출되면 상태 기계가 잘못 재무장돼 두 번째 전송이 나갔다. 서버에서는 흡수할 방법이 없어 감지 쪽(<code>web/js/detector.js</code>)을 고쳤다. <b>멱등성은 열쇠가 안정적일 때만 성립한다.</b></p>
+  </div>
+
+  <h2 id="validation"><span class="step">6</span>검증과 에러 계약 — 형태가 요구사항이다</h2>
+
+  <p>에러 응답의 <b>모양</b>이 이 백엔드에서는 요구사항이다. 클라이언트를 한 줄도 못 고치는 제약이 있었으므로, 웹과 앱이 이미 파싱하고 있는 Django REST Framework의 형태를 그대로 재현해야 했다.</p>
+
+<pre><code><span class="c">// 필드 에러 — {필드명: [메시지 배열]}</span>
+{"username": ["해당 사용자 이름은 이미 존재합니다."]}
+
+<span class="c">// 특정 필드에 붙일 수 없는 에러</span>
+{"non_field_errors": ["같은 이름과 번호의 방이 이미 있습니다."]}
+
+<span class="c">// 404·401 같은 단일 메시지</span>
+{"detail": "찾을 수 없습니다."}</code></pre>
+
+  <h3>검증이 두 군데로 나뉜 이유</h3>
+
+  <p>이 프로젝트는 검증을 두 방식으로 한다. 처음 보면 일관성이 없어 보이지만 각각 맡는 영역이 다르다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th></th><th>Bean Validation (<code>@Valid</code>)</th><th>서비스 안 수동 검증</th></tr>
+    <tr><td>어디에</td><td>DTO 필드의 어노테이션</td><td><code>AuthService</code>·<code>RoomService</code>의 <code>validate()</code></td></tr>
+    <tr><td>쓰는 곳</td><td>낙상 등록, 로그인, 푸시 기기 등록, 프로필</td><td>회원가입, 방 생성·수정</td></tr>
+    <tr><td>잘하는 것</td><td>"항상 참이어야 하는" 단순 규칙</td><td>DB를 봐야 하거나 <b>상황에 따라 달라지는</b> 규칙</td></tr>
+  </table>
+  </div>
+
+  <p>갈리는 지점은 <b>규칙이 상황에 따라 달라지는가</b>다. 두 가지 예가 있다.</p>
+
+  <p><b>회원가입</b> — "이 아이디가 이미 있는가"는 어노테이션으로 표현할 수 없다. DB를 조회해야 알 수 있고, 흔한 비밀번호 목록 대조도 마찬가지다.</p>
+
+  <p><b>방 수정</b> — <code>PUT</code>은 전체 교체라 <code>name</code>·<code>number</code>가 다 필요하지만, <code>PATCH</code>는 부분 수정이라 <code>{"name": "거실"}</code>만 와도 된다. 같은 DTO를 쓰는데 필수 여부가 메서드에 따라 뒤집힌다. 어노테이션은 정적이라 이걸 표현할 수 없으므로 플래그를 받는 함수로 만들었다.</p>
+
+  <p class="src">service/RoomService.java:80</p>
+<pre><code><span class="c">// requireAll=true(POST·PUT)면 누락도 에러, false(PATCH)면 보낸 필드만 검사한다</span>
+private void validate(RoomRequest request, boolean requireAll) {
+    ...
+    if (request.name() == null) {
+        if (requireAll) nameErrors.add(REQUIRED_MESSAGE);   <span class="c">// PATCH면 그냥 넘어간다</span>
+    } else {
+        if (request.name().isBlank()) nameErrors.add(REQUIRED_MESSAGE);
+        if (request.name().length() &gt; 20) {
+            nameErrors.add("이 필드의 글자 수가 20 이하인지 확인하십시오.");
+        }
+    }
+    ...
+    if (!errors.isEmpty()) throw new FieldValidationException(errors);
+}</code></pre>
+
+  <p>그래서 <code>RoomRequest</code>의 필드는 <code>String name, Integer number</code>로 <b>둘 다 nullable</b>이고 어노테이션이 하나도 없다. "안 보낸 것"과 "빈 값을 보낸 것"을 구분해야 하기 때문이다 — <code>int</code>였다면 안 보낸 필드가 0으로 채워져 둘을 구분할 수 없다.</p>
+
+  <h3>예외 하나로 모아서 응답으로 바꾼다</h3>
+
+  <p>검증이 어디서 실패하든 결국 <b>같은 형태의 JSON</b>이 나가야 한다. 그 변환을 한 곳에 모은 것이 <code>GlobalExceptionHandler</code>다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>예외</th><th>발생 지점</th><th>응답</th></tr>
+    <tr><td><code>FieldValidationException</code></td><td>서비스 수동 검증</td><td>400 + 담긴 맵 그대로</td></tr>
+    <tr><td><code>MethodArgumentNotValidException</code></td><td><code>@Valid</code> 실패 (Spring이 던짐)</td><td>400 + 필드명 <b>snake_case 변환</b> 후 그룹핑</td></tr>
+    <tr><td><code>NotFoundException</code></td><td>소유권 조회 실패</td><td>404 <code>{"detail": "찾을 수 없습니다."}</code></td></tr>
+    <tr><td><code>HttpMessageNotReadableException</code></td><td>본문이 JSON이 아님</td><td>400 <code>{"detail": "요청 본문을…"}</code></td></tr>
+    <tr><td>(인증 없음)</td><td>Security 인가 단계</td><td>401 — 필터체인이 처리, 여기 안 온다</td></tr>
+  </table>
+  </div>
+
+  <p><code>@RestControllerAdvice</code>가 붙어 있어 모든 컨트롤러에 자동 적용된다. 덕분에 <b>컨트롤러에 <code>try/catch</code>가 한 줄도 없다.</b></p>
+
+  <p>snake_case 변환이 필요한 이유는 이름이 두 번 바뀌기 때문이다. JSON의 <code>room_name</code>은 <code>@JsonProperty</code>로 자바 필드 <code>roomName</code>에 매핑되는데, 검증 실패 시 Spring이 알려주는 필드명은 <b>자바 쪽 이름</b>인 <code>roomName</code>이다. 클라이언트는 <code>room_name</code>으로 에러를 찾으므로 되돌려줘야 한다.</p>
+
+  <p class="src">error/GlobalExceptionHandler.java:33</p>
+<pre><code>for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+    errors.computeIfAbsent(snakeCase(fe.getField()), k -&gt; new ArrayList&lt;&gt;())
+        .add(fe.getDefaultMessage());
+}</code></pre>
+
+  <p>한 필드에 여러 위반이 걸릴 수 있으므로 <code>computeIfAbsent</code>로 <b>배열에 모은다</b>. DRF의 형태가 값이 아니라 배열인 이유도 같다.</p>
+
+  <div class="box">
+    <b>고정 문자열 두 개는 함부로 못 바꾼다.</b>
+    <p>대부분의 에러 문구는 클라이언트가 그대로 표시만 하므로 자유롭게 바꿔도 된다. 그런데 두 개는 클라이언트가 <b>문자열을 비교해서 분기</b>한다.</p>
+    <ul>
+      <li><code>"같은 이름과 번호의 방이 이미 있습니다."</code> — 그래서 <code>RoomService.DUPLICATE_ROOM_MESSAGE</code> 상수로 뽑혀 있다.</li>
+      <li><code>"웹 푸시가 설정되지 않았습니다."</code> — 보호자 페이지가 이 503으로 "푸시 미설정" 안내를 띄운다.</li>
+    </ul>
+  </div>
+
+  <h2 id="push"><span class="step">7</span>웹 푸시 — 실패해도 되는 기능</h2>
+
+  <p>보호자 페이지를 닫아둬도 알림이 오게 하는 기능이다. 설계 원칙이 다른 절과 완전히 다르다. <b>이 기능은 실패해도 된다.</b></p>
+
+  <p>왜냐하면 <b>안전망이 이미 있기 때문</b>이다. 앱과 보호자 페이지는 5초마다 <code>GET /api/falls/</code>를 폴링한다. 푸시가 안 가도 화면을 켜 두면 알림이 뜬다. 푸시는 "화면이 꺼져 있을 때도 알려주는" 추가 편의일 뿐이다.</p>
+
+  <p>이 판단이 코드 전체를 관통한다.</p>
+
+  <h3>(a) 키가 없으면 조용히 꺼진다</h3>
+
+  <p>웹 푸시에는 VAPID 키가 필요하다. 서버 실행 시 환경변수로 주는데, <b>없어도 서버가 정상 기동한다.</b></p>
+
+  <p class="src">resources/application.yml:15</p>
+<pre><code>push:
+  vapid:
+    private-key: ${VAPID_PRIVATE_KEY:}   <span class="c"># 미설정이면 푸시 조용히 비활성</span>
+    subject: ${VAPID_SUBJECT:}</code></pre>
+
+  <p><code>${VAR:}</code>의 콜론 뒤 빈 값이 기본값이다. 키가 없으면 <code>VapidService.isConfigured()</code>가 <code>false</code>가 되고, 발송 시도 자체를 건너뛴다. <b>기능 하나가 설정되지 않았다고 서버 전체가 안 뜨는 것은 과한 반응</b>이라는 판단이다.</p>
+
+  <h3>(b) 공개키는 저장하지 않고 계산한다</h3>
+
+  <p>VAPID는 공개키·개인키 쌍인데 이 서버는 <b>개인키만</b> 받는다. 공개키는 필요할 때 계산한다.</p>
+
+  <p class="src">service/VapidService.java:44</p>
+<pre><code><span class="c">// P-256 공개키 = G × d (비압축 점 65바이트)를 base64url로.</span>
+public String publicKey() {
+    if (!isConfigured()) return null;
+    if (cachedPublicKey != null) return cachedPublicKey;
+    try {
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("prime256v1");
+        BigInteger d = new BigInteger(1, Base64.getUrlDecoder().decode(privateKey));
+        byte[] point = spec.getG().multiply(d).normalize().getEncoded(false);
+        cachedPublicKey = Base64.getUrlEncoder().withoutPadding().encodeToString(point);
+        return cachedPublicKey;
+    } catch (Exception e) {
+        log.error("VAPID 공개키 파생 실패 — 키 형식을 확인하세요…", e);
+        return null;   <span class="c">// → 503 경로. 서버는 계속 돈다</span>
+    }
+}</code></pre>
+
+  <p>타원곡선 암호에서 <b>공개키는 개인키로부터 유일하게 결정된다</b>(기준점 G를 개인키 d배 한 점). 그래서 둘 다 보관할 이유가 없다 — 설정할 값이 절반으로 줄고, 두 키가 짝이 안 맞는 실수가 원천적으로 사라진다. 계산 결과는 캐시해서 한 번만 한다.</p>
+
+  <p>여기서도 실패 처리는 같다. 키 형식이 잘못돼도 <code>null</code>을 돌려주고 로그만 남긴다. 그러면 <code>/api/push/vapid-key/</code>가 503을 주고, 보호자 페이지가 "푸시 미설정" 안내를 띄운다.</p>
+
+  <h3>(c) 발송은 응답 밖에서, 실패는 삼킨다</h3>
+
+  <p class="src">service/PushService.java:36</p>
+<pre><code><span class="c">// POST 응답이 외부 HTTP를 기다리지 않도록 스레드풀에서 발송한다</span>
+@Async("pushExecutor")
+public void sendToGuardianAsync(FallEvent event) { sendToGuardian(event); }
+
+public void sendToGuardian(FallEvent event) {
+    try {
+        if (!vapidService.isConfigured()) return;   <span class="c">// 키 미설정 — 조용히 비활성</span>
+        Long guardianId = event.getGuardian().getId();
+        for (PushDevice device : pushDeviceRepository.findByGuardianId(guardianId)) {
+            sendOne(device, event);
+        }
+    } catch (Exception e) {
+        log.error("푸시 발송 중 예상 밖 오류 (event={})", event.getId(), e);   <span class="c">// 삼킨다</span>
+    }
+}</code></pre>
+
+  <p>두 겹으로 감싼다. <code>sendOne</code>이 기기 하나의 실패를 잡아 <b>다음 기기 발송을 막지 않게</b> 하고, 바깥 <code>try</code>가 그 밖의 모든 예외를 잡아 <b>API 응답에 영향을 주지 않게</b> 한다. 보통은 예외를 삼키는 게 나쁜 습관이지만, 여기서는 "낙상은 저장됐는데 푸시 실패로 500을 돌려주는" 상황이 훨씬 나쁘다.</p>
+
+  <p>스레드풀은 <b>데몬 스레드</b>로 만든다(<code>AsyncConfig.java:20</code>). 데몬이 아니면 발송 대기 중인 작업이 남아 있을 때 서버가 종료되지 않고 매달린다.</p>
+
+  <h3>(d) 만료된 구독은 그 자리에서 정리한다</h3>
+
+  <p class="src">service/PushService.java:56</p>
+<pre><code>int status = webPushClient.send(device.getToken(), payloadJson(event));
+if (status == 404 || status == 410) {
+    pushDeviceRepository.delete(device);   <span class="c">// 만료된 구독은 그 자리에서 정리한다</span>
+} else if (status &gt;= 400) {
+    log.error("웹 푸시 발송 실패 (device={}, status={})", device.getId(), status);
+}</code></pre>
+
+  <p>브라우저를 지우거나 알림을 껐으면 푸시 서비스가 <code>404</code>/<code>410 Gone</code>을 준다. 이건 일시적 실패가 아니라 <b>영구적으로 죽은 구독</b>이라는 뜻이므로, 재시도하지 않고 삭제한다. 별도 정리 배치가 필요 없어진다.</p>
+
+  <h3>(e) 라이브러리를 인터페이스 뒤에 숨긴다</h3>
+
+  <p><code>WebPushClient</code>는 메서드 하나짜리 인터페이스다.</p>
+
+<pre><code><span class="c">// 웹 푸시 발송 어댑터 경계 — 테스트는 이 인터페이스를 목으로 바꿔 외부 HTTP를 차단한다</span>
+public interface WebPushClient {
+    int send(String subscriptionJson, String payload) throws Exception;
+}</code></pre>
+
+  <p>구현체 <code>MartijnDwarsWebPushClient</code>가 실제 라이브러리를 쓴다. 인터페이스를 하나 끼운 이유는 <b>테스트</b>다. 이게 없으면 푸시 테스트가 진짜 구글 서버에 요청을 보낸다 — 느리고, 네트워크가 없으면 실패하고, 결과가 매번 다르다. 테스트에서는 이 인터페이스를 가짜 구현으로 바꿔 "무엇이 발송됐는지"만 확인한다.</p>
+
+  <div class="box warn">
+    <b>실제로 겪은 함정 — 인코딩을 명시해야 했다.</b>
+    <p>라이브러리의 인자 없는 <code>send(notification)</code>은 구식 <code>AESGCM</code> 인코딩으로 동작하는데, 구글의 푸시 서버가 이걸 <code>403 crypto-key header had invalid format</code>으로 거부한다. 구독도 키 파생도 전부 정상인데 발송만 실패해서 원인을 찾기 어려웠다. 표준 인코딩을 명시해서 해결했다.</p>
+<pre><code>var response = delegate().send(new Notification(subscription, payload), Encoding.AES128GCM);</code></pre>
+    <p>라이브러리 기본값이 항상 현재 표준은 아니라는 사례다. <code>MartijnDwarsWebPushClient.java:35</code>에 이 경위가 주석으로 남아 있다.</p>
+  </div>
+
+  <h3>구독 토큰은 왜 전역 유니크인가</h3>
+
+  <p><code>PushDevice.token</code>은 보호자별이 아니라 <b>전체에서</b> 유니크다. 브라우저 하나가 만드는 구독은 하나뿐이라 계정보다 기기가 더 근본적인 단위이기 때문이다.</p>
+
+  <p>이 제약 덕분에 계정 전환이 자연스럽게 처리된다.</p>
+
+  <p class="src">service/PushDeviceService.java:20</p>
+<pre><code>@Transactional
+public void register(Guardian guardian, String kind, String token) {
+    pushDeviceRepository.findByToken(token).ifPresentOrElse(
+        device -&gt; device.reassign(guardian, kind),   <span class="c">// 다른 계정에 있으면 현 사용자로 이전</span>
+        () -&gt; pushDeviceRepository.save(new PushDevice(guardian, kind, token)));
+}</code></pre>
+
+  <p>A 계정으로 알림을 켜뒀다가 로그아웃하고 B 계정으로 켜면, 새 행이 생기는 게 아니라 <b>기존 행의 주인이 바뀐다</b>. 이걸 안 했다면 A의 낙상 알림이 B가 쓰는 브라우저로 계속 갔을 것이다.</p>
+
+  <p><code>@Transactional</code>이 붙은 이유는 <code>reassign</code>이 <b>조회한 엔티티의 필드만 바꾸고 <code>save</code>를 호출하지 않기</b> 때문이다. JPA는 트랜잭션이 끝날 때 관리 중인 엔티티의 변경을 감지해 자동으로 <code>UPDATE</code>를 보낸다(변경 감지). 트랜잭션이 없으면 이 동작이 일어나지 않아 변경이 사라진다.</p>
+
+  <h2 id="ops"><span class="step">8</span>마이그레이션 · 테스트 · 실행</h2>
+
+  <h3>스키마는 Flyway가 소유한다</h3>
+
+  <p>JPA는 엔티티를 보고 테이블을 자동 생성할 수 있다. 이 프로젝트는 그 기능을 <b>껐다.</b></p>
+
+  <p class="src">resources/application.yml:10</p>
+<pre><code>jpa:
+  hibernate:
+    ddl-auto: none     <span class="c"># 스키마는 Flyway가 소유한다</span>
+  open-in-view: false</code></pre>
+
+  <p>대신 <code>db/migration/V1__init.sql</code>이 스키마의 유일한 정의다. 서버가 뜰 때 Flyway가 이 파일을 실행하고, 이미 적용됐으면 건너뛴다.</p>
+
+  <p>이유는 5절에 있다. <b>제약의 <code>이름</code>이 중요하기 때문</b>이다. <code>uniq_fall_dedup</code>은 이 백엔드의 멱등성이 걸려 있는 계약인데, 자동 생성에 맡기면 Hibernate가 <code>UK_a3f9c…</code> 같은 이름을 무작위로 붙이고 버전에 따라 달라질 수도 있다. SQL로 직접 쓰면 이름도 형태도 결정적이다.</p>
+
+  <p><code>open-in-view: false</code>도 짚어둘 만하다. 기본값이 <code>true</code>인데, 그 경우 HTTP 응답을 만드는 동안까지 DB 연결을 붙잡고 있어 지연 로딩이 아무 데서나 쿼리를 날린다. 꺼두면 <b>지연 로딩 문제가 컨트롤러가 아니라 서비스 안에서 즉시 드러난다.</b></p>
+
+  <div class="box">
+    <b>비동기 스레드에서 지연 로딩을 피한 자리.</b>
+    <p><code>PushService.sendToGuardian</code>은 <code>event.getGuardian().getId()</code>만 부른다. <code>getUsername()</code>이었다면 실제 조회가 필요해 실패했을 것이다 — 비동기 스레드에는 영속성 컨텍스트가 없기 때문이다. <b><code>getId()</code>는 프록시가 이미 알고 있는 값이라 DB를 안 본다.</b> 이 사정이 코드에 주석으로 남아 있다(<code>PushService.java:44</code>).</p>
+  </div>
+
+  <h3>테스트 — 36개, 전부 실제 DB에 붙는다</h3>
+
+  <p>모킹 위주 단위 테스트가 아니라 <b>통합 테스트</b>다. 실제 PostgreSQL(<code>fall_detection_test</code>)에 붙고, MockMvc로 진짜 HTTP 요청을 만들어 필터체인부터 통과시킨다.</p>
+
+  <p class="src">test/java/com/weniv/falls/IntegrationTestBase.java:41</p>
+<pre><code>@BeforeEach
+void resetDatabase() {
+    jdbcTemplate.execute(
+        "TRUNCATE TABLE push_device, guardian_profile, room, fall_event, auth_token, guardian "
+            + "RESTART IDENTITY CASCADE");
+    guardian = createGuardian("g1");
+    other    = createGuardian("g2");
+}</code></pre>
+
+  <p>매 테스트 전에 전부 비우고 보호자 <b>두 명</b>을 만든다. 두 명인 것이 중요하다 — 4절의 소유권 격리를 검증하려면 "남"이 있어야 한다.</p>
+
+  <p>실제 DB를 쓰는 이유는, 이 백엔드의 핵심 안전장치 중 상당수가 <b>DB에 있기 때문</b>이다. 유니크 제약, CASCADE 삭제, 타임스탬프 정밀도는 리포지토리를 모킹하면 전부 검증에서 빠진다. 5절 전체가 검증 불가능해진다.</p>
+
+  <div class="tablewrap">
+  <table>
+    <tr><th>테스트</th><th>개수</th><th>고정하는 것</th></tr>
+    <tr><td><code>FallApiTest</code></td><td>9</td><td>멱등 POST, 201/200 분기, 소유권, acknowledge 멱등, 오프셋 → UTC 변환</td></tr>
+    <tr><td><code>AuthApiTest</code></td><td>6</td><td>로그인·가입, 토큰 재사용, 가입 검증 에러 형태</td></tr>
+    <tr><td><code>RoomApiTest</code></td><td>5</td><td>CRUD, 중복 400, PATCH 부분 수정, 남의 방 404</td></tr>
+    <tr><td><code>PushDeviceApiTest</code></td><td>4</td><td>등록·계정 이전, 해제는 항상 204</td></tr>
+    <tr><td><code>DomainConstraintTest</code></td><td>4</td><td>유니크 제약·CASCADE가 DB에서 실제로 동작하는가</td></tr>
+    <tr><td><code>PushSendTest</code></td><td>3</td><td>발송 페이로드, 404/410 구독 정리 (가짜 <code>WebPushClient</code>)</td></tr>
+    <tr><td><code>PushSendDisabledTest</code></td><td>2</td><td>키 미설정 시 조용히 비활성</td></tr>
+    <tr><td><code>ProfileApiTest</code></td><td>2</td><td>get-or-create, 수정</td></tr>
+    <tr><td><code>HealthApiTest</code></td><td>1</td><td>헬스체크</td></tr>
+  </table>
+  </div>
+
+<pre><code>createdb fall_detection_test   <span class="c"># 최초 1회</span>
+./gradlew test                 <span class="c"># 36 tests, 0 failures</span></code></pre>
+
+  <h3>실행</h3>
+
+<pre><code>createdb fall_detection        <span class="c"># 최초 1회</span>
+./gradlew bootRun              <span class="c"># 0.0.0.0:8000</span>
+
+<span class="c"># 푸시까지 켜려면 (선택)</span>
+VAPID_PRIVATE_KEY=&lt;키&gt; VAPID_SUBJECT=mailto:&lt;이메일&gt; ./gradlew bootRun</code></pre>
+
+  <p>바인딩이 <code>127.0.0.1</code>이 아니라 <code>0.0.0.0</code>인 것은 <b>같은 와이파이의 폰이 Mac의 IP로 접속</b>해야 하기 때문이다. 기본값이면 같은 기기에서만 붙을 수 있다.</p>
+
+  <hr />
+
+  <h3>정리 — 이 백엔드에서 가져갈 것</h3>
+
+  <p>코드는 작지만 반복해서 나타나는 판단이 몇 가지 있다.</p>
+
+  <ul>
+    <li><b>안전은 검증이 아니라 구조로 만든다.</b> 소유자 위조를 막은 방법은 검사하는 것이 아니라 <b>DTO에 그 필드를 두지 않는 것</b>이었다. 리포지토리 메서드 이름에 <code>AndGuardianId</code>를 넣는 것도 같은 방식이다.</li>
+    <li><b>불변식은 최대한 아래층에 둔다.</b> 중복 방지를 애플리케이션이 아니라 DB 제약에 맡겼기 때문에 동시 요청에도 뚫리지 않는다. 애플리케이션의 사전 조회는 최적화일 뿐이다.</li>
+    <li><b>기능마다 실패의 무게가 다르다.</b> 낙상 저장은 실패하면 안 되지만 푸시는 실패해도 된다. 그래서 한쪽은 DB 제약까지 동원하고 다른 쪽은 예외를 삼킨다. 모든 코드에 같은 엄격함을 적용하는 것이 항상 옳지는 않다.</li>
+    <li><b>관행을 벗어난 자리에는 이유를 남긴다.</b> <code>FallService</code>에 <code>@Transactional</code>이 없는 것, <code>save</code> 대신 <code>saveAndFlush</code>를 쓴 것, 인코딩을 명시한 것은 전부 이유가 있고 그 이유가 주석으로 코드 옆에 있다. 다음에 읽는 사람이 "빠뜨렸나 보다" 하고 고치면 버그가 되기 때문이다.</li>
+  </ul>
+
+  <p class="end">관련 문서 — <a href="../README.md">README</a> (전체 구조·감지 알고리즘·알려진 한계) · <a href="superpowers/specs/2026-07-24-spring-boot-backend-design.md">Spring Boot 교체 설계</a> · <a href="../context-notes.md">결정 기록</a></p>
+
+</main>
+</body>
+</html>

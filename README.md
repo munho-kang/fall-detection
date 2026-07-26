@@ -136,6 +136,7 @@ cd app     && flutter test      # 4개 — 새 이벤트 판별
 
 ## 문서
 
+- [백엔드 구현 설명](docs/backend-architecture.html) — Spring Boot 백엔드가 어떻게 만들어졌고 어떻게 동작하는가
 - [설계 — 감지 파이프라인 (2026-07-17)](docs/superpowers/specs/2026-07-17-fall-detection-design.md)
 - [구현 계획 — 감지 파이프라인 (2026-07-17)](docs/superpowers/plans/2026-07-17-fall-detection.md)
 - [설계 — 제품 완성도 라운드 (2026-07-23)](docs/superpowers/specs/2026-07-23-product-completeness-design.md)

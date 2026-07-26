@@ -164,3 +164,17 @@ Django 백엔드를 Java 21 + Spring Boot 4.1.0 + PostgreSQL 18로 완전 교체
 - [x] RED — `detector.test.js`에 재현 테스트 2개 추가(재검출 직후 상태 유지, 누운 채 뒤척임 시 중복 없음) → 실패 확인
 - [x] GREEN — `detector.js` NO_PERSON 복귀 조건에 `ALERTED` 분기 추가 → 통과 확인
 - [x] 검증 — 웹 22 / 서버 36 / 앱 4 전부 통과
+
+## 15. 백엔드 구현 설명 문서 (2026-07-26)
+
+Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-architecture.html`을 만든다. Django 시절 같은 이름의 문서가 있었으나 백엔드 교체(13절) 때 삭제됐고 이것이 그 후속이다. 독자는 Spring 기본은 아는 백엔드 입문자로 잡아 어노테이션·DI 설명은 생략하고, 이 프로젝트가 내린 선택과 그 근거에 지면을 쓴다. 구성은 "요청 한 건의 여정 → 주제별 심화". 경위는 context-notes.md "백엔드 구현 설명 문서".
+
+- [x] 1절 전체 지도 — 스택·패키지 트리·계층 다이어그램·엔티티 6종과 관계
+- [x] 2절 요청의 여정 — `POST /api/falls/` 한 건을 필터→컨트롤러→서비스→DB→비동기 푸시까지 추적
+- [x] 3절 인증 — 토큰 필터·permitAll 3개·STATELESS·BCrypt
+- [x] 4절 소유권 격리 — `findByIdAndGuardianId` 패턴과 403이 아닌 404를 고른 이유
+- [x] 5절 멱등성 — `uniq_fall_dedup`·트랜잭션 경계·201/200 분기와 푸시 조건
+- [x] 6절 검증·에러 계약 — 2단 검증 구조·GlobalExceptionHandler 매핑
+- [x] 7절 푸시 — VAPID 공개키 파생·@Async best-effort·AES128GCM 명시 이유
+- [x] 8절 마이그레이션·테스트·실행
+- [x] 검증 — 26개 인용 줄번호를 소스와 대조(전부 일치), 테스트 36개 재실행 확인, HTML 구조·앵커·상대링크 검증, macOS WebKit으로 렌더 확인 — 렌더 중 CSS 버그 1건 발견·수정
