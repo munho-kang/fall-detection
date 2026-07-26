@@ -110,7 +110,7 @@ cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> ./g
 
 ```bash
 cd backend && ./gradlew test    # 39개 — 인증·소유권·방·프로필·푸시·전송 멱등성·기록 삭제 (fall_detection_test DB 필요: createdb fall_detection_test)
-cd web     && npm test          # 20개 — 상태머신 시나리오 + 오프라인 큐
+cd web     && npm test          # 22개 — 상태머신 시나리오 + 오프라인 큐
 cd app     && flutter test      # 4개 — 새 이벤트 판별
 ```
 
