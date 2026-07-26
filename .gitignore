@@ -7,3 +7,4 @@ node_modules/
 app/build/
 app/.dart_tool/
 .superpowers/
+.worktrees/
