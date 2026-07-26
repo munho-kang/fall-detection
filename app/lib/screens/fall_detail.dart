@@ -63,7 +63,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       ),
     );
     if (ok != true) return;
-    if (!mounted) return;   // 다이얼로그가 열려 있는 사이 화면이 사라졌으면 setState가 터진다
+    if (!mounted) return;   // 다이얼로그가 열려 있는 사이 화면이 사라졌으면 setState가 터진다.
 
     setState(() => _busy = true);
     try {
