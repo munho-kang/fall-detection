@@ -1,9 +1,10 @@
-// 낙상 등록·조회·확인 — 오프라인 큐 재전송 멱등성 (같은 낙상 재수신 → 기존 행, 푸시 없음)
+// 낙상 등록·조회·확인·삭제 — 오프라인 큐 재전송 멱등성 (같은 낙상 재수신 → 기존 행, 푸시 없음)
 // 클래스 @Transactional을 쓰지 않는다: 제약 위반 후 재조회가 새 트랜잭션이어야 하기 때문 (Django autocommit 등가)
 package com.weniv.falls.service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.weniv.falls.domain.FallEvent;
 import com.weniv.falls.domain.Guardian;
 import com.weniv.falls.dto.FallEventRequest;
+import com.weniv.falls.error.FieldValidationException;
 import com.weniv.falls.error.NotFoundException;
 import com.weniv.falls.repository.FallEventRepository;
 
@@ -18,6 +20,8 @@ import com.weniv.falls.repository.FallEventRepository;
 public class FallService {
 
     public record CreateResult(FallEvent event, boolean created) {}
+
+    public static final String UNACKNOWLEDGED_DELETE_MESSAGE = "확인하지 않은 낙상은 삭제할 수 없습니다.";
 
     private final FallEventRepository fallEventRepository;
 
@@ -54,6 +58,18 @@ public class FallService {
             .orElseThrow(NotFoundException::new);
         event.acknowledgeNow();   // 첫 확인 시각 보존 (멱등)
         return fallEventRepository.save(event);
+    }
+
+    public void delete(Guardian guardian, Long id) {
+        // 소유권을 먼저 본다 — 확인 여부를 먼저 보면 남의 미확인 기록에 400이 나가면서
+        // "그 id는 존재하고 아직 미확인"이라는 사실이 새어나간다.
+        FallEvent event = fallEventRepository.findByIdAndGuardianId(id, guardian.getId())
+            .orElseThrow(NotFoundException::new);
+        if (event.getAcknowledgedAt() == null) {
+            throw new FieldValidationException(
+                Map.of("non_field_errors", List.of(UNACKNOWLEDGED_DELETE_MESSAGE)));
+        }
+        fallEventRepository.delete(event);
     }
 
     private Optional<FallEvent> findDuplicate(Guardian guardian, FallEventRequest request,

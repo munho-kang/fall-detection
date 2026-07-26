@@ -1,4 +1,4 @@
-// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·푸시 1회/0회
+// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·푸시 1회/0회·삭제 204/400/404
 package com.weniv.falls;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -7,6 +7,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.jayway.jsonpath.JsonPath;
 import com.weniv.falls.domain.FallEvent;
+import com.weniv.falls.service.FallService;
 import com.weniv.falls.service.PushService;
 
 class FallApiTest extends IntegrationTestBase {
@@ -147,5 +149,49 @@ class FallApiTest extends IntegrationTestBase {
                     + "\"occurred_at\": \"2026-07-23T12:00:00+09:00\", \"confidence\": 0.9}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.occurred_at").value("2026-07-23T03:00:00Z"));
+    }
+
+    @Test
+    void delete_acknowledged_event_204_and_disappears_from_list() throws Exception {
+        FallEvent event = makeEvent(guardian);
+        mockMvc.perform(authed(post("/api/falls/" + event.getId() + "/acknowledge/"), guardian))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(authed(delete("/api/falls/" + event.getId() + "/"), guardian))
+            .andExpect(status().isNoContent());
+
+        assertThat(fallEventRepository.findById(event.getId())).isEmpty();
+        mockMvc.perform(authed(get("/api/falls/"), guardian))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void delete_unacknowledged_event_400_and_row_kept() throws Exception {
+        FallEvent event = makeEvent(guardian);
+
+        mockMvc.perform(authed(delete("/api/falls/" + event.getId() + "/"), guardian))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.non_field_errors[0]")
+                .value(FallService.UNACKNOWLEDGED_DELETE_MESSAGE));
+
+        assertThat(fallEventRepository.findById(event.getId())).isPresent();
+    }
+
+    @Test
+    void delete_other_users_event_is_404_regardless_of_acknowledgement() throws Exception {
+        // 확인 여부를 소유권보다 먼저 보면, 남의 미확인 기록에 400이 나가면서
+        // "그 id는 존재하고 아직 미확인"이라는 사실이 새어나간다. 둘 다 404여야 한다.
+        FallEvent theirsAcked = makeEvent(other, "안방", 1);
+        mockMvc.perform(authed(post("/api/falls/" + theirsAcked.getId() + "/acknowledge/"), other))
+            .andExpect(status().isOk());
+        FallEvent theirsUnacked = makeEvent(other, "부엌", 2);
+
+        mockMvc.perform(authed(delete("/api/falls/" + theirsAcked.getId() + "/"), guardian))
+            .andExpect(status().isNotFound());
+        mockMvc.perform(authed(delete("/api/falls/" + theirsUnacked.getId() + "/"), guardian))
+            .andExpect(status().isNotFound());
+
+        assertThat(fallEventRepository.count()).isEqualTo(2);   // 남의 기록은 하나도 안 지워졌다
     }
 }
