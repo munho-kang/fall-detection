@@ -274,3 +274,18 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 - [x] 테스트 갱신 — fall_list_test(새 생성자+방 번호 검증), fall_detail_test(새 라벨·시각 형식), integration_test(MainShell 경유)
 - [x] 검증 — `flutter analyze` 무경고, `flutter test` 24개 통과(23 → 24, 방 번호 테스트 추가)
 - [ ] 수동 검증 — 실기기/시뮬레이터에서 새 UI로 낙상 → 배지·방 번호 확인 (사람이 밟는다)
+
+## 23. 다크모드 색 정리 + 낙상 발생 모달 (2026-07-28)
+
+설계: [docs/superpowers/specs/2026-07-28-dark-mode-fall-alert-design.md](docs/superpowers/specs/2026-07-28-dark-mode-fall-alert-design.md) / 계획: [docs/superpowers/plans/2026-07-28-dark-mode-fall-alert.md](docs/superpowers/plans/2026-07-28-dark-mode-fall-alert.md)
+
+- [ ] app_theme 다크 팔레트 5색 + dangerColors (+테스트 5)
+- [ ] 홈 24곳 — 헬퍼 2개에 context 추가
+- [ ] 설정 19곳 · 알림 목록 15곳
+- [ ] 프로필 21곳 — 아바타 링은 scaffoldBackgroundColor(스펙에 없던 자리)
+- [ ] 낙상 상세 17곳 + 원시 리터럴 7곳
+- [ ] 방 관리 15 · 시작 7 · 로그인 13 · 회원가입 13 (+원시 리터럴 5)
+- [ ] 사고 발생 창 신규 (+테스트 5)
+- [ ] MainShell 대기열·순차 표시 (+테스트 4)
+- [ ] 검증 — flutter test 46개, flutter analyze 무경고, 죽은 상수 정리
+- [ ] 수동 검증 — 실기기 다크모드 토글 + 실제 낙상으로 창 확인 (사람이 밟는다)

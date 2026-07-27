@@ -743,3 +743,43 @@ InkWell 행이라 예외가 없어 손대지 않았다(잉크가 카드 밑에 �
 
 **이관에서 뺀 것.** 복사본의 flutter_01.log(잡동사니)와 .DS_Store. screen_v3.html 시안은 양쪽에 이미
 같은 내용으로 있다(둘 다 미추적 상태 그대로 둔다).
+
+## 다크모드 색 정리 + 낙상 발생 모달 (2026-07-28)
+
+**배경만 고치면 오히려 더 나빠진다.** `home.dart`의 '확인하지 않은 알림'·'최근 확인한 알림' 제목은
+`_alertCard`가 그리는 카드 안이 아니라 `Scaffold.body`의 `ListView`에 바로 놓여 카드 밖 페이지
+배경 위에 있다. `scaffoldBackgroundColor`만 다크로 바꾸고 제목 글자색은 라이트 전제로 고정해
+두면, 카드 안 글자는 카드 배경이 여전히 밝아 괜찮아 보이지만 카드 밖 글자는 어두운 배경 위에
+(원래 밝은 배경용으로 고른) 어두운 글자가 그대로 남아 안 보이게 된다. `_titleStyle`이
+`colorScheme.onSurface`를 읽게 해 배경과 전경을 짝으로 묶은 이유다.
+
+**`Scaffold`·`AppBar`는 색을 다른 값으로 치환하지 않고 아예 지웠다.** `app_theme.dart`의
+`buildAppTheme`이 이미 `scaffoldBackgroundColor`와 `appBarTheme(backgroundColor,
+foregroundColor)`를 다크/라이트 분기로 정의해 두므로, 화면마다 같은 값을 또 지정하면 테마를
+고칠 때 화면 수만큼 같이 고쳐야 하는 중복이 생긴다. `splash.dart`를 뺀 10개 화면의
+`Scaffold(`와 8개의 `AppBar(`를 전수 확인한 결과 색을 직접 지정하는 곳은 하나도 없다 — 전부
+테마 위임이다.
+
+**프로필 아바타의 카메라 배지 링은 `colorScheme.surface`가 아니라 `scaffoldBackgroundColor`로
+그린다(`profile.dart:170`).** 링은 배지 원이 페이지 배경을 오려낸 것처럼 보이게 하는 시각
+트릭이라 실제 배경색과 같아야 하는데, 이 앱의 다크 테마는 `scaffoldBackgroundColor`
+(`0xFF131716`)와 `colorScheme.surface`(`0xFF1B1F1E`)를 서로 다른 값으로 정의한다(라이트에서는
+둘 다 `AppColors.surface`라 차이가 안 드러났다). `colorScheme.surface`를 썼다면 다크에서 링
+테두리가 실제 배경보다 살짝 밝게 떠 오려낸 게 아니라 옅은 테두리로 보였을 것이다.
+
+**`MainShell` 알림 테스트는 `SharedPreferences.setMockInitialValues`가 없으면 예외 없이 창이
+그냥 안 뜬다.** `Notifications.show`가 로컬 알림을 보내기 전에 `SharedPreferences`에서
+`local.notifications_on` 값을 먼저 읽는데, 테스트 환경에 플러그인 초기값이 없으면 이 읽기가
+조용히 실패해 창을 띄우는 경로 자체를 못 탄다 — 스택트레이스도 없어 폴러나 다이얼로그 큐
+쪽을 한참 의심하게 된다. `setUp`에 `SharedPreferences.setMockInitialValues(...)`로
+`local.notifications_on`을 채워 두면 해결된다. 스펙이 경고한 pending `Timer` 예외(폴러의 5초
+주기가 테스트 종료 후에도 남는 상황)는 실제로는 나지 않았다 — `MainShell.dispose()`가
+`_poller.stop()`을 부르고 그 안에서 `Timer.cancel()`이 실행되므로, 위젯 트리가 테스트 종료 시
+정리될 때 타이머도 함께 정리된다.
+
+**Task 9 Step 1의 grep 두 개는 거짓 양성을 낸다.** '남은 원시 리터럴'·'남은 배경·앱바 지정'
+블록은 기대 문구인 '아무것도 안 나온다'와 달리 이번 라운드가 스스로 남긴 것들에 걸린다 —
+과제 5 주석 속 옛 리터럴 문구 1건, `splash.dart`의 브랜드 배경(원래 손대지 않는 파일) 1건,
+유지 대상인 버튼 `primary`·`onPrimary`·`error` 색 12건이다. 실질 검증(코드에 남은 원시 리터럴
+0건, `Scaffold`·`AppBar`의 직접 색 지정 0건)은 모두 통과한다. 다음 라운드에 같은 grep을
+재사용할 때 이 거짓 양성을 미리 감안할 것.
