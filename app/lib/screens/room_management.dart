@@ -58,11 +58,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // 한 줄 말줄임을 걷어냈다 — 아이폰 폭에서 잘리던 문구라, 확대의 일부는 끝까지 보이는 것이다
                 const Text(
                   '방을 등록하면, 낙상 알림이 어디에서 일어났는지 표시됩니다.',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant, letterSpacing: -0.01),
+                  style: TextStyle(fontSize: 13, height: 1.4, color: AppColors.onSurfaceVariant, letterSpacing: -0.01),
                 ),
                 const SizedBox(height: 12),
                 GridView.count(
