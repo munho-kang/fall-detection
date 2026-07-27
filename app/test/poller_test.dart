@@ -80,4 +80,14 @@ void main() {
     expect(delta.fresh.map((e) => e.id), [2]);
     expect(delta.newlyOk, isEmpty); // 첫 알림이 곧 괜찮음 문구다 — 두 번 뜨지 않는다
   });
+
+  test('최초 응답이 비어 있고 첫 이벤트가 괜찮음을 이미 갖고 오면 fresh로만 나온다', () {
+    final tracker = NewEventTracker();
+    tracker.newEvents([]); // 프라이밍 — lastSeenId는 null로 남는다
+
+    final delta = tracker.newEvents([ev(1, voiceOkAt: DateTime(2026, 7, 27, 12, 1))]);
+
+    expect(delta.fresh.map((e) => e.id), [1]);
+    expect(delta.newlyOk, isEmpty); // 첫 알림이 곧 괜찮음 문구다
+  });
 }
