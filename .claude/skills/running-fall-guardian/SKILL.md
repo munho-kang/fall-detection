@@ -106,6 +106,8 @@ grep -E "GET /detect" web-server.log     # 실패한 순간에 /detect.html이 �
 | 주소창 직접입력·자동완성 | Chrome 방문 기록에서 `/detect`는 전부 LINK(리다이렉트 체인)이고 TYPED로 찍힌 적이 없다 |
 | URL 정리 확장 프로그램 | 설치된 확장의 호스트 권한이 Google 도메인뿐이라 `127.0.0.1`에 접근 자체가 안 된다 |
 
-조치는 `chrome://serviceworker-internals/`에서 `127.0.0.1:5500` 등록을 해제하고 하드 리로드하는 것이다. 시크릿 창이 멀쩡한 것도 워커가 없어서다.
+조치는 로그인 페이지(`http://127.0.0.1:5500/`)를 한 번 여는 것이다. `web/index.html`이 `sw.js`를 등록하고, fetch 핸들러가 없는 우리 워커가 `skipWaiting()` + `clients.claim()`으로 옛 워커를 즉시 대체한다(bca77fc). 그래도 남으면 `chrome://serviceworker-internals/`에서 `127.0.0.1:5500` 등록을 직접 해제한다. 시크릿 창이 멀쩡한 것도 워커가 없어서다.
 
-`web/sw.js`는 `skipWaiting()` + `clients.claim()`으로 즉시 제어권을 인계받으므로, 이 프로젝트 워커가 원인이 되는 경우는 없다.
+주의: `sw.js`에 skipWaiting을 넣는 것(08a230c)만으로는 부족했다. 등록 호출이 `guardian.js`의 푸시 설정에만 있어서 로그인 → 감지 흐름에서는 교체가 아예 일어나지 않았다. 축출 전 과정은 `cd web && npm run test:e2e:sw`가 단독 실행으로 검증한다 — 옛 워커를 심고, `/detect` 404를 재현하고, 로그인 페이지 방문만으로 교체되는 것까지 확인한다.
+
+서버 로그가 없으면 Chrome 방문 기록(History SQLite의 `visits.transition`)으로도 판정된다. `/detect` 방문에 SERVER_REDIRECT(0x80000000) 플래그가 서 있으면 브라우저가 3xx 응답을 받은 것인데, python http.server는 파일 요청에 리다이렉트를 내지 않으므로 발신자는 워커다.

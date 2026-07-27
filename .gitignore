@@ -3,6 +3,9 @@
 # Node
 node_modules/
 
+# 감지 페이지 정적 서버 로그 (스킬의 web-server.log 절차가 만든다)
+web/web-server.log
+
 # Flutter
 app/build/
 app/.dart_tool/
