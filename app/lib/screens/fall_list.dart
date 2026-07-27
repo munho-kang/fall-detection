@@ -30,8 +30,12 @@ class _FallListScreenState extends State<FallListScreen> {
     super.initState();
     _poller = FallPoller(
       api: widget.api,
-      onEvents: (all, fresh) {
+      onEvents: (all, fresh, newlyOk) {
         for (final e in fresh) {
+          Notifications.show(e);
+        }
+        // 괜찮음이 새로 도착한 이벤트 — 같은 id로 다시 띄워 트레이의 알림 문구를 교체한다
+        for (final e in newlyOk) {
           Notifications.show(e);
         }
         if (!mounted) return;
