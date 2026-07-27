@@ -53,15 +53,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: const Text('로그인'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -81,8 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.onPrimary,
-                    disabledBackgroundColor: const Color(0x1F191C1B),
-                    disabledForegroundColor: const Color(0x61191C1B),
+                    disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+                    disabledForegroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                     textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
@@ -106,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   '계정이 없나요? 회원가입',
                   style: TextStyle(
                     fontSize: 15,
-                    color: _busy ? const Color(0x61191C1B) : AppColors.primary,
+                    color: _busy ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38) : AppColors.primary,
                   ),
                 ),
               ),
@@ -135,17 +132,17 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        style: const TextStyle(fontSize: 17, height: 1.3, color: AppColors.onSurface),
+        style: TextStyle(fontSize: 17, height: 1.3, color: Theme.of(context).colorScheme.onSurface),
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: const TextStyle(fontSize: 17, color: AppColors.outline),
+          hintStyle: TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.outline),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.outline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.outline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),

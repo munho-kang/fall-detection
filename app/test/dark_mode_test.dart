@@ -8,7 +8,9 @@ import 'package:fall_guardian/screens/fall_detail.dart';
 import 'package:fall_guardian/screens/fall_list.dart';
 import 'package:fall_guardian/screens/home.dart';
 import 'package:fall_guardian/screens/profile.dart';
+import 'package:fall_guardian/screens/room_management.dart';
 import 'package:fall_guardian/screens/settings.dart';
+import 'package:fall_guardian/screens/start.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -156,6 +158,33 @@ void main() {
     expect(
       phoneButton.style?.foregroundColor?.resolve({WidgetState.disabled}),
       darkOnSurface.withValues(alpha: 0.38),
+    );
+  });
+
+  testWidgets('방 관리 — 안내 문구가 다크 보조 글자색이다', (tester) async {
+    await pumpDark(
+      tester,
+      RoomManagementScreen(
+        api: FakeApi(),
+        rooms: const [],
+        loading: false,
+        reload: () async {},
+        unreadCount: 0,
+        onGoNotifications: () {},
+        onGoSettings: () {},
+      ),
+    );
+
+    expect(colorOf(tester, '방을 등록하면, 낙상 알림이 어디에서 일어났는지 표시됩니다.'), darkOnSurfaceVariant);
+  });
+
+  testWidgets('시작 화면 — 제목과 소개가 다크 글자색이다', (tester) async {
+    await pumpDark(tester, StartScreen(api: FakeApi()));
+
+    expect(colorOf(tester, '낙상 알림'), darkOnSurface);
+    expect(
+      colorOf(tester, '돌봄 대상자의 낙상을 감지해\n보호자에게 실시간으로 알려드립니다.'),
+      darkOnSurfaceVariant,
     );
   });
 }

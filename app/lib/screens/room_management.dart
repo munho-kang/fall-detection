@@ -34,10 +34,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         elevation: 0,
         title: const Text('방 관리', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         actions: [
@@ -59,9 +56,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 // 한 줄 말줄임을 걷어냈다 — 아이폰 폭에서 잘리던 문구라, 확대의 일부는 끝까지 보이는 것이다
-                const Text(
+                Text(
                   '방을 등록하면, 낙상 알림이 어디에서 일어났는지 표시됩니다.',
-                  style: TextStyle(fontSize: 13, height: 1.4, color: AppColors.onSurfaceVariant, letterSpacing: -0.01),
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.4,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    letterSpacing: -0.01,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 GridView.count(
@@ -96,12 +98,12 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             height: 32,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.primaryContainer,
+              color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '${r.number}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.onPrimaryContainer),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onPrimaryContainer),
             ),
           ),
           const SizedBox(height: 10),
@@ -110,9 +112,9 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4),
           ),
           const SizedBox(height: 3),
-          const Text(
+          Text(
             '기기 연결',
-            style: TextStyle(fontSize: 15, height: 1.5, color: AppColors.onSurfaceVariant),
+            style: TextStyle(fontSize: 15, height: 1.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const Spacer(),
           Row(
@@ -146,7 +148,7 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
       onTap: () => _editRoom(),
       child: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.outline, style: BorderStyle.solid),
+          border: Border.all(color: Theme.of(context).colorScheme.outline, style: BorderStyle.solid),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Column(
@@ -228,28 +230,31 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   Future<void> _deleteRoom(Room room) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-        title: Text(
-          '${room.name} 삭제',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          '이미 기록된 낙상 이력은 지워지지 않습니다. 이 방에 연결된 기기도 해제됩니다.',
-          style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.dangerBg,
-              foregroundColor: AppColors.dangerFg,
-            ),
-            child: const Text('삭제'),
+      builder: (context) {
+        final tone = dangerColors(Theme.of(context).brightness);
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          title: Text(
+            '${room.name} 삭제',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
           ),
-        ],
-      ),
+          content: Text(
+            '이미 기록된 낙상 이력은 지워지지 않습니다. 이 방에 연결된 기기도 해제됩니다.',
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: tone.bg,
+                foregroundColor: tone.fg,
+              ),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
     );
     if (ok != true) return;
     try {

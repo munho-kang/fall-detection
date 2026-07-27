@@ -59,15 +59,12 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: const Text('회원가입'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -77,13 +74,13 @@ class _SignupScreenState extends State<SignupScreen> {
             children: [
               const SizedBox(height: 72),
               // 규칙 안내 — 칸 위로 올려 다 치고 나서 읽는 경고가 아니라 치기 전 읽는 안내
-              const Text(
+              Text(
                 '비밀번호는 영문자, 숫자, 특수기호를 섞어 8자 이상으로 만들어주세요.',
                 style: TextStyle(
                   fontSize: 10,
                   height: 1.5,
                   letterSpacing: -0.02,
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 12),
@@ -100,8 +97,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.onPrimary,
-                    disabledBackgroundColor: const Color(0x1F191C1B),
-                    disabledForegroundColor: const Color(0x61191C1B),
+                    disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+                    disabledForegroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                     textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
@@ -139,17 +136,17 @@ class _SignupScreenState extends State<SignupScreen> {
       child: TextField(
         controller: controller,
         obscureText: obscure,
-        style: const TextStyle(fontSize: 17, height: 1.3, color: AppColors.onSurface),
+        style: TextStyle(fontSize: 17, height: 1.3, color: Theme.of(context).colorScheme.onSurface),
         decoration: InputDecoration(
           hintText: placeholder,
-          hintStyle: const TextStyle(fontSize: 17, color: AppColors.outline),
+          hintStyle: TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.outline),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.outline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.outline),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
