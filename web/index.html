@@ -33,6 +33,11 @@
       // 페이지 이동을 가로챈 사고가 있었다. 우리 워커(skipWaiting/claim)로 즉시 대체한다.
       if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
 
+      // clean-URL 서버(npx serve류)가 남긴 `detect.html → 301 /detect` 응답이 HTTP 캐시에 박혀
+      // 로그인 후 이동이 열흘간 404로 가는 사고도 있었다(DevTools의 Clear site data로도 안 지워진다).
+      // 이동 대상을 캐시 우회로 다시 받아, 오염된 항목을 정상 200으로 덮어쓴다.
+      for (const p of ["detect.html", "guardian.html"]) fetch(p, { cache: "reload" }).catch(() => {});
+
       const form = document.getElementById("form");
       const error = document.getElementById("error");
 
@@ -46,7 +51,8 @@
           // 오픈 리다이렉트 방지 — 우리 페이지 2개만 허용한다
           const target = ["guardian.html", "detect.html"].includes(next) ? next : "detect.html";
           setToken(await login(form.username.value, form.password.value));
-          location.href = target;
+          // 캐시 키를 바꿔, 위 덮어쓰기가 아직 안 끝났더라도 오염된 301 캐시를 확실히 비껴간다
+          location.href = `${target}?t=${Date.now()}`;
         } catch (err) {
           error.textContent = err.message;
           button.disabled = false;
