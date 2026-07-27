@@ -208,6 +208,7 @@ el.start.addEventListener("click", async () => {
         });
     }
 
+    // 같은 틱에 fall 확정과 SEND_OK가 겹치면 위 원본은 voice_ok 없이 나가고 재-POST가 뒤따른다(2회 POST) — 서버 병합이 멱등이라 결과는 같다.
     const esc = escalation.update(state, t);
     el.escalation.textContent = esc.statusText ?? "";
     el.escalation.classList.toggle("hidden", !esc.statusText);
