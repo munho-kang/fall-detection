@@ -4,6 +4,7 @@
 import 'package:fall_guardian/api.dart';
 import 'package:fall_guardian/app_theme.dart';
 import 'package:fall_guardian/models.dart';
+import 'package:fall_guardian/screens/fall_detail.dart';
 import 'package:fall_guardian/screens/fall_list.dart';
 import 'package:fall_guardian/screens/home.dart';
 import 'package:fall_guardian/screens/profile.dart';
@@ -137,5 +138,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(colorOf(tester, '회원 탈퇴'), const Color(0xFFFFB4A0));
+  });
+
+  testWidgets('낙상 상세 — 라벨이 다크 보조 글자색, 비활성 전화 버튼 글자가 다크 onSurface 계열이다', (tester) async {
+    await pumpDark(tester, FallDetailScreen(api: FakeApi(), event: sampleEvent));
+    await tester.pump(); // getProfile()의 비동기 응답
+
+    expect(colorOf(tester, '발생 시각'), darkOnSurfaceVariant);
+
+    // 전화번호 미등록이라 비활성이다 — 비활성 글자색이 다크 onSurface의 38%여야 한다
+    final phoneButton = tester.widget<OutlinedButton>(
+      find.ancestor(
+        of: find.text('돌봄 대상자에게 전화'),
+        matching: find.byType(OutlinedButton),
+      ),
+    );
+    expect(
+      phoneButton.style?.foregroundColor?.resolve({WidgetState.disabled}),
+      darkOnSurface.withValues(alpha: 0.38),
+    );
   });
 }
