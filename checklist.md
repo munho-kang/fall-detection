@@ -245,3 +245,17 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 - [x] 차트 팔레트 검증(validate_palette.js, 다크 서피스)
 - [x] 검증 — HTML 파서·JS 구문·이미지 디코드·npm test·로컬 서버 확인
 - [x] context-notes 결정 기록·커밋
+
+## 21. 괜찮음 응답 앱 표시 (2026-07-27~28)
+
+설계: [docs/superpowers/specs/2026-07-27-voice-ok-display-design.md](docs/superpowers/specs/2026-07-27-voice-ok-display-design.md) / 계획: [docs/superpowers/plans/2026-07-27-voice-ok-display.md](docs/superpowers/plans/2026-07-27-voice-ok-display.md)
+
+- [x] 백엔드 `voice_ok_at` — V3 마이그레이션·DTO·필드별 독립 병합 (+테스트 5)
+- [x] escalation.js RESOLVED 전이에 SEND_OK 명령 (+테스트 4)
+- [x] main.js 배선 — 조기 응답은 5초 원본 payload에 동승
+- [x] 앱 모델 `voiceOkAt`·알림 문구 파생 (+테스트 4)
+- [x] 폴러 newlyOk 감지 — 같은 id 알림 교체 (+테스트 4)
+- [x] 목록 "괜찮다고 말함"·상세 "음성 확인" 행 (+테스트 4)
+- [x] 최종 리뷰 정리 — 같은 틱 2회 POST 주석, 트래커 null 분기 테스트
+- [x] 수동 검증 10절 문서화, 세 스위트 48/34/23 그린, main 머지(30e9e7c)
+- [ ] 수동 검증 — 실기기로 `docs/manual-verification.md` 10절 (사람이 밟는다)
