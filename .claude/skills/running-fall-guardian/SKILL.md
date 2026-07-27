@@ -111,6 +111,6 @@ grep -a -rl "5500/detect" "$HOME/Library/Caches/Google/Chrome/Default/Cache/Cach
 | URL 정리 확장 프로그램 | 설치된 확장의 호스트 권한이 Google 도메인뿐이라 `127.0.0.1`에 접근 자체가 안 된다 |
 | 옛 서비스 워커 | 등록은 스코프 `/` 하나뿐이고 스크립트가 우리 `sw.js`(fetch 핸들러 없음)로 확인됐다. 워커 축출로는 증상이 안 사라졌다 |
 
-조치는 그 페이지에서 DevTools → Application → Storage → **Clear site data**다. 오리진(127.0.0.1:5500) 한정이라 다른 사이트에 영향이 없고, 301 캐시·휴리스틱으로 신선 판정된 낡은 HTML·워커 등록을 한 번에 지운다. 시크릿 창이 멀쩡한 것은 "프로필 저장물이 원인"이라는 공통 신호일 뿐 워커 확정이 아니다.
+조치는 로그인 페이지(`http://127.0.0.1:5500/`)를 새로 받아 한 번 여는 것뿐이다(⌘⇧R 권장). `web/index.html`(9fb5753)이 이동 대상들을 `fetch(cache: "reload")`로 다시 받아 오염된 301 항목을 정상 200으로 덮어쓰고, 로그인 이동 URL에도 `?t=<now>`를 붙여 키 자체를 우회한다. **DevTools → Application → Storage의 Clear site data는 이 병에 안 듣는다** — 스토리지·워커·CacheStorage만 지우고 HTTP 디스크 캐시는 범위 밖이라, 실행해도 301 항목이 mtime 7/17 그대로 남는 것을 실측했다(2026-07-27). 수동으로 지우려면 `chrome://settings/clearBrowserData`의 "캐시된 이미지 및 파일"(전역)뿐이다. 시크릿 창이 멀쩡한 것은 "프로필 저장물이 원인"이라는 공통 신호일 뿐 워커 확정이 아니다.
 
-재발 방지 두 가지다. `web/`은 clean-URL 서버로 서빙하지 않는다 — `python3 -m http.server 5500`으로 고정한다(`npx serve`는 301을 다시 심는다). 그리고 `web/index.html`이 `sw.js`를 등록하므로(bca77fc) 남의 워커가 오리진을 잡아도 로그인 페이지 방문 한 번으로 축출된다 — 이 방어층은 `cd web && npm run test:e2e:sw`가 단독 실행으로 검증한다.
+재발 방지는 세 겹이다. `web/`은 clean-URL 서버로 서빙하지 않는다 — `python3 -m http.server 5500`으로 고정한다(`npx serve`는 301을 다시 심는다). `web/index.html`이 `sw.js`를 등록하므로(bca77fc) 남의 워커가 오리진을 잡아도 로그인 페이지 방문 한 번으로 축출된다 — `cd web && npm run test:e2e:sw`가 검증한다. 캐시에 이미 박힌 301은 위 조치 문단의 덮어쓰기·키 우회(9fb5753)가 무력화한다 — 실제 디스크 캐시에 301을 심어 재현하는 `npm run test:e2e:301`이 검증한다.
