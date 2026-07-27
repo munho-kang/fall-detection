@@ -1,4 +1,4 @@
-// 낙상 등록·조회·확인·삭제 — 오프라인 큐 재전송 멱등성 (같은 낙상 재수신 → 기존 행, 푸시 없음)
+// 낙상 등록·조회·확인·삭제 — 오프라인 큐 재전송 멱등성 (같은 낙상 재수신 → 기존 행에 신고 시각만 병합, 푸시 없음)
 // 클래스 @Transactional을 쓰지 않는다: 제약 위반 후 재조회가 새 트랜잭션이어야 하기 때문 (Django autocommit 등가)
 package com.weniv.falls.service;
 
@@ -39,17 +39,30 @@ public class FallService {
 
         Optional<FallEvent> existing = findDuplicate(guardian, request, occurredAt);
         if (existing.isPresent()) {
-            return new CreateResult(existing.get(), false);   // 재전송 — 기존 행을 돌려주고 푸시 없음
+            return new CreateResult(merge(existing.get(), request), false);   // 재전송 — 푸시 없음
         }
         try {
-            FallEvent saved = fallEventRepository.saveAndFlush(new FallEvent(
+            FallEvent event = new FallEvent(
                 guardian, request.roomName(), request.roomNumber(), occurredAt,
-                request.confidence()));
-            return new CreateResult(saved, true);
+                request.confidence());
+            if (request.reported119At() != null) {
+                event.markReported119(request.reported119At().toInstant());
+            }
+            return new CreateResult(fallEventRepository.saveAndFlush(event), true);
         } catch (DataIntegrityViolationException e) {
             // 생성 경합 — uniq_fall_dedup에 걸렸으면 재조회해 200 경로로
-            return new CreateResult(findDuplicate(guardian, request, occurredAt).orElseThrow(), false);
+            return new CreateResult(
+                merge(findDuplicate(guardian, request, occurredAt).orElseThrow(), request), false);
         }
+    }
+
+    // 신고 시각 병합 — 기존 값이 null일 때만 쓴다 (markReported119가 보장). 쓸 것이 없으면 저장도 없다.
+    private FallEvent merge(FallEvent event, FallEventRequest request) {
+        if (request.reported119At() == null || event.getReported119At() != null) {
+            return event;
+        }
+        event.markReported119(request.reported119At().toInstant());
+        return fallEventRepository.save(event);
     }
 
     public FallEvent acknowledge(Guardian guardian, Long id) {

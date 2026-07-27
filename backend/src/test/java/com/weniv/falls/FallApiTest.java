@@ -1,4 +1,4 @@
-// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·푸시 1회/0회·삭제 204/400/404
+// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·신고 병합·푸시 1회/0회·삭제 204/400/404
 package com.weniv.falls;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
@@ -32,6 +33,12 @@ class FallApiTest extends IntegrationTestBase {
     private String fallPayload(String confidence) {
         return "{\"room_name\": \"안방\", \"room_number\": 1, "
             + "\"occurred_at\": \"2026-07-23T03:00:00Z\", \"confidence\": " + confidence + "}";
+    }
+
+    private String fallPayloadReported(String reportedAt) {
+        return "{\"room_name\": \"안방\", \"room_number\": 1, "
+            + "\"occurred_at\": \"2026-07-23T03:00:00Z\", \"confidence\": 0.9, "
+            + "\"reported_119_at\": \"" + reportedAt + "\"}";
     }
 
     @Test
@@ -193,5 +200,68 @@ class FallApiTest extends IntegrationTestBase {
             .andExpect(status().isNotFound());
 
         assertThat(fallEventRepository.count()).isEqualTo(2);   // 남의 기록은 하나도 안 지워졌다
+    }
+
+    @Test
+    void post_with_reported_119_at_creates_row_with_it() throws Exception {
+        // 원본이 큐에 갇혔다가 신고분이 먼저 도착하는 드문 경로 — 신고 재-POST가 행을 만든다
+        String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:20Z")))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"))
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        assertThat(fallEventRepository.findById(id).orElseThrow().getReported119At())
+            .isEqualTo(Instant.parse("2026-07-23T03:00:20Z"));
+    }
+
+    @Test
+    void duplicate_post_merges_reported_119_at_and_sends_no_push() throws Exception {
+        // 정상 경로 — 5s 원본 201 뒤에 20s 신고 재-POST가 200으로 병합된다
+        String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        int firstId = JsonPath.read(body, "$.id");
+        clearInvocations(pushService);
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:20Z")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(firstId))
+            .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));
+
+        assertThat(fallEventRepository.count()).isEqualTo(1);
+        verify(pushService, never()).sendToGuardianAsync(any());   // 200 병합은 푸시가 없다
+    }
+
+    @Test
+    void reported_119_at_is_immutable_once_set() throws Exception {
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:20Z")))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:59Z")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));   // 첫 값 보존
+    }
+
+    @Test
+    void duplicate_post_without_reported_119_at_keeps_existing_value() throws Exception {
+        // 오프라인 큐가 신고 이후 원본을 재전송해도 신고 시각이 지워지면 안 된다
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:20Z")))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));
     }
 }

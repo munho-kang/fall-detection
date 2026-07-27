@@ -43,6 +43,9 @@ public class FallEvent {
     @Column(name = "acknowledged_at")
     private Instant acknowledgedAt;
 
+    @Column(name = "reported_119_at")
+    private Instant reported119At;
+
     protected FallEvent() {}
 
     public FallEvent(Guardian guardian, String roomName, Integer roomNumber,
@@ -67,6 +70,14 @@ public class FallEvent {
         }
     }
 
+    // 첫 신고 시각을 보존한다 — 이미 값이 있으면 무시 (acknowledgeNow와 같은 멱등 패턴)
+    // 마이크로초 절단도 같은 이유다: 응답 직렬화 값과 재조회 값이 항상 같아야 한다
+    public void markReported119(Instant at) {
+        if (reported119At == null && at != null) {
+            reported119At = at.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        }
+    }
+
     public Long getId() { return id; }
     public Guardian getGuardian() { return guardian; }
     public String getRoomName() { return roomName; }
@@ -75,4 +86,5 @@ public class FallEvent {
     public Instant getCreatedAt() { return createdAt; }
     public Double getConfidence() { return confidence; }
     public Instant getAcknowledgedAt() { return acknowledgedAt; }
+    public Instant getReported119At() { return reported119At; }
 }

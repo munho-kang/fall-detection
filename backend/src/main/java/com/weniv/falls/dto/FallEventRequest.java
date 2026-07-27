@@ -29,5 +29,8 @@ public record FallEventRequest(
     OffsetDateTime occurredAt,
 
     @NotNull(message = "이 필드는 필수 항목입니다.")
-    Double confidence) {
+    Double confidence,
+
+    @JsonProperty("reported_119_at")
+    OffsetDateTime reported119At) {
 }

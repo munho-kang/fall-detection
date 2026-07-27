@@ -13,11 +13,12 @@ public record FallEventResponse(
     @JsonProperty("occurred_at") Instant occurredAt,
     @JsonProperty("created_at") Instant createdAt,
     Double confidence,
-    @JsonProperty("acknowledged_at") Instant acknowledgedAt) {
+    @JsonProperty("acknowledged_at") Instant acknowledgedAt,
+    @JsonProperty("reported_119_at") Instant reported119At) {
 
     public static FallEventResponse from(FallEvent event) {
         return new FallEventResponse(event.getId(), event.getRoomName(), event.getRoomNumber(),
             event.getOccurredAt(), event.getCreatedAt(), event.getConfidence(),
-            event.getAcknowledgedAt());
+            event.getAcknowledgedAt(), event.getReported119At());
     }
 }
