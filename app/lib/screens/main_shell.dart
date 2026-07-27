@@ -1,12 +1,14 @@
 // 메인 셸 — 하단 네비게이션(홈 · 방 관리 · 프로필)과 폴러 보유. 토글은 설정 화면에서 바꾼다
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import '../api.dart';
 import '../models.dart';
 import '../notifications.dart';
 import '../poller.dart';
+import 'fall_alert_dialog.dart';
 import 'fall_list.dart';
 import 'home.dart';
 import 'login.dart';
@@ -33,6 +35,9 @@ class _MainShellState extends State<MainShell> {
   bool _loadingRooms = true;
   String? _connectionError;
   late final FallPoller _poller;
+  // 사고 발생 창 대기열 — 한 번에 하나만 띄우고 확인할 때마다 다음 것을 띄운다
+  final _alertQueue = <FallEvent>[];
+  bool _alertShowing = false;
 
   @override
   void initState() {
@@ -52,6 +57,7 @@ class _MainShellState extends State<MainShell> {
           _loadingEvents = false;
           _connectionError = null;
         });
+        _queueAlerts(fresh);
       },
       onConnectionLost: () {
         if (!mounted) return;
@@ -74,6 +80,29 @@ class _MainShellState extends State<MainShell> {
   void dispose() {
     _poller.stop();
     super.dispose();
+  }
+
+  void _queueAlerts(List<FallEvent> fresh) {
+    if (fresh.isEmpty) return;
+    // fresh는 서버가 준 최신순 목록에서 id로 거른 것이라 이미 최신순이다 — 최신 낙상부터 뜬다
+    _alertQueue.addAll(fresh);
+    if (!_alertShowing) unawaited(_drainAlerts());
+  }
+
+  // 폴러는 onEvents를 await하지 않고 부르므로(poller.dart:100) 창이 떠 있는 동안에도
+  // 5초 폴링은 계속 돈다. 그 사이 도착한 새 낙상은 큐에 쌓였다가 이어서 뜬다.
+  Future<void> _drainAlerts() async {
+    _alertShowing = true;
+    while (_alertQueue.isNotEmpty && mounted) {
+      final event = _alertQueue.removeAt(0);
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false, // 바깥을 눌러도 안 닫힌다
+        useRootNavigator: true, // 설정·상세처럼 위에 쌓인 화면도 덮는다
+        builder: (_) => FallAlertDialog(event: event),
+      );
+    }
+    _alertShowing = false;
   }
 
   Future<void> _loadRooms() async {
@@ -185,7 +214,7 @@ class _MainShellState extends State<MainShell> {
         onDestinationSelected: (i) => setState(() => _tab = i),
         backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         height: 80,
-        indicatorColor: AppColors.primaryContainer,
+        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
         indicatorShape: const StadiumBorder(),
         labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         destinations: const [
