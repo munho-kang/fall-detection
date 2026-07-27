@@ -144,7 +144,15 @@ class _FallListScreenState extends State<FallListScreen> {
                                 ),
                                 title: Text(e.roomLabel),
                                 subtitle: Text(_fmt(e.occurredAt)),
-                                trailing: Text(e.isAcknowledged ? '확인함' : '미확인'),
+                                trailing: e.isReported119
+                                    ? Text(
+                                        '119 신고됨',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.error,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : Text(e.isAcknowledged ? '확인함' : '미확인'),
                                 onTap: () async {
                                   final updated = await Navigator.of(context).push<FallEvent>(
                                     MaterialPageRoute(

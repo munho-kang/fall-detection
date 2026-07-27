@@ -1,5 +1,7 @@
 // 낙상 이벤트 상세 화면
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,6 +21,7 @@ class FallDetailScreen extends StatefulWidget {
 class _FallDetailScreenState extends State<FallDetailScreen> {
   late FallEvent _event = widget.event;
   bool _busy = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -29,6 +32,28 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       // 못 불러오면 미등록으로 취급한다. 버튼만 비활성화되고 화면은 정상 동작한다.
       if (mounted) setState(() => _elderPhone = '');
     });
+    // 화면을 보는 동안 119 자동 신고가 도착하면 실시간으로 잠기도록 5초마다 다시 읽는다.
+    // 단건 GET이 없어 목록을 받아 자기 id를 찾는다.
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) => _refetch());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refetch() async {
+    try {
+      final events = await widget.api.listFalls();
+      final idx = events.indexWhere((e) => e.id == _event.id);
+      // _busy 중에는 덮어쓰지 않는다 — 확인·삭제 진행 중 상태가 폴링과 엇갈리면 안 된다.
+      if (idx != -1 && mounted && !_busy) setState(() => _event = events[idx]);
+    } on UnauthorizedException {
+      // 목록 화면의 폴러가 곧 같은 401을 받아 로그아웃을 처리한다. 여기서는 조용히 둔다.
+    } catch (_) {
+      // 일시 오류 — 다음 주기가 다시 시도한다.
+    }
   }
 
   Future<void> _acknowledge() async {
@@ -133,10 +158,19 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => _dial(_emergencyPhone),
+            // 자동 신고가 이미 나갔으면 잠근다 — "이미 신고됨"을 보여주는 자리다.
+            onPressed: _event.isReported119 ? null : () => _dial(_emergencyPhone),
             icon: const Icon(Icons.local_hospital),
             label: const Text('119 신고 (시연용 더미 번호)'),
           ),
+          if (_event.isReported119)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '응답이 없어 119에 자동 신고되었습니다',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
             // 서버가 400으로 막는 규칙(확인한 기록만 삭제)을 화면이 미리 설명한다.

@@ -8,6 +8,7 @@ class FallEvent {
   final DateTime createdAt;
   final double confidence;
   final DateTime? acknowledgedAt;
+  final DateTime? reported119At;
 
   const FallEvent({
     required this.id,
@@ -17,6 +18,7 @@ class FallEvent {
     required this.createdAt,
     required this.confidence,
     this.acknowledgedAt,
+    this.reported119At,
   });
 
   factory FallEvent.fromJson(Map<String, dynamic> json) => FallEvent(
@@ -29,9 +31,14 @@ class FallEvent {
         acknowledgedAt: json['acknowledged_at'] == null
             ? null
             : DateTime.parse(json['acknowledged_at'] as String).toLocal(),
+        reported119At: json['reported_119_at'] == null
+            ? null
+            : DateTime.parse(json['reported_119_at'] as String).toLocal(),
       );
 
   bool get isAcknowledged => acknowledgedAt != null;
+
+  bool get isReported119 => reported119At != null;
 
   String get roomLabel => '$roomName $roomNumber';
 }
