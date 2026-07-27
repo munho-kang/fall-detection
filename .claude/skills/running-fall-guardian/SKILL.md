@@ -1,11 +1,11 @@
 ---
 name: running-fall-guardian
-description: Use when running, installing, or demoing this fall-detection project — starting the Spring Boot backend, serving the MediaPipe detection page, installing the Flutter app on a physical iPhone, capturing an iOS device screenshot, or diagnosing why `flutter run` fails on a real device.
+description: Use when running, installing, or demoing this fall-detection project — starting the Spring Boot backend, serving the MediaPipe detection page, installing the Flutter app on a physical iPhone, capturing an iOS device screenshot, diagnosing why `flutter run` fails on a real device, why the app cannot reach the backend over an iPhone hotspot, or why 119 auto-reporting never fires.
 ---
 
 # 낙상 감지 프로젝트 실행
 
-세 프로세스를 한 Mac에서 띄우고 폰은 같은 와이파이로 붙는다. 배포는 없다.
+세 프로세스를 한 Mac에서 띄우고 폰과 Mac을 같은 망에 둔다. 같은 와이파이여도 되고 폰 핫스팟에 Mac을 붙여도 되는데, 핫스팟은 주소 잡는 법이 다르다(아래 별도 절). 배포는 없다.
 
 | 구성 | 포트 | 기동 |
 |---|---|---|
@@ -22,7 +22,10 @@ description: Use when running, installing, or demoing this fall-detection projec
 ```bash
 xcrun devicectl list devices          # Identifier 열을 복사한다 (아래 $DEV)
 cd app
-flutter build ios --release --dart-define=API_HOST=$(ipconfig getifaddr en0)
+HOST=$(ipconfig getifaddr en0)        # 같은 와이파이
+[ -z "$HOST" ] && HOST="[$(ifconfig en0 | awk '/inet6 2/ && !/temporary/ && !/clat46/ {print $2; exit}')]"
+echo "$HOST"                          # 비었거나 "[]"면 여기서 멈춘다 — 빈 값은 조용히 폴백한다
+flutter build ios --release --dart-define=API_HOST="$HOST"
 xcrun devicectl device install app --device $DEV build/ios/iphoneos/Runner.app
 xcrun devicectl device process launch --device $DEV com.example.fallGuardian
 ```
@@ -30,6 +33,21 @@ xcrun devicectl device process launch --device $DEV com.example.fallGuardian
 **기기 ID가 두 종류다.** `flutter devices`가 주는 하드웨어 UDID(`00008140-…`)와 `devicectl`이 쓰는 CoreDevice UUID(`529A6455-…`)는 서로 다른 값이고 바꿔 쓸 수 없다.
 
 `API_HOST`는 실기기에만 필요하다. 시뮬레이터는 `127.0.0.1`, Android 에뮬레이터는 `10.0.2.2`를 자동으로 쓴다(`app/lib/api.dart`).
+
+### iPhone 핫스팟에 붙으면 Mac에 IPv4 주소가 없다
+
+핫스팟이 IPv6 전용이면 `ipconfig getifaddr en0`이 **에러 없이 빈 값**을 낸다. 그대로 쓰면 `--dart-define=API_HOST=`가 되고 앱은 `127.0.0.1:8000`으로 폴백해 자기 자신을 찌른다. 빌드·설치·실행이 모두 성공하고 로그인에서만 실패하므로, 위 `echo "$HOST"`로 먼저 끊는다.
+
+`ifconfig en0`의 `inet 192.0.0.2/32`는 **쓰면 안 된다.** 464XLAT CLAT 주소라 Mac 내부 변환용이고 폰에서 라우팅되지 않는다. 써야 할 것은 글로벌 IPv6이며 `temporary`(주기 교체)와 `clat46`을 걸러야 안정 주소가 남는다. `ipconfig getv6ifaddr`는 존재하지 않는 명령이다.
+
+**대괄호째 넘긴다.** `api.dart`가 `'http://$host:8000'` 문자열 조합이라 `[2001:…]`을 그대로 주면 유효한 URL이 된다 — 코드 수정 없이 동작하는 것을 실측했다(2026-07-27).
+
+| 예상했던 벽 | 실제 |
+|---|---|
+| ATS가 평문 HTTP를 막는다 | 막지 않았다. `NSAllowsLocalNetworking`뿐이고 글로벌 IPv6는 ATS의 로컬 범위 밖이라 차단을 예상했으나 통과했다(2026-07-27 실측). 미리 `NSAllowsArbitraryLoads`를 넣지 않는다 |
+| 핫스팟이 클라이언트를 격리한다 | 격리하지 않는다. Mac과 폰이 같은 /64에 있어 직접 통신한다 |
+
+**프리픽스는 재접속 때 바뀐다.** `API_HOST`는 컴파일 타임에 박히므로, 핫스팟이 끊겼다 붙으면 재빌드·재설치해야 한다. 증상은 "어제까지 되던 앱이 서버만 못 찾음"이다.
 
 ## 도구가 거짓말하는 지점
 
@@ -79,15 +97,47 @@ pipx install pymobiledevice3
 
 ```bash
 lsof -nP -iTCP:8000 -sTCP:LISTEN                      # 백엔드 기동
-curl -s -o /dev/null -w "%{http_code}\n" \
-  http://$(ipconfig getifaddr en0):8000/api/rooms/    # 401이면 정상 (미인증)
-lsof -nP -iTCP:8000 | grep -E "192\.168\..+:8000->"   # 폰에서 온 연결
+curl -s -g -o /dev/null -w "%{http_code}\n" \
+  "http://$HOST:8000/api/rooms/"                      # 401이면 정상 (미인증). $HOST는 빌드 때 쓴 값
+lsof -nP -iTCP:8000 | grep -vE "LISTEN|COMMAND"       # 폰에서 온 연결
 psql -d fall_detection -c \
-  "SELECT f.id, g.username, f.room_name, f.occurred_at FROM fall_event f
+  "SELECT f.id, g.username, f.room_name, f.occurred_at, f.reported_119_at FROM fall_event f
    JOIN guardian g ON g.id=f.guardian_id ORDER BY f.occurred_at DESC LIMIT 3;"
 ```
 
-앱은 시작 시 저장된 토큰만 읽고 API를 부르지 않는다. 첫 요청은 로그인 시점에 나가므로, 앱을 켠 것만으로는 네트워크 경로가 검증되지 않는다.
+폰 연결을 주소 대역으로 거르지 않는다 — 핫스팟이면 `192.168.`이 아니라 글로벌 IPv6로 찍힌다. HTTP 연결은 순간적으로 열렸다 닫히므로 `lsof` 한 번으로는 놓친다. 1초 간격으로 돌려놓고 폰을 조작하는 편이 확실하다.
+
+앱은 시작 시 저장된 토큰만 읽고 API를 부르지 않는다. 첫 요청은 로그인 시점에 나가므로, 앱을 켠 것만으로는 네트워크 경로가 검증되지 않는다. 앱이 백그라운드로 내려가면 iOS가 정지시켜 폴링이 멎는데, 이건 연결 문제가 아니다.
+
+## 119 자동 신고가 안 될 때 — 코드보다 서버가 언제 켜졌는지 본다
+
+증상은 "낙상은 목록에 뜨는데 119 표시가 영영 안 붙는다" 하나뿐이고, **브라우저·서버 로그·DB 어디에도 에러가 남지 않는다.** 단서가 없으니 코드를 뒤지기 전에 프로세스 나이부터 본다.
+
+낙상 확정 20초 뒤 감지 페이지가 `reported_119_at`을 담아 **같은 낙상을 다시 POST**하고 서버가 그 값을 병합하는 구조다(`web/js/escalation.js`, `web/js/main.js`). `bootRun`은 **켜질 때의 코드로 굳는다.** devtools가 없어 핫리로드가 없고 `ddl-auto: none`이라 Flyway 마이그레이션도 재시작해야만 돈다. 코드를 고치고 서버를 안 내리면 옛 코드가 계속 응답한다.
+
+**왜 조용한가.** `FallEventRequest`의 `@JsonIgnoreProperties(ignoreUnknown = true)`가 원인이다(클라이언트가 `guardian`을 주입하지 못하게 막는 장치라 없앨 것이 아니다). 구 서버는 `reported_119_at`을 모르는 필드로 버리고, 남은 값이 기존 낙상과 같으니 중복 제거가 걸려 **기존 행을 200으로** 돌려준다. 클라이언트는 성공으로 읽고 재시도조차 하지 않는다.
+
+```bash
+ps -p $(lsof -ti tcp:8000 -sTCP:LISTEN | head -1) -o lstart=              # 서버가 켜진 시각
+git log -1 --format="%ad %s" --date=format:"%m-%d %H:%M" -- backend/src   # 백엔드 코드 마지막 변경
+# 코드가 더 최신이면 그것이 원인이다. 아래 둘로 확증한다
+psql -d fall_detection -tAc \
+  "SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1;"  # 2 미만이면 미적용
+T=$(psql -d fall_detection -tAc "SELECT key FROM auth_token WHERE guardian_id=<id> LIMIT 1;")
+curl -s -H "Authorization: Token $T" http://127.0.0.1:8000/api/falls/ \
+  | grep -c reported_119_at                                              # 0이면 구 서버 확정
+```
+
+조치는 재시작뿐이다. 고칠 코드가 없다(2026-07-27 확정). 재시작 로그에 `Migrating schema "public" to version "2"`가 찍히면 적용된 것이다.
+
+**서버를 갈아도 안 되면 클라이언트를 본다.** 감지 화면 상태 줄이 어디서 멈췄는지가 가른다.
+
+| 상태 줄 | 뜻 |
+|---|---|
+| 🎤 음성 확인 대기 → 괜찮으세요? 확인 중 → 🚨 119 자동 신고됨 | 정상. 20초에 신고가 나간다 |
+| "응답 확인 — 신고 안 함"에서 멈춤 | 마이크가 주변 소리를 응답으로 인식했다(`escalation.js`의 `heardOk`) |
+| 줄이 통째로 사라짐 | 감지기가 STANDING으로 튀어 에피소드가 취소됐다. 누운 자세가 계속 잡히는지 본다 |
+| 문구가 아예 안 바뀜 | 브라우저가 옛 `main.js`를 물고 있다 → ⌘⇧R (아래 캐시 절 참고) |
 
 ## 브라우저가 `/detect`로 404를 낼 때
 
