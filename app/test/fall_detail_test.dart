@@ -25,10 +25,10 @@ FallEvent _event({DateTime? reported119At, DateTime? voiceOkAt}) => FallEvent(
       voiceOkAt: voiceOkAt,
     );
 
-// OutlinedButton.icon은 OutlinedButton의 비공개 서브클래스를 만들므로 byType으로는 못 찾는다
+// 새 UI의 119 버튼은 emergency 스타일 FilledButton이다
 Finder _emergencyButton() => find.ancestor(
-      of: find.text('119 신고 (시연용 더미 번호)'),
-      matching: find.byWidgetPredicate((w) => w is OutlinedButton),
+      of: find.text('119 긴급 신고'),
+      matching: find.byWidgetPredicate((w) => w is FilledButton),
     );
 
 void main() {
@@ -41,7 +41,7 @@ void main() {
     ));
     await tester.pump();
 
-    expect(tester.widget<OutlinedButton>(_emergencyButton()).onPressed, isNull);
+    expect(tester.widget<FilledButton>(_emergencyButton()).onPressed, isNull);
     expect(find.text('응답이 없어 119에 자동 신고되었습니다'), findsOneWidget);
   });
 
@@ -51,7 +51,7 @@ void main() {
     ));
     await tester.pump();
 
-    expect(tester.widget<OutlinedButton>(_emergencyButton()).onPressed, isNotNull);
+    expect(tester.widget<FilledButton>(_emergencyButton()).onPressed, isNotNull);
     expect(find.text('응답이 없어 119에 자동 신고되었습니다'), findsNothing);
   });
 
@@ -65,7 +65,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('음성 확인'), findsOneWidget);
-    expect(find.text('낙상자가 괜찮다고 말했습니다 (2026년 7월 27일 12:00:12)'), findsOneWidget);
+    expect(find.text('낙상자가 괜찮다고 말했습니다 (2026.07.27 12:00)'), findsOneWidget);
   });
 
   testWidgets('괜찮음 응답이 없으면 음성 확인 행이 없다', (tester) async {

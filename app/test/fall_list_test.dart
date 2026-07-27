@@ -27,12 +27,27 @@ FallEvent _event({DateTime? voiceOkAt, DateTime? reported119At}) => FallEvent(
     );
 
 Future<void> _pumpList(WidgetTester tester, FallEvent event) async {
-  await tester.pumpWidget(MaterialApp(home: FallListScreen(api: _FakeApi([event]))));
-  await tester.pump(); // listFalls 완료
-  await tester.pump(); // setState 반영
+  // 새 UI에서 목록은 MainShell이 내려주는 events를 받는다 — 폴링 완료를 기다릴 필요가 없다
+  await tester.pumpWidget(MaterialApp(
+    home: FallListScreen(
+      api: _FakeApi([event]),
+      events: [event],
+      loading: false,
+      connectionError: null,
+      onLogout: () {},
+      onRefresh: () async {},
+    ),
+  ));
+  await tester.pump();
 }
 
 void main() {
+  testWidgets('타일 제목은 방 이름과 번호를 함께 보여준다', (tester) async {
+    await _pumpList(tester, _event());
+
+    expect(find.text('안방 1'), findsOneWidget);
+  });
+
   testWidgets('괜찮다고 답한 이벤트는 trailing이 "괜찮다고 말함"이다', (tester) async {
     await _pumpList(tester, _event(voiceOkAt: DateTime(2026, 7, 27, 12, 0, 12)));
 

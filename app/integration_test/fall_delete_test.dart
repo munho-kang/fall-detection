@@ -12,8 +12,10 @@ import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
 
 import 'package:fall_guardian/api.dart';
+import 'package:fall_guardian/app_theme.dart';
 import 'package:fall_guardian/screens/fall_detail.dart';
 import 'package:fall_guardian/screens/fall_list.dart';
+import 'package:fall_guardian/screens/main_shell.dart';
 
 const _base = 'http://127.0.0.1:8000';
 const _password = 'Sim!Verify2026';
@@ -64,13 +66,16 @@ void main() {
     return (jsonDecode(res.body) as List).length;
   }
 
-  /// 목록 화면을 띄우고 첫 폴링이 그려질 때까지 기다린다.
+  /// 실제 진입 흐름대로 MainShell을 띄우고, 홈의 종 아이콘으로 알림 확인 창에 들어간다.
   Future<void> openList(WidgetTester tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF4C8DFF), useMaterial3: true),
-      home: FallListScreen(api: api),
+      theme: buildAppTheme(dark: false, scale: TextScale.normal),
+      home: MainShell(api: api),
     ));
     await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.notifications_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byType(FallListScreen), findsOneWidget);
   }
 
   /// 목록 항목을 눌러 상세 화면으로 들어간다.
@@ -80,35 +85,35 @@ void main() {
     expect(find.byType(FallDetailScreen), findsOneWidget);
   }
 
-  /// 라벨로 버튼을 찾아 활성 여부를 읽는다.
+  /// 라벨로 버튼을 찾아 활성 여부를 읽는다. 새 UI의 확인·삭제 버튼은 FilledButton이다.
   bool isButtonEnabled(WidgetTester tester, String label) {
-    final button = tester.widget<OutlinedButton>(
-      find.ancestor(of: find.text(label), matching: find.byType(OutlinedButton)),
+    final button = tester.widget<FilledButton>(
+      find.ancestor(of: find.text(label), matching: find.byWidgetPredicate((w) => w is FilledButton)),
     );
     return button.onPressed != null;
   }
 
-  testWidgets('미확인 기록 — 삭제 버튼이 비활성이고 라벨이 "확인한 뒤 삭제할 수 있습니다"', (tester) async {
+  testWidgets('미확인 기록 — 삭제 버튼이 비활성이고 라벨이 "확인한 기록만 삭제할 수 있습니다"', (tester) async {
     await seedFall('안방', 1);
     await openList(tester);
     await openDetail(tester, '안방 1');
 
     expect(find.text('미확인'), findsOneWidget);
-    expect(find.text('확인한 뒤 삭제할 수 있습니다'), findsOneWidget);
+    expect(find.text('확인한 기록만 삭제할 수 있습니다'), findsOneWidget);
     expect(find.text('기록 삭제'), findsNothing);
-    expect(isButtonEnabled(tester, '확인한 뒤 삭제할 수 있습니다'), isFalse);
+    expect(isButtonEnabled(tester, '확인한 기록만 삭제할 수 있습니다'), isFalse);
   });
 
-  testWidgets('확인함으로 표시 — 삭제 버튼이 활성되고 라벨이 "기록 삭제"로 바뀐다', (tester) async {
+  testWidgets('알림 확인 — 삭제 버튼이 활성되고 라벨이 "기록 삭제"로 바뀐다', (tester) async {
     await seedFall('거실', 2);
     await openList(tester);
     await openDetail(tester, '거실 2');
 
-    await tester.tap(find.text('확인함으로 표시'));
+    await tester.tap(find.text('알림 확인'));
     await tester.pumpAndSettle();
 
     expect(find.text('기록 삭제'), findsOneWidget);
-    expect(find.text('확인한 뒤 삭제할 수 있습니다'), findsNothing);
+    expect(find.text('확인한 기록만 삭제할 수 있습니다'), findsNothing);
     expect(isButtonEnabled(tester, '기록 삭제'), isTrue);
   });
 
@@ -117,7 +122,7 @@ void main() {
     await openList(tester);
     await openDetail(tester, '주방 3');
 
-    await tester.tap(find.text('확인함으로 표시'));
+    await tester.tap(find.text('알림 확인'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('기록 삭제'));
     await tester.pumpAndSettle();
@@ -138,7 +143,7 @@ void main() {
     await openList(tester);
     await openDetail(tester, '안방 4');
 
-    await tester.tap(find.text('확인함으로 표시'));
+    await tester.tap(find.text('알림 확인'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('기록 삭제'));
     await tester.pumpAndSettle();

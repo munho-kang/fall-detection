@@ -1,9 +1,10 @@
-// 보호자 회원가입 화면 — 가입 성공 시 바로 낙상 목록으로 들어간다
+// 보호자 회원가입 화면 — 가입 성공 시 바로 MainShell로 들어간다
 
 import 'package:flutter/material.dart';
 
+import '../app_theme.dart';
 import '../api.dart';
-import 'fall_list.dart';
+import 'main_shell.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.api});
@@ -43,7 +44,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
       // 로그인 화면까지 스택에서 걷어내 뒤로 가기로 되돌아가지 않게 한다
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => FallListScreen(api: widget.api)),
+        MaterialPageRoute(builder: (_) => MainShell(api: widget.api)),
         (route) => false,
       );
     } catch (e) {
@@ -58,48 +59,103 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('회원가입')),
-      body: Center(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('회원가입'),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.onSurface,
+      ),
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _username,
-                decoration: const InputDecoration(labelText: '아이디', border: OutlineInputBorder()),
+              const SizedBox(height: 72),
+              // 규칙 안내 — 칸 위로 올려 다 치고 나서 읽는 경고가 아니라 치기 전 읽는 안내
+              const Text(
+                '비밀번호는 영문자, 숫자, 특수기호를 섞어 8자 이상으로 만들어주세요.',
+                style: TextStyle(
+                  fontSize: 10,
+                  height: 1.5,
+                  letterSpacing: -0.02,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호', border: OutlineInputBorder()),
-              ),
+              _buildField(_username, '아이디'),
               const SizedBox(height: 12),
-              TextField(
-                controller: _confirm,
-                obscureText: true,
-                decoration:
-                    const InputDecoration(labelText: '비밀번호 확인', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 8),
-              Text('8자 이상, 숫자만은 불가',
-                  style: TextStyle(color: Theme.of(context).colorScheme.outline, fontSize: 12)),
+              _buildField(_password, '비밀번호', obscure: true),
+              const SizedBox(height: 12),
+              _buildField(_confirm, '비밀번호 확인', obscure: true),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _busy ? null : _submit,
-                child: _busy
-                    ? const SizedBox(
-                        width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('가입하기'),
+              SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: _busy ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                    disabledBackgroundColor: const Color(0x1F191C1B),
+                    disabledForegroundColor: const Color(0x61191C1B),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                  child: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),
+                        )
+                      : const Text('가입하기'),
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String placeholder, {bool obscure = false}) {
+    return SizedBox(
+      height: 60,
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        style: const TextStyle(fontSize: 17, height: 1.3, color: AppColors.onSurface),
+        decoration: InputDecoration(
+          hintText: placeholder,
+          hintStyle: const TextStyle(fontSize: 17, color: AppColors.outline),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.outline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.outline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         ),
       ),
     );

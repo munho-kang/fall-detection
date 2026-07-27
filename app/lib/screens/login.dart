@@ -1,9 +1,10 @@
-// 보호자 로그인 화면
+// 보호자 로그인 화면 — 시작 화면에서 진입. 입력칸 두 개와 버튼만 남긴 간결한 구성
 
 import 'package:flutter/material.dart';
 
+import '../app_theme.dart';
 import '../api.dart';
-import 'fall_list.dart';
+import 'main_shell.dart';
 import 'signup.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,8 +37,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await widget.api.login(_username.text, _password.text);
       if (!mounted) return;
+      // MainShell로 교체. 뒤로 가기로 시작 화면으로 되돌아가지 않게
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => FallListScreen(api: widget.api)),
+        MaterialPageRoute(builder: (_) => MainShell(api: widget.api)),
       );
     } catch (e) {
       if (!mounted) return;
@@ -51,32 +53,47 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('로그인'),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.onSurface,
+      ),
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('낙상 알림', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _username,
-                decoration: const InputDecoration(labelText: '아이디', border: OutlineInputBorder()),
-              ),
+              const SizedBox(height: 72),
+              _buildField(_username, '아이디'),
               const SizedBox(height: 12),
-              TextField(
-                controller: _password,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: '비밀번호', border: OutlineInputBorder()),
-              ),
+              _buildField(_password, '비밀번호', obscure: true),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _busy ? null : _submit,
-                child: _busy
-                    ? const SizedBox(
-                        width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('로그인'),
+              SizedBox(
+                height: 48,
+                child: FilledButton(
+                  onPressed: _busy ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                    disabledBackgroundColor: const Color(0x1F191C1B),
+                    disabledForegroundColor: const Color(0x61191C1B),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                  child: _busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),
+                        )
+                      : const Text('로그인'),
+                ),
               ),
               const SizedBox(height: 8),
               TextButton(
@@ -85,14 +102,56 @@ class _LoginScreenState extends State<LoginScreen> {
                     : () => Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => SignupScreen(api: widget.api)),
                         ),
-                child: const Text('계정이 없나요? 회원가입'),
+                child: Text(
+                  '계정이 없나요? 회원가입',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: _busy ? const Color(0x61191C1B) : AppColors.primary,
+                  ),
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
-                Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String placeholder, {bool obscure = false}) {
+    return SizedBox(
+      height: 60,
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        style: const TextStyle(fontSize: 17, height: 1.3, color: AppColors.onSurface),
+        decoration: InputDecoration(
+          hintText: placeholder,
+          hintStyle: const TextStyle(fontSize: 17, color: AppColors.outline),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.outline),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.outline),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         ),
       ),
     );

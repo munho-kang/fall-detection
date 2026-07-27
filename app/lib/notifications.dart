@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'local_store.dart';
 import 'models.dart';
 
 class Notifications {
@@ -57,11 +58,18 @@ class Notifications {
   }
 
   static Future<void> show(FallEvent event) async {
+    final on = await isEnabled();
+    if (!on) return;
     await _plugin.show(
       id: event.id,
       title: '${event.roomLabel}에서 낙상 감지',
       body: body(event),
       notificationDetails: details,
     );
+  }
+
+  // 설정 화면에서 끈 경우 로컬 알림도 보내지 않는다
+  static Future<bool> isEnabled() async {
+    return LocalStore.notificationsOn();
   }
 }

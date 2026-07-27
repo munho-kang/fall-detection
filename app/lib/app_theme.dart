@@ -1,0 +1,103 @@
+// 딥 틸 컬러스킴과 라이트/다크 ThemeData, 화면 크기 배율 적용
+
+import 'package:flutter/material.dart';
+
+// screen_v3 컬러 팔레트
+class AppColors {
+  const AppColors._();
+
+  static const primary = Color(0xFF00695C);
+  static const onPrimary = Color(0xFFFFFFFF);
+  static const primaryContainer = Color(0xFFD3E0DC);
+  static const onPrimaryContainer = Color(0xFF1F3833);
+
+  static const surface = Color(0xFFF4F6F6);
+  static const surfaceContainer = Color(0xFFFFFFFF);
+  static const surfaceContainerHigh = Color(0xFFFFFFFF);
+  static const onSurface = Color(0xFF191C1B);
+  static const onSurfaceVariant = Color(0xFF3F4947);
+  static const outline = Color(0xFF6F7977);
+  static const outlineVariant = Color(0xFFC0C9C6);
+
+  static const error = Color(0xFFE0563C);
+  static const errorContainer = Color(0xFFFBE3DD);
+  static const onErrorContainer = Color(0xFFD64A2F);
+
+  // 파괴적 동작 — 톤 낮춘 tonal
+  static const dangerBg = Color(0xFFF7DAD2);
+  static const dangerFg = Color(0xFFA03920);
+
+  static const inverseSurface = Color(0xFF2B3230);
+  static const pageBg = Color(0xFFE2E6E6);
+}
+
+// 화면 크기 배율 — 작게 0.9 / 보통 1.0 / 크게 1.15
+enum TextScale { small, normal, large }
+
+extension TextScaleX on TextScale {
+  double get factor {
+    switch (this) {
+      case TextScale.small:
+        return 0.9;
+      case TextScale.normal:
+        return 1.0;
+      case TextScale.large:
+        return 1.15;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case TextScale.small:
+        return '작게';
+      case TextScale.normal:
+        return '보통';
+      case TextScale.large:
+        return '크게';
+    }
+  }
+}
+
+ThemeData buildAppTheme({required bool dark, required TextScale scale}) {
+  final base = ThemeData(useMaterial3: true, brightness: dark ? Brightness.dark : Brightness.light);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: AppColors.primary,
+    brightness: dark ? Brightness.dark : Brightness.light,
+    primary: AppColors.primary,
+    onPrimary: AppColors.onPrimary,
+    primaryContainer: AppColors.primaryContainer,
+    onPrimaryContainer: AppColors.onPrimaryContainer,
+    surface: dark ? const Color(0xFF1B1F1E) : AppColors.surface,
+    surfaceContainer: dark ? const Color(0xFF222625) : AppColors.surfaceContainer,
+    surfaceContainerHigh: dark ? const Color(0xFF222625) : AppColors.surfaceContainerHigh,
+    onSurface: dark ? const Color(0xFFE2E6E5) : AppColors.onSurface,
+    onSurfaceVariant: dark ? const Color(0xFFBFC9C6) : AppColors.onSurfaceVariant,
+    outline: AppColors.outline,
+    outlineVariant: AppColors.outlineVariant,
+    error: AppColors.error,
+    errorContainer: AppColors.errorContainer,
+    onErrorContainer: AppColors.onErrorContainer,
+  );
+
+  return base.copyWith(
+    colorScheme: scheme,
+    scaffoldBackgroundColor: dark ? const Color(0xFF131716) : AppColors.surface,
+    textTheme: base.textTheme.apply(
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
+      fontSizeFactor: scale.factor,
+      fontSizeDelta: 0,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: dark ? const Color(0xFF131716) : AppColors.surface,
+      foregroundColor: scheme.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+    ),
+    cardTheme: CardThemeData(
+      color: scheme.surfaceContainer,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  );
+}
