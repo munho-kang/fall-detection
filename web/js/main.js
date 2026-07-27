@@ -2,9 +2,11 @@
 
 import { createRoom, listRooms, postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
+import { createEscalation } from "./escalation.js";
 import { drawSkeleton } from "./overlay.js";
 import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
 import { createFallQueue } from "./queue.js";
+import { createSpeechAdapter } from "./speech.js";
 import { createTuningRecorder } from "./tuning.js";
 
 requireToken();
@@ -24,6 +26,7 @@ const el = {
   room: document.getElementById("room"),
   state: document.getElementById("state"),
   metrics: document.getElementById("metrics"),
+  escalation: document.getElementById("escalation"),
   sent: document.getElementById("sent"),
   video: document.getElementById("video"),
   canvas: document.getElementById("canvas"),
@@ -40,6 +43,15 @@ const ctx = el.canvas.getContext("2d");
 const detector = createDetector();
 const tuning = createTuningRecorder({ peakEl: el.peak, downloadEl: el.download });
 let sentCount = 0;
+
+const escalation = createEscalation();
+const speech = createSpeechAdapter({
+  onHeardOk: () => escalation.heardOk(),
+  onTtsEnded: () => escalation.ttsEnded(),
+});
+let lastFallPayload = null; // 현재 에피소드에서 확정 전송한 낙상 — 신고 재-POST의 바탕
+let lastFallingAt = null; // 마지막 FALLING 진입 시각 — 확정 전에 가려진 채 신고에 이르는 드문 경로용
+let prevDetectorState = null;
 
 const queue = createFallQueue(localStorage);
 // flush 개별 항목은 1회만 시도한다 — 실패하면 어차피 다음 트리거가 다시 부른다
@@ -111,12 +123,40 @@ el.start.addEventListener("click", async () => {
     return;
   }
 
+  // 응급 순간에 권한 팝업이 뜨면 안 된다 — 카메라에 이어 미리 받아 두고 트랙은 바로 끈다.
+  // 거부해도 감지는 그대로 진행한다. STT가 영영 못 들으면 무응답과 같아 20초에 신고가 나간다.
+  await speech.requestMicPermission();
+
   el.room.textContent = `${room.name} ${room.number}`;
   el.setup.classList.add("hidden");
   el.stage.classList.remove("hidden");
 
+  // 20s 무응답 — 같은 낙상 payload에 신고 시각만 붙여 한 번 더 보낸다. 서버가 기존 행에 병합한다.
+  const reportEmergency = (t) => {
+    // 확정(5s) 전부터 계속 가려져 원본 전송이 아직 없는 드문 경로에서도 신고는 나가야 한다.
+    // occurred_at을 원본과 같게 맞춰야 나중에 원본이 도착해도 서버가 한 행으로 합친다.
+    const base = lastFallPayload ?? {
+      room_name: room.name,
+      room_number: room.number,
+      occurred_at: new Date(performance.timeOrigin + lastFallingAt).toISOString(),
+      confidence: 0,
+    };
+    const payload = { ...base, reported_119_at: new Date(performance.timeOrigin + t).toISOString() };
+    postFall(payload)
+      .then(() => flushQueue())
+      .catch(() => {
+        // 신고도 같은 큐를 탄다 — 연결이 돌아오면 재전송되고 서버가 병합한다
+        queue.enqueue(payload);
+        showBanner("전송 실패 — 저장해 두었다가 연결되면 다시 보냅니다");
+      });
+  };
+
   runLoop(landmarker, el.video, (landmarks, t) => {
     const { state, fall, tilt, hipVelocity } = detector.update(landmarks, t);
+
+    // 확정(5s) 전에 신고 마감이 오는 드문 경로를 위해, 실제로 넘어진 시각을 따로 기억한다
+    if (state === "FALLING" && prevDetectorState !== "FALLING") lastFallingAt = t;
+    prevDetectorState = state;
 
     drawSkeleton(ctx, landmarks, state);
     el.state.textContent = state;
@@ -130,6 +170,7 @@ el.start.addEventListener("click", async () => {
         occurred_at: new Date(performance.timeOrigin + fall.occurredAt).toISOString(),
         confidence: fall.confidence,
       };
+      lastFallPayload = payload; // 이 에피소드의 신고 재-POST가 이 payload를 바탕으로 삼는다
       postFall(payload)
         .then(() => {
           sentCount += 1;
@@ -141,6 +182,22 @@ el.start.addEventListener("click", async () => {
           queue.enqueue(payload);
           showBanner("전송 실패 — 저장해 두었다가 연결되면 다시 보냅니다");
         });
+    }
+
+    const esc = escalation.update(state, t);
+    el.escalation.textContent = esc.statusText ?? "";
+    el.escalation.classList.toggle("hidden", !esc.statusText);
+    for (const command of esc.commands) {
+      if (command === "MIC_ON") {
+        lastFallPayload = null; // 새 에피소드 — 이전 낙상의 payload가 신고에 섞이면 안 된다
+        speech.startListening();
+      } else if (command === "PLAY_QUESTION") {
+        speech.playQuestion();
+      } else if (command === "REPORT") {
+        reportEmergency(t);
+      } else if (command === "MIC_OFF") {
+        speech.stopListening();
+      }
     }
   });
 });

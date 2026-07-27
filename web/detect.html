@@ -35,6 +35,7 @@
         <h1 id="room"></h1>
         <div id="state">—</div>
         <p class="metric" id="metrics"></p>
+        <p id="escalation" class="hidden"></p>
         <p class="metric" id="sent">전송된 낙상 0건</p>
         <!-- 임계값 실측 튜닝용. 튜닝이 끝나면 이 블록과 js/tuning.js를 함께 제거한다. -->
         <div class="tuning">
@@ -44,6 +45,7 @@
         </div>
         <div class="privacy">
           검은 배경 위 스켈레톤이 전부입니다. 영상과 관절 좌표는 이 브라우저를 벗어나지 않습니다.
+          마이크는 낙상 확인 응급 구간에만 켜지고, 그 음성은 브라우저 음성 인식(구글 서버)으로 처리됩니다.
         </div>
       </div>
     </div>

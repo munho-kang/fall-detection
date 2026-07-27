@@ -138,6 +138,12 @@ canvas {
   font-size: 13px;
 }
 
+/* 음성 확인·119 신고 진행 상태 — 응급 구간(IDLE 제외)에만 보인다 */
+#escalation {
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .privacy {
   margin-top: 20px;
   padding: 12px 14px;
