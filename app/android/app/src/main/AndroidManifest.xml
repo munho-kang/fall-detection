@@ -46,8 +46,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- 상세 화면의 119 발신(url_launcher). Android 11+는 이 선언이 없으면
-             다이얼러 앱을 조회할 수 없어 launchUrl이 실패한다. -->
+        <!-- 상세 화면의 119 발신(url_launcher). launchUrl은 startActivity를 바로 부르므로
+             이 선언이 없어도 다이얼러는 열린다. 지원 여부를 먼저 확인하는 canLaunchUrl을
+             쓰게 되면 Android 11+에서는 이 선언이 있어야 true가 나온다. -->
         <intent>
             <action android:name="android.intent.action.DIAL"/>
             <data android:scheme="tel"/>
