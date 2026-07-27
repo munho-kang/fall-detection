@@ -115,12 +115,14 @@ cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> ./g
 ## 테스트
 
 ```bash
-cd backend && ./gradlew test    # 36개 — 인증·소유권·방·프로필·푸시·전송 멱등성 (fall_detection_test DB 필요: createdb fall_detection_test)
-cd web     && npm test          # 20개 — 상태머신 시나리오 + 오프라인 큐
+cd backend && ./gradlew test    # 39개 — 인증·소유권·방·프로필·푸시·전송 멱등성·기록 삭제 (fall_detection_test DB 필요: createdb fall_detection_test)
+cd web     && npm test          # 22개 — 상태머신 시나리오 + 오프라인 큐
 cd app     && flutter test      # 7개 — 새 이벤트 판별 4, 알림 설정 3
 ```
 
 상태머신 테스트가 이 프로젝트 테스트의 핵심이다. 가짜 랜드마크 시퀀스로 "천천히 눕기 → 알림 없음", "3초 만에 일어남 → 알림 없음", "5초 유지 → 1건" 같은 시나리오를 웹캠 없이 검증한다.
+
+기록 삭제 흐름은 서버를 띄운 채 도는 E2E 두 벌이 따로 지킨다. 실제 Chrome으로 보호자 페이지를 밟는 `cd web && npm run test:e2e`(6개)와 iOS 시뮬레이터에서 앱을 구동하는 `cd app && flutter test integration_test/fall_delete_test.dart -d <UDID>`(6개)다. 서버가 필요해서 위 세 명령에는 섞이지 않는다. 실행 조건은 [docs/manual-verification.md](docs/manual-verification.md) 8절에 있다.
 
 ## 알려진 한계
 

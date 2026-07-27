@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "node e2e/guardian-delete.e2e.js"
   },
   "devDependencies": {
+    "playwright": "^1.62.0",
     "vitest": "^3.2.7"
   }
 }

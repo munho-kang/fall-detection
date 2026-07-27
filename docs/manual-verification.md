@@ -1,25 +1,29 @@
 # 수동 검증 체크리스트
 
-자동화할 수 없어 사람이 직접 해야 하는 검증만 모았다. 웹캠·카메라 권한·iOS 시뮬레이터·실제 알림이 필요한 항목들이다.
-코드와 자동 테스트(backend 7 / web 10 / app 4)는 전부 통과한 상태다.
+자동화할 수 없어 사람이 직접 해야 하는 검증만 모았다. 웹캠·카메라 권한·실제 알림·임계값 실측이 필요한 항목들이다.
+코드와 자동 테스트(backend JUnit 39 / web Vitest 22 / app 7)는 전부 통과한 상태다.
+
+**8절은 나중에 자동화됐다.** 시뮬레이터와 실제 Chrome을 구동하는 E2E가 그 절 대부분을 대신 밟는다. 자세한 것은 8절 머리말에 있다.
 
 ## 준비
 
-터미널 3개가 필요하다. 계정은 `guardian` / `pw12345` (로컬 `db.sqlite3`에 이미 있다).
+터미널 3개가 필요하다.
 
 ```bash
-cd backend && .venv/bin/python manage.py runserver 8000   # 터미널 1
-cd web && npx --yes serve -l 5500 .                        # 터미널 2
-cd app && flutter run                                      # 터미널 3
+cd backend && ./gradlew bootRun            # 터미널 1 — 127.0.0.1:8000
+cd web && npx --yes serve -l 5500 .        # 터미널 2 — 127.0.0.1:5500
+cd app && flutter run                      # 터미널 3
 ```
 
-포트는 **5500이어야 한다.** Django의 `CORS_ALLOWED_ORIGINS`가 이 포트만 허용한다.
+백엔드는 Spring Boot이고 데이터는 PostgreSQL `fall_detection`에 있다. 미리 만들어 둔 계정은 없으니 `index.html`의 회원가입으로 하나 만들고 그 계정으로 아래를 진행한다.
+
+웹 포트는 5500이 아니어도 된다. CORS는 전 오리진을 허용한다(`backend/src/main/java/com/weniv/falls/config/CorsConfig.java`). 다만 `web/js/api.js`가 백엔드를 `http://<현재 호스트>:8000`으로 잡으므로, 웹을 연 호스트와 백엔드 호스트는 같아야 한다.
 
 ---
 
 ## 1. 로그인 (Task 7)
 
-- [ ] `http://127.0.0.1:5500`에서 `guardian` / `pw12345`로 로그인 → `detect.html`로 이동
+- [ ] `http://127.0.0.1:5500`에서 가입해 둔 계정으로 로그인 → `detect.html`로 이동
 - [ ] DevTools 콘솔에 CORS 에러가 없다
 - [ ] Application → Local Storage에 `fall_token`이 있다
 - [ ] 틀린 비밀번호 → 빨간 에러 문구가 뜨고 버튼이 다시 활성화된다
@@ -40,14 +44,13 @@ cd app && flutter run                                      # 터미널 3
 - [ ] 넘어져서 확정시키고 DB 확인 — `occurred_at`이 **오늘 날짜의 현재 시각 근처**여야 한다. 1970년이면 `performance.timeOrigin` 변환이 깨진 것이다
 
 ```bash
-cd backend && .venv/bin/python manage.py shell -c "
-from falls.models import FallEvent
-for e in FallEvent.objects.all()[:5]: print(e.id, e.room_name, e.room_number, e.occurred_at, round(e.confidence,3))
-"
+psql -d fall_detection -c \
+  "select id, room_name, room_number, occurred_at, round(confidence::numeric, 3) \
+   from fall_event order by id desc limit 5;"
 ```
 
 - [ ] **DevTools Network 탭에 영상·랜드마크 요청이 없고 `POST /api/falls/`만 있다** — 이 프로젝트의 핵심 주장이다
-- [ ] Django를 끄고 넘어진다 → **약 1.5초** 뒤 빨간 배너. Network 탭에 `/api/falls/` 요청이 정확히 3번
+- [ ] 백엔드를 끄고 넘어진다 → **약 1.5초** 뒤 빨간 배너. Network 탭에 `/api/falls/` 요청이 정확히 3번
   - 계획서는 3.5초라고 했지만 틀렸다. 재시도 사이에만 sleep하므로 3회 시도 = sleep 2번(0.5+1초) = 1.5초다
 - [ ] 콘솔에서 `localStorage.setItem("fall_token","broken")` 후 넘어진다 → 재시도 없이(요청 1번) 즉시 `index.html`로 튕기고 `fall_token`이 사라진다
 
@@ -64,11 +67,11 @@ for e in FallEvent.objects.all()[:5]: print(e.id, e.room_name, e.room_number, e.
 - [ ] 브라우저에서 넘어진다 → 5초 안에 "안방 1에서 낙상 감지" 알림. 목록 맨 위에 새 항목
 - [ ] 상세에서 "어르신께 전화" → 다이얼러에 `01012345678`이 뜨고 **자동 발신되지 않는다**
   - **iOS 시뮬레이터에는 전화 앱이 없어서** `tel:`이 안 열리고 "전화 앱을 열 수 없습니다." SnackBar가 뜬다. 시뮬레이터 한계이지 버그가 아니다. 실기기에서 확인해야 진짜 검증이다
-- [ ] Django를 끈다 → 약 15초(5초 × 3회) 뒤 "연결 끊김 — 서버에 닿지 않습니다." 배너. 다시 띄우면 5초 안에 사라진다
+- [ ] 백엔드를 끈다 → 약 15초(5초 × 3회) 뒤 "연결 끊김 — 서버에 닿지 않습니다." 배너. 다시 띄우면 5초 안에 사라진다
 
 ## 6. 임계값 실측 튜닝 (Task 16 Step 1~3) — 가장 중요
 
-**현재 `CONFIG`의 7개 값은 전부 설계 단계의 추정치이고 실제 사람 앞에서 재본 적이 없다.** Vitest 10개는 랜드마크가 주어졌을 때 상태머신 로직이 맞다는 것만 증명한다. `0.45/s`가 "눕기"와 "넘어지기"의 실제 경계인지는 아무것도 말해주지 않는다.
+**현재 `CONFIG`의 7개 값은 전부 설계 단계의 추정치이고 실제 사람 앞에서 재본 적이 없다.** `detector.test.js` 12개는 랜드마크가 주어졌을 때 상태머신 로직이 맞다는 것만 증명한다. `0.45/s`가 "눕기"와 "넘어지기"의 실제 경계인지는 아무것도 말해주지 않는다.
 
 ### 측정 도구
 
@@ -101,7 +104,7 @@ for e in FallEvent.objects.all()[:5]: print(e.id, e.room_name, e.room_number, e.
 - [ ] `max(눕기·앉기 모든 시행의 피크)` **<** `FALL_VELOCITY` **<** `min(넘어지기 모든 시행의 피크)`를 만족하는지 확인
   - 계획서와 이전 체크리스트는 "넘어지기 **최대치**보다 작게"라고 했는데 **틀렸다.** 그러면 가장 빠르게 넘어진 1회만 감지되고 나머지는 놓친다. 미탐지 쪽은 **최솟값**, 오탐지 쪽은 **최댓값**을 봐야 한다
   - 두 구간이 겹치면 속도만으로는 구분이 안 되는 것이다. 카메라를 방 모서리 높은 곳에 두고 몸 전체가 프레임에 들어오게 다시 잡은 뒤 재측정한다
-- [ ] 조정했다면 `web/js/detector.js`의 `CONFIG` 값만 바꾸고 `npx vitest run` 재실행 (10개 통과 유지). 상태머신 구조는 건드리지 않는다
+- [ ] 조정했다면 `web/js/detector.js`의 `CONFIG` 값만 바꾸고 `npx vitest run` 재실행 (22개 통과 유지). 상태머신 구조는 건드리지 않는다
 - [ ] 조정 내역·이유·**카메라 배치**를 `context-notes.md`의 "임계값 튜닝 기록"에 남긴다
 - [ ] **3회 연속** 통과: ① 빠르게 넘어져 5초 → 알림 ② 천천히 눕기 → 알림 없음 ③ 급히 앉기 → 알림 없음
 
@@ -152,3 +155,61 @@ Android를 붙이면서 iOS가 상하지 않았는지 본다.
 
 - [ ] iOS 시뮬레이터에서 앱이 그대로 뜬다(`flutter run`)
 - [ ] iOS 알림이 그대로 뜬다(설정 값을 안 건드렸으므로 그대로여야 한다)
+## 8. 낙상 기록 삭제 (2026-07-27 라운드)
+
+**이 절은 자동화됐다.** 아래 두 명령이 웹 4개·앱 5개·동기화 3개를 전부 밟는다. 준비 절의 백엔드(8000)와 웹 서버(5500)가 떠 있어야 한다. 두 스위트 모두 실행할 때마다 새 계정을 만들어 쓰므로 기존 데이터를 건드리지 않는다.
+
+```bash
+cd web && npm run test:e2e     # 실제 Chrome — 보호자 페이지 4개 + 앱→웹 동기화, 6건
+
+xcrun simctl list devices | grep Booted        # 시뮬레이터 UDID 확인
+cd app && flutter test integration_test/fall_delete_test.dart -d <UDID>   # 6건
+```
+
+웹 E2E는 브라우저를 내려받지 않고 시스템에 깔린 Chrome을 쓴다(`channel: "chrome"`). 앱 통합 테스트는 서버가 있어야 돌기 때문에 `flutter test`(단위 7건)에는 섞이지 않는다.
+
+소유권 404는 백엔드 JUnit `FallApiTest.delete_other_users_event_is_404_regardless_of_acknowledgement`가, 미확인 기록 삭제 거절(400)은 같은 파일의 `delete_unacknowledged_event_400_and_row_kept`가 지킨다.
+
+사람 손이 남은 것은 하나다.
+
+- [ ] 삭제 후 새 낙상이 오면 **iOS 알림 배너가 실제로 뜬다** — E2E는 목록 갱신까지만 본다. 실기기가 필요하다
+
+### 자동화 전 수동 절차
+
+E2E가 실패했을 때 손으로 재현하는 데 쓴다. 낙상을 1건 만든 상태에서 시작한다. 감지 페이지로 실제 낙상을 내거나, 아래로 직접 넣는다.
+
+```bash
+TOKEN=<로그인 응답의 token>
+curl -X POST http://127.0.0.1:8000/api/falls/ \
+  -H "Authorization: Token $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"room_name":"안방","room_number":1,"occurred_at":"2026-07-27T03:00:00Z","confidence":0.9}'
+```
+
+#### 보호자 페이지 (웹)
+
+- [ ] 미확인 기록에 **"확인" 버튼만** 있고 삭제 버튼이 없다
+- [ ] "확인"을 누르면 상태가 `확인함`이 되고, 버튼이 **"삭제"로 바뀐다**(버튼은 항상 하나다)
+- [ ] "삭제"를 누르면 확인창이 뜨고, **취소하면 기록이 그대로다**
+- [ ] 확인창에서 확인하면 목록에서 사라지고, **새로고침해도 돌아오지 않는다**
+
+#### 앱 (iOS)
+
+- [ ] 미확인 기록의 상세 화면에서 삭제 버튼이 **비활성**이고 라벨이 `확인한 뒤 삭제할 수 있습니다`이다
+- [ ] "확인함으로 표시"를 누르면 삭제 버튼이 **활성**되고 라벨이 `기록 삭제`가 된다
+- [ ] "기록 삭제" → 확인 다이얼로그에서 **취소하면 상세 화면에 그대로 머문다**
+- [ ] 다이얼로그에서 삭제하면 목록으로 돌아가고 **그 항목이 즉시 사라진다**(5초를 기다리지 않는다)
+- [ ] 상세 화면을 **스와이프 백**으로 나와도 목록이 정상이다(같은 null 경로를 탄다)
+
+#### 양쪽 동기화
+
+- [ ] 웹에서 삭제한 기록이 앱 목록에서도 **5초 안에** 사라진다
+- [ ] 앱에서 삭제한 기록이 웹 목록에서도 **5초 안에** 사라진다
+- [ ] 삭제 후 새 낙상이 오면 **알림이 정상으로 뜬다**(삭제가 `NewEventTracker`를 망가뜨리지 않는다)
+
+#### 소유권
+
+- [ ] 다른 계정(g2)으로 로그인해 남의 기록 id로 `DELETE`를 직접 호출하면 **404**다
+
+```bash
+curl -i -X DELETE http://127.0.0.1:8000/api/falls/<남의_id>/ -H "Authorization: Token $OTHER_TOKEN"
+```

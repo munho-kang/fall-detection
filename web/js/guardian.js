@@ -3,6 +3,7 @@
 import {
   acknowledgeFall,
   createRoom,
+  deleteFall,
   deletePushDevice,
   deleteRoomById,
   getProfile,
@@ -51,7 +52,17 @@ async function refreshFalls() {
       `${f.room_name} ${f.room_number} · ${fmt(f.occurred_at)} · ` +
       (f.acknowledged_at ? "확인함" : "미확인");
     li.append(label);
-    if (!f.acknowledged_at) {
+    if (f.acknowledged_at) {
+      const del = document.createElement("button");
+      del.textContent = "삭제";
+      del.addEventListener("click", () => {
+        // 완전 삭제라 되돌릴 수 없다. 방 삭제와 같은 무게로 확인을 받는다.
+        if (confirm(`${fmt(f.occurred_at)} ${f.room_name} ${f.room_number} 낙상 기록을 삭제할까요?`)) {
+          deleteFall(f.id).then(refreshFalls).catch(showError);
+        }
+      });
+      li.append(del);
+    } else {
       const btn = document.createElement("button");
       btn.textContent = "확인";
       btn.addEventListener("click", () =>

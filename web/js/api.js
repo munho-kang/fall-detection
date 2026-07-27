@@ -135,6 +135,14 @@ export async function acknowledgeFall(id) {
   return res.json();
 }
 
+export async function deleteFall(id) {
+  const res = await authFetch(`/api/falls/${id}/`, { method: "DELETE" });
+  // 미확인 기록 삭제는 서버가 400 + 한국어 문구로 거절한다. 문구를 새로 짓지 말고 그대로 올린다.
+  if (!res.ok) {
+    throw new Error(await firstErrorMessage(res, `기록을 삭제하지 못했습니다 (${res.status}).`));
+  }
+}
+
 export async function renameRoom(id, name) {
   const res = await authFetch(`/api/rooms/${id}/`, {
     method: "PATCH",
