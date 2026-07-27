@@ -5,7 +5,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node e2e/guardian-delete.e2e.js"
+    "test:e2e": "node e2e/guardian-delete.e2e.js",
+    "test:e2e:sw": "node e2e/sw-eviction.e2e.js"
   },
   "devDependencies": {
     "playwright": "^1.62.0",

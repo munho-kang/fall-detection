@@ -29,6 +29,10 @@
     <script type="module">
       import { login, setToken } from "./js/api.js";
 
+      // 포트 5500(Live Server 기본값)을 쓰던 다른 프로젝트의 워커가 오리진에 남아
+      // 페이지 이동을 가로챈 사고가 있었다. 우리 워커(skipWaiting/claim)로 즉시 대체한다.
+      if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+
       const form = document.getElementById("form");
       const error = document.getElementById("error");
 
