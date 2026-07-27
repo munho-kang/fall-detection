@@ -45,12 +45,22 @@ class Notifications {
         ?.requestNotificationsPermission();
   }
 
-  static Future<void> show(FallEvent event) async {
+  // 알림 본문은 이벤트 상태에서 파생된다 — 괜찮음 응답이 도착한 뒤 같은 id로 다시 부르면
+  // 트레이의 알림이 이 문구로 교체된다.
+  @visibleForTesting
+  static String body(FallEvent event) {
     final t = event.occurredAt;
+    final time = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    return event.isVoiceOk
+        ? '$time 발생 · 낙상자가 괜찮다고 말한 낙상 사고입니다'
+        : '$time 발생 · 확인이 필요합니다';
+  }
+
+  static Future<void> show(FallEvent event) async {
     await _plugin.show(
       id: event.id,
       title: '${event.roomLabel}에서 낙상 감지',
-      body: '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')} 발생 · 확인이 필요합니다',
+      body: body(event),
       notificationDetails: details,
     );
   }
