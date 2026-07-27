@@ -156,7 +156,15 @@ class _FallListScreenState extends State<FallListScreen> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       )
-                                    : Text(e.isAcknowledged ? '확인함' : '미확인'),
+                                    : e.isVoiceOk
+                                        ? const Text(
+                                            '괜찮다고 말함',
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : Text(e.isAcknowledged ? '확인함' : '미확인'),
                                 onTap: () async {
                                   final updated = await Navigator.of(context).push<FallEvent>(
                                     MaterialPageRoute(
