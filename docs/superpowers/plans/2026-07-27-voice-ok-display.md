@@ -974,7 +974,9 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - Consumes: Task 1~6의 전 구현 (검증 절차가 참조).
 - Produces: 없음 (문서).
 
-- [ ] **Step 1: 10절 추가**
+- [ ] **Step 1: 10절 추가 + 도입부 개수 갱신**
+
+파일 3행의 자동 테스트 요약 `(backend JUnit 43 / web Vitest 30 / app 11)`을 이번 라운드 후의 실측 개수로 갱신한다(Step 2에서 확인한 숫자를 쓴다). 다른 절의 숫자는 각 라운드 당시의 역사 기록이므로 건드리지 않는다.
 
 파일 끝(9절 뒤)에 추가.
 
