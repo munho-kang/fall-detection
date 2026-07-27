@@ -51,6 +51,7 @@ const speech = createSpeechAdapter({
 });
 let lastFallPayload = null; // 현재 에피소드에서 확정 전송한 낙상 — 신고 재-POST의 바탕
 let lastFallingAt = null; // 마지막 FALLING 진입 시각 — 확정 전에 가려진 채 신고에 이르는 드문 경로용
+let pendingVoiceOkAt = null; // 이 에피소드의 "괜찮아" 응답 시각 — 원본 전송 전이면 5s 원본에 동승한다
 let prevDetectorState = null;
 
 const queue = createFallQueue(localStorage);
@@ -151,6 +152,25 @@ el.start.addEventListener("click", async () => {
       });
   };
 
+  // "괜찮아" 응답 — 원본이 이미 나갔으면 같은 payload에 응답 시각만 붙여 한 번 더 보낸다.
+  // 원본 전송 전(5초 이전 조기 응답)이면 시각만 들고 있다가 원본 payload에 동승시킨다 —
+  // 즉시 POST하면 "5초 내 회복 = 기록 없음" 동작이 깨진다.
+  const sendVoiceOk = (t) => {
+    pendingVoiceOkAt = t;
+    if (!lastFallPayload) return; // 원본 미전송 — 확정(5s) 시 payload에 실려 나간다
+    const payload = {
+      ...lastFallPayload,
+      voice_ok_at: new Date(performance.timeOrigin + t).toISOString(),
+    };
+    postFall(payload)
+      .then(() => flushQueue())
+      .catch(() => {
+        // 응답 기록도 같은 큐를 탄다 — 연결이 돌아오면 재전송되고 서버가 병합한다
+        queue.enqueue(payload);
+        showBanner("전송 실패 — 저장해 두었다가 연결되면 다시 보냅니다");
+      });
+  };
+
   runLoop(landmarker, el.video, (landmarks, t) => {
     const { state, fall, tilt, hipVelocity } = detector.update(landmarks, t);
 
@@ -169,6 +189,10 @@ el.start.addEventListener("click", async () => {
         room_number: room.number,
         occurred_at: new Date(performance.timeOrigin + fall.occurredAt).toISOString(),
         confidence: fall.confidence,
+        // 5초 전에 이미 "괜찮아"가 나온 에피소드 — 응답 시각이 원본에 동승한다
+        ...(pendingVoiceOkAt != null
+          ? { voice_ok_at: new Date(performance.timeOrigin + pendingVoiceOkAt).toISOString() }
+          : {}),
       };
       lastFallPayload = payload; // 이 에피소드의 신고 재-POST가 이 payload를 바탕으로 삼는다
       postFall(payload)
@@ -190,11 +214,14 @@ el.start.addEventListener("click", async () => {
     for (const command of esc.commands) {
       if (command === "MIC_ON") {
         lastFallPayload = null; // 새 에피소드 — 이전 낙상의 payload가 신고에 섞이면 안 된다
+        pendingVoiceOkAt = null; // 이전 에피소드의 응답 시각도 함께 버린다
         speech.startListening();
       } else if (command === "PLAY_QUESTION") {
         speech.playQuestion();
       } else if (command === "REPORT") {
         reportEmergency(t);
+      } else if (command === "SEND_OK") {
+        sendVoiceOk(t);
       } else if (command === "MIC_OFF") {
         speech.stopListening();
       }
