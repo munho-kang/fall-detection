@@ -6,6 +6,7 @@ import 'package:fall_guardian/app_theme.dart';
 import 'package:fall_guardian/models.dart';
 import 'package:fall_guardian/screens/fall_list.dart';
 import 'package:fall_guardian/screens/home.dart';
+import 'package:fall_guardian/screens/profile.dart';
 import 'package:fall_guardian/screens/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,9 @@ Color? colorOf(WidgetTester tester, String text) =>
 class FakeApi extends Api {
   @override
   Future<List<FallEvent>> listFalls() async => const [];
+
+  @override
+  Future<Profile> getProfile() async => const Profile(elderPhone: '');
 }
 
 final sampleEvent = FallEvent(
@@ -111,5 +115,27 @@ void main() {
     );
 
     expect(colorOf(tester, '서버와 연결이 끊겼습니다.'), const Color(0xFFFFB4A0));
+  });
+
+  testWidgets('프로필 — 카드 제목이 다크 보조 글자색, 탈퇴가 다크 danger 색이다', (tester) async {
+    await pumpDark(
+      tester,
+      ProfileScreen(
+        api: FakeApi(),
+        unreadCount: 0,
+        onGoNotifications: () {},
+        onGoSettings: () {},
+        onLogout: () {},
+      ),
+    );
+    await tester.pump(); // _load()의 비동기 응답
+
+    expect(colorOf(tester, '내 정보'), darkOnSurfaceVariant);
+
+    // 스크롤해서 '회원 탈퇴' 버튼을 보이게 한다
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+
+    expect(colorOf(tester, '회원 탈퇴'), const Color(0xFFFFB4A0));
   });
 }
