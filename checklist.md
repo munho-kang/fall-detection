@@ -201,7 +201,7 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 
 12절에서 걷어냈던 Android를 다시 붙였다. 이번엔 FCM 없이 로컬 알림만이다. 경위는 context-notes.md "Android 재지원".
 
-- [x] 설계 — 화면 9개는 그대로, 갈라지는 곳은 알림·서버 주소 둘뿐. Flutter Web은 범위 밖(guardian.html과 중복)
+- [x] 설계 — 화면 5개는 그대로, 갈라지는 곳은 알림·서버 주소 둘뿐. Flutter Web은 범위 밖(guardian.html과 중복)
 - [x] `android/` 생성 — `flutter create --platforms=android --org com.example`, 커밋 19개 파일
 - [x] `flutter create` 부작용 3개 되돌림 — `.metadata`의 ios 항목 복원, `pubspec.lock` 22.0.1 유지, 템플릿 `test/widget_test.dart` 삭제
 - [x] 알림 — 채널 `fall_alerts`, `Importance.max`/`Priority.high`, Android 13+ 런타임 권한 요청. iOS 설정 불변
