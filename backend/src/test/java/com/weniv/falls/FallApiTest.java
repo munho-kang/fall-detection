@@ -1,4 +1,4 @@
-// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·신고 병합·푸시 1회/0회·삭제 204/400/404
+// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·신고·괜찮음 병합·푸시 1회/0회·삭제 204/400/404
 package com.weniv.falls;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +39,12 @@ class FallApiTest extends IntegrationTestBase {
         return "{\"room_name\": \"안방\", \"room_number\": 1, "
             + "\"occurred_at\": \"2026-07-23T03:00:00Z\", \"confidence\": 0.9, "
             + "\"reported_119_at\": \"" + reportedAt + "\"}";
+    }
+
+    private String fallPayloadVoiceOk(String okAt) {
+        return "{\"room_name\": \"안방\", \"room_number\": 1, "
+            + "\"occurred_at\": \"2026-07-23T03:00:00Z\", \"confidence\": 0.9, "
+            + "\"voice_ok_at\": \"" + okAt + "\"}";
     }
 
     @Test
@@ -262,6 +268,89 @@ class FallApiTest extends IntegrationTestBase {
         mockMvc.perform(authed(post("/api/falls/"), guardian)
                 .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
             .andExpect(status().isOk())
+            .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));
+    }
+
+    @Test
+    void post_with_voice_ok_at_creates_row_with_it() throws Exception {
+        // 5초 전 조기 응답 — 원본 payload에 voice_ok_at이 동승해 201로 생성되는 경로
+        String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:03Z")))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:03Z"))
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
+        assertThat(fallEventRepository.findById(id).orElseThrow().getVoiceOkAt())
+            .isEqualTo(Instant.parse("2026-07-23T03:00:03Z"));
+    }
+
+    @Test
+    void duplicate_post_merges_voice_ok_at_and_sends_no_push() throws Exception {
+        // 정상 경로 — 5s 원본 201 뒤에 응답 재-POST가 200으로 병합된다
+        String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        int firstId = JsonPath.read(body, "$.id");
+        clearInvocations(pushService);
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:12Z")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(firstId))
+            .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:12Z"));
+
+        assertThat(fallEventRepository.count()).isEqualTo(1);
+        verify(pushService, never()).sendToGuardianAsync(any());   // 200 병합은 푸시가 없다
+    }
+
+    @Test
+    void voice_ok_at_is_immutable_once_set() throws Exception {
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:12Z")))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:59Z")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:12Z"));   // 첫 값 보존
+    }
+
+    @Test
+    void duplicate_post_without_voice_ok_at_keeps_existing_value() throws Exception {
+        // 오프라인 큐가 응답 이후 원본을 재전송해도 응답 시각이 지워지면 안 된다
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:12Z")))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:12Z"));
+    }
+
+    @Test
+    void merge_applies_voice_ok_and_reported_119_independently() throws Exception {
+        // 상태머신 정상 경로에서는 공존하지 않지만, 서버 병합은 필드별로 독립이어야 한다
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadReported("2026-07-23T03:00:20Z")))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(authed(post("/api/falls/"), guardian)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fallPayloadVoiceOk("2026-07-23T03:00:12Z")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:12Z"))
             .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));
     }
 }

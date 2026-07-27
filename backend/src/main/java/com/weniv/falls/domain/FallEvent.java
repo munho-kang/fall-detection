@@ -46,6 +46,9 @@ public class FallEvent {
     @Column(name = "reported_119_at")
     private Instant reported119At;
 
+    @Column(name = "voice_ok_at")
+    private Instant voiceOkAt;
+
     protected FallEvent() {}
 
     public FallEvent(Guardian guardian, String roomName, Integer roomNumber,
@@ -78,6 +81,13 @@ public class FallEvent {
         }
     }
 
+    // 낙상자가 "괜찮아"라고 답한 첫 시각을 보존한다 — markReported119와 같은 멱등 패턴
+    public void markVoiceOk(Instant at) {
+        if (voiceOkAt == null && at != null) {
+            voiceOkAt = at.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        }
+    }
+
     public Long getId() { return id; }
     public Guardian getGuardian() { return guardian; }
     public String getRoomName() { return roomName; }
@@ -87,4 +97,5 @@ public class FallEvent {
     public Double getConfidence() { return confidence; }
     public Instant getAcknowledgedAt() { return acknowledgedAt; }
     public Instant getReported119At() { return reported119At; }
+    public Instant getVoiceOkAt() { return voiceOkAt; }
 }

@@ -48,6 +48,9 @@ public class FallService {
             if (request.reported119At() != null) {
                 event.markReported119(request.reported119At().toInstant());
             }
+            if (request.voiceOkAt() != null) {
+                event.markVoiceOk(request.voiceOkAt().toInstant());
+            }
             return new CreateResult(fallEventRepository.saveAndFlush(event), true);
         } catch (DataIntegrityViolationException e) {
             // 생성 경합 — uniq_fall_dedup에 걸렸으면 재조회해 200 경로로
@@ -56,13 +59,18 @@ public class FallService {
         }
     }
 
-    // 신고 시각 병합 — 기존 값이 null일 때만 쓴다 (markReported119가 보장). 쓸 것이 없으면 저장도 없다.
+    // 시각 병합 — 각 필드는 기존 값이 null일 때만 쓴다 (mark*가 보장). 쓸 것이 없으면 저장도 없다.
     private FallEvent merge(FallEvent event, FallEventRequest request) {
-        if (request.reported119At() == null || event.getReported119At() != null) {
-            return event;
+        boolean changed = false;
+        if (request.reported119At() != null && event.getReported119At() == null) {
+            event.markReported119(request.reported119At().toInstant());
+            changed = true;
         }
-        event.markReported119(request.reported119At().toInstant());
-        return fallEventRepository.save(event);
+        if (request.voiceOkAt() != null && event.getVoiceOkAt() == null) {
+            event.markVoiceOk(request.voiceOkAt().toInstant());
+            changed = true;
+        }
+        return changed ? fallEventRepository.save(event) : event;
     }
 
     public FallEvent acknowledge(Guardian guardian, Long id) {
