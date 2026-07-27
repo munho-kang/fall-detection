@@ -22,7 +22,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   late FallEvent _event = widget.event;
   bool _busy = false;
   Timer? _refreshTimer;
-  int _actionEpoch = 0; // 확인·삭제가 완료될 때마다 +1
+  int _actionEpoch = 0; // 확인·삭제가 완료될 때마다 +1.
 
   @override
   void initState() {
@@ -45,7 +45,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   }
 
   Future<void> _refetch() async {
-    final epoch = _actionEpoch; // 요청 시점 스냅샷
+    final epoch = _actionEpoch; // 요청 시점 스냅샷.
     try {
       final events = await widget.api.listFalls();
       final idx = events.indexWhere((e) => e.id == _event.id);
