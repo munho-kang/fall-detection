@@ -1,8 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android 13+는 런타임 알림 권한이 따로 있다. 없으면 낙상 알림이 조용히 안 뜬다. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Flutter는 이 권한을 debug 매니페스트에만 넣는다. 릴리즈 빌드에도 필요해 여기 명시한다. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="fall_guardian"
+        android:label="Fall Guardian"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,6 +45,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- 상세 화면의 119 발신(url_launcher). Android 11+는 이 선언이 없으면
+             다이얼러 앱을 조회할 수 없어 launchUrl이 실패한다. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
         </intent>
     </queries>
 </manifest>
