@@ -15,12 +15,23 @@ void main() {
 
     expect(android, isNotNull);
     expect(android!.channelId, 'fall_alerts');
+    expect(android.channelName, '낙상 알림');
     expect(android.importance, Importance.max);
     expect(android.priority, Priority.high);
   });
 
   test('iOS 설정은 그대로다', () {
-    expect(Notifications.settings.iOS, isNotNull);
-    expect(Notifications.details.iOS, isNotNull);
+    final settings = Notifications.settings.iOS;
+    final details = Notifications.details.iOS;
+
+    expect(settings, isNotNull);
+    expect(settings!.requestAlertPermission, isTrue);
+    expect(settings.requestBadgePermission, isTrue);
+    expect(settings.requestSoundPermission, isTrue);
+
+    expect(details, isNotNull);
+    expect(details!.presentAlert, isTrue);
+    expect(details.presentBadge, isTrue);
+    expect(details.presentSound, isTrue);
   });
 }

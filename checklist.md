@@ -208,6 +208,7 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 - [x] 알림 테스트 3종 — Android 초기화 설정 존재·헤드업 값·iOS 설정 불변(조용히 실패하는 자리라 값으로 고정)
 - [x] 서버 주소 — `API_HOST` 우선순위 유지, 기본값만 Android면 `10.0.2.2`
 - [x] 매니페스트 — 평문 HTTP 전역 허용, `POST_NOTIFICATIONS`·`INTERNET`, `tel` 가시성, 표시명 `Fall Guardian`
+- [x] Gradle — `flutter_local_notifications` 22가 요구하는 core library desugaring 설정. 계획은 `android/`를 생성물로 두려 했지만 이게 없으면 APK 빌드가 시작조차 안 된다
 - [x] 문서 — README 실행법·미검증 경고, 수동 검증 7절, 테스트 개수 4→7
 - [x] 검증 — `flutter analyze` 무경고, `flutter test` 7개 통과
 - [ ] **미검증** — APK 빌드·에뮬레이터 접속·알림 표시·권한 팝업·`tel` 발신. 이 맥에 Android SDK가 없다. 설치 후 `docs/manual-verification.md` 7절
