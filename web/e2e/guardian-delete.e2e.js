@@ -4,8 +4,9 @@
 // 브라우저는 내려받지 않고 시스템에 깔린 Chrome을 그대로 쓴다(channel: "chrome").
 //
 // 실행 전 둘 다 떠 있어야 한다.
-//   cd backend && ./gradlew bootRun        # 127.0.0.1:8000
-//   cd web && npx --yes serve -l 5500 .    # 127.0.0.1:5500
+//   cd backend && ./gradlew bootRun          # 127.0.0.1:8000
+//   cd web && python3 -m http.server 5500    # 127.0.0.1:5500
+// serve는 쓰지 않는다 — clean-URL 301(/x.html → /x)을 브라우저 캐시에 영구히 남긴다.
 // 실행: cd web && npm run test:e2e
 
 import assert from "node:assert/strict";

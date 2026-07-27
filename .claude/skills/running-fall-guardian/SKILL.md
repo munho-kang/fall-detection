@@ -91,23 +91,26 @@ psql -d fall_detection -c \
 
 ## 브라우저가 `/detect`로 404를 낼 때
 
-코드는 항상 상대 경로 `detect.html`로 이동한다(`web/index.html`). 확장자가 떨어져 나가면 **옛 서비스 워커**다. 포트 5500이 VS Code Live Server 기본값이라 다른 프로젝트가 같은 오리진에 워커를 남겨두고, 그게 `detect.html` 요청을 가로채 `/detect`로 리다이렉트한다. 서비스 워커는 디렉터리가 아니라 오리진 단위로 남는다.
+코드는 항상 상대 경로 `detect.html`로 이동한다(`web/index.html`). 확장자가 떨어져 나가면 브라우저가 프로필에 저장된 것으로 응답한 것이고, 진범은 **캐시된 301**이다(2026-07-27 확정). 7월 17일에 clean-URL 방식 서버(HTTP/1.1, 예: `npx serve`)가 `/detect.html → 301 /detect`를 냈고 Chrome이 이를 저장해 열흘간 네트워크 없이 재생했다. clean-URL 서버 밑에서는 `/detect`도 정상 서빙되어 증상이 숨고, python http.server로 바꾸는 순간 404로 터진다.
 
-**확인법은 서버 로그와 브라우저 기록을 맞춰보는 것이다.** 브라우저는 `/detect.html` 방문을 기록했는데 서버 로그에 그 요청이 없으면, 네트워크가 아니라 워커가 응답한 것이다.
+**확인법은 서버 로그와 브라우저 기록을 맞춰보는 것이다.** 브라우저는 `/detect.html` 방문을 기록했는데 서버 로그에 그 요청이 없으면 브라우저 내부 응답이다 — 후보는 서비스 워커와 캐시된 301 둘이고, 같은 관찰로는 구분되지 않는다(처음엔 워커로 오진했다).
 
 ```bash
-grep -E "GET /detect" web-server.log     # 실패한 순간에 /detect.html이 아예 안 보이면 워커다
+grep -E "GET /detect" web-server.log     # 실패 순간에 /detect.html이 안 보이면 브라우저 내부 응답
+# 둘을 가르는 지문 — 캐시에서 실물을 찾는다. grep은 반드시 -a (없으면 바이너리에서 거짓 음성)
+grep -a -rl "5500/detect" "$HOME/Library/Caches/Google/Chrome/Default/Cache/Cache_Data" \
+  | xargs -I{} sh -c 'strings -a {} | grep -aE "_dk_|^HTTP/|Location:"'
+# HTTP/1.1이면 python(HTTP/1.0)이 아닌 다른 서버가 남긴 응답이다
 ```
 
 이미 배제된 원인이라 다시 파지 않는다.
 
 | 의심 | 판정 근거 |
 |---|---|
-| 주소창 직접입력·자동완성 | Chrome 방문 기록에서 `/detect`는 전부 LINK(리다이렉트 체인)이고 TYPED로 찍힌 적이 없다 |
+| 주소창 직접입력·자동완성 | Chrome 방문 기록에서 `/detect`는 전부 리다이렉트 체인(SERVER_REDIRECT 플래그)으로 찍힌다 |
 | URL 정리 확장 프로그램 | 설치된 확장의 호스트 권한이 Google 도메인뿐이라 `127.0.0.1`에 접근 자체가 안 된다 |
+| 옛 서비스 워커 | 등록은 스코프 `/` 하나뿐이고 스크립트가 우리 `sw.js`(fetch 핸들러 없음)로 확인됐다. 워커 축출로는 증상이 안 사라졌다 |
 
-조치는 로그인 페이지(`http://127.0.0.1:5500/`)를 한 번 여는 것이다. `web/index.html`이 `sw.js`를 등록하고, fetch 핸들러가 없는 우리 워커가 `skipWaiting()` + `clients.claim()`으로 옛 워커를 즉시 대체한다(bca77fc). 그래도 남으면 `chrome://serviceworker-internals/`에서 `127.0.0.1:5500` 등록을 직접 해제한다. 시크릿 창이 멀쩡한 것도 워커가 없어서다.
+조치는 그 페이지에서 DevTools → Application → Storage → **Clear site data**다. 오리진(127.0.0.1:5500) 한정이라 다른 사이트에 영향이 없고, 301 캐시·휴리스틱으로 신선 판정된 낡은 HTML·워커 등록을 한 번에 지운다. 시크릿 창이 멀쩡한 것은 "프로필 저장물이 원인"이라는 공통 신호일 뿐 워커 확정이 아니다.
 
-주의: `sw.js`에 skipWaiting을 넣는 것(08a230c)만으로는 부족했다. 등록 호출이 `guardian.js`의 푸시 설정에만 있어서 로그인 → 감지 흐름에서는 교체가 아예 일어나지 않았다. 축출 전 과정은 `cd web && npm run test:e2e:sw`가 단독 실행으로 검증한다 — 옛 워커를 심고, `/detect` 404를 재현하고, 로그인 페이지 방문만으로 교체되는 것까지 확인한다.
-
-서버 로그가 없으면 Chrome 방문 기록(History SQLite의 `visits.transition`)으로도 판정된다. `/detect` 방문에 SERVER_REDIRECT(0x80000000) 플래그가 서 있으면 브라우저가 3xx 응답을 받은 것인데, python http.server는 파일 요청에 리다이렉트를 내지 않으므로 발신자는 워커다.
+재발 방지 두 가지다. `web/`은 clean-URL 서버로 서빙하지 않는다 — `python3 -m http.server 5500`으로 고정한다(`npx serve`는 301을 다시 심는다). 그리고 `web/index.html`이 `sw.js`를 등록하므로(bca77fc) 남의 워커가 오리진을 잡아도 로그인 페이지 방문 한 번으로 축출된다 — 이 방어층은 `cd web && npm run test:e2e:sw`가 단독 실행으로 검증한다.
