@@ -50,7 +50,8 @@ async function refreshFalls() {
     const label = document.createElement("span");
     label.textContent =
       `${f.room_name} ${f.room_number} · ${fmt(f.occurred_at)} · ` +
-      (f.acknowledged_at ? "확인함" : "미확인");
+      (f.acknowledged_at ? "확인함" : "미확인") +
+      (f.reported_119_at ? " · 119 신고됨" : "");
     li.append(label);
     if (f.acknowledged_at) {
       const del = document.createElement("button");
