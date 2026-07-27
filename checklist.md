@@ -259,3 +259,18 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 - [x] 최종 리뷰 정리 — 같은 틱 2회 POST 주석, 트래커 null 분기 테스트
 - [x] 수동 검증 10절 문서화, 세 스위트 48/34/23 그린, main 머지(30e9e7c)
 - [ ] 수동 검증 — 실기기로 `docs/manual-verification.md` 10절 (사람이 밟는다)
+
+## 22. 새 UI(screen_v3) 앱 화면 이관 (2026-07-28)
+
+`weniv_project 복사본`에서 작업된 screen_v3 기반 새 앱 UI(딥 틸 테마, 하단 탭 셸, 홈·방 관리·프로필)를 본 프로젝트로 이관한다. 복사본은 본 프로젝트와 같은 커밋(efb7b02) 위의 미커밋 작업이라 app/lib 15개 파일만 가져오면 된다. 단 새 UI가 떨어뜨린 기존 표시 기능은 복원한다. 경위는 context-notes.md "새 UI 이관".
+
+- [x] 이관 — 신규 8(app_theme·local_store·home·main_shell·profile·room_management·splash·start), 수정 7(main·notifications·fall_detail·fall_list·login·settings·signup)
+- [x] 기존 기능 복원 1 — 목록·홈 타일 trailing 배지: 119 신고됨 > 괜찮다고 말함 > 확인함/미확인
+- [x] 기존 기능 복원 2 — 상세 정보 카드에 "음성 확인(낙상자가 괜찮다고 말했습니다)" 행
+- [x] 기존 기능 복원 3 — 목록·홈 타일 제목에 방 번호(roomLabel)
+- [x] 기존 기능 복원 4 — 알림 목록 5초 자체 재조회(푸시된 라우트라 MainShell 폴러 setState가 닿지 않는다)
+- [x] 이관 결함 수정 — 색 있는 Container가 ListTile을 감싸 디버그 예외(알림 목록·설정 카드) → Material로 교체
+- [x] 방 관리 안내 문구 확대 — fontSize 11→13, 한 줄 말줄임 제거(줄바꿈 허용)
+- [x] 테스트 갱신 — fall_list_test(새 생성자+방 번호 검증), fall_detail_test(새 라벨·시각 형식), integration_test(MainShell 경유)
+- [x] 검증 — `flutter analyze` 무경고, `flutter test` 24개 통과(23 → 24, 방 번호 테스트 추가)
+- [ ] 수동 검증 — 실기기/시뮬레이터에서 새 UI로 낙상 → 배지·방 번호 확인 (사람이 밟는다)
