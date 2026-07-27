@@ -46,10 +46,18 @@ class _MainShellState extends State<MainShell> {
       api: widget.api,
       onEvents: (all, fresh, newlyOk) async {
         for (final e in fresh) {
-          await Notifications.show(e);
+          try {
+            await Notifications.show(e);
+          } catch (_) {
+            // 알림 실패가 사고 창까지 막으면 안 된다 — fresh는 at-most-once라 여기서 삼키지 않으면 이 틱의 사고 창이 영구 유실된다.
+          }
         }
         for (final e in newlyOk) {
-          await Notifications.show(e);
+          try {
+            await Notifications.show(e);
+          } catch (_) {
+            // 위와 같은 이유로 조용히 다음 이벤트로 넘어간다.
+          }
         }
         if (!mounted) return;
         setState(() {
@@ -93,16 +101,19 @@ class _MainShellState extends State<MainShell> {
   // 5초 폴링은 계속 돈다. 그 사이 도착한 새 낙상은 큐에 쌓였다가 이어서 뜬다.
   Future<void> _drainAlerts() async {
     _alertShowing = true;
-    while (_alertQueue.isNotEmpty && mounted) {
-      final event = _alertQueue.removeAt(0);
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false, // 바깥을 눌러도 안 닫힌다
-        useRootNavigator: true, // 설정·상세처럼 위에 쌓인 화면도 덮는다
-        builder: (_) => FallAlertDialog(event: event),
-      );
+    try {
+      while (_alertQueue.isNotEmpty && mounted) {
+        final event = _alertQueue.removeAt(0);
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false, // 바깥을 눌러도 안 닫힌다
+          useRootNavigator: true, // 설정·상세처럼 위에 쌓인 화면도 덮는다
+          builder: (_) => FallAlertDialog(event: event),
+        );
+      }
+    } finally {
+      _alertShowing = false;
     }
-    _alertShowing = false;
   }
 
   Future<void> _loadRooms() async {
