@@ -104,3 +104,51 @@ for e in FallEvent.objects.all()[:5]: print(e.id, e.room_name, e.room_number, e.
 - [ ] 조정했다면 `web/js/detector.js`의 `CONFIG` 값만 바꾸고 `npx vitest run` 재실행 (10개 통과 유지). 상태머신 구조는 건드리지 않는다
 - [ ] 조정 내역·이유·**카메라 배치**를 `context-notes.md`의 "임계값 튜닝 기록"에 남긴다
 - [ ] **3회 연속** 통과: ① 빠르게 넘어져 5초 → 알림 ② 천천히 눕기 → 알림 없음 ③ 급히 앉기 → 알림 없음
+
+## 7. Android 지원 (2026-07-27 라운드) — SDK 설치 후 밟는다
+
+**이 절은 아직 한 번도 실행되지 않았다.** 코드를 쓴 맥에 Android SDK가 없어 `flutter analyze`·`flutter test`까지만 통과시켰다. Android Studio를 설치한 사람이 여기부터 밟는다.
+
+### 사전 준비
+
+```bash
+flutter doctor            # [✓] Android toolchain 이 떠야 한다
+flutter devices           # 에뮬레이터 id 확인 (보통 emulator-5554)
+cd app && flutter build apk --debug     # 여기서 처음으로 빌드가 검증된다
+```
+
+- [ ] `flutter doctor`의 Android toolchain이 `[✓]`다
+- [ ] `flutter build apk --debug`가 성공한다 (**이 계획이 검증하지 못한 첫 번째 항목**)
+
+### 에뮬레이터 — 서버 접속
+
+백엔드(`:8000`)를 띄운 상태로 시작한다.
+
+- [ ] `flutter run -d <에뮬레이터 id>`로 앱이 뜬다
+- [ ] 앱 이름이 홈 화면에 **`Fall Guardian`**으로 보인다(`fall_guardian`이 아니다)
+- [ ] 로그인 화면에서 로그인이 된다 — **`10.0.2.2`로 백엔드에 닿는다는 뜻이다.** "연결할 수 없습니다" 류가 뜨면 `app/lib/api.dart`의 분기를 먼저 본다
+- [ ] 낙상 목록이 뜬다(평문 HTTP가 막히지 않았다는 뜻이다)
+
+### 알림
+
+- [ ] 앱 최초 실행에서 **알림 권한 팝업이 뜬다**(Android 13+). 안 뜨면 매니페스트의 `POST_NOTIFICATIONS`와 `Notifications.init()`의 `requestNotificationsPermission()`을 본다
+- [ ] 감지 페이지에서 낙상을 하나 만들면 5초 안에 알림이 온다
+- [ ] 그 알림이 **상단 배너(헤드업)로 뜬다.** 상태바에만 조용히 쌓이면 `Importance.max`/`Priority.high`가 안 먹은 것이다
+- [ ] 알림 아이콘이 흰 사각형이 아니라 앱 아이콘 실루엣이다
+
+### 119 발신
+
+- [ ] 설정 화면에서 어르신 전화번호를 저장한다
+- [ ] 낙상 상세 화면에서 전화 버튼을 누르면 **다이얼러가 열린다.** 아무 반응이 없으면 매니페스트 `<queries>`의 `tel` 인텐트를 본다(에뮬레이터에도 다이얼러가 있다)
+
+### 실기기
+
+- [ ] `flutter run --dart-define=API_HOST=<Mac IP>`로 같은 와이파이의 실기기에서 로그인이 된다
+- [ ] 실기기에서도 알림이 헤드업으로 뜬다
+
+### iOS 회귀
+
+Android를 붙이면서 iOS가 상하지 않았는지 본다.
+
+- [ ] iOS 시뮬레이터에서 앱이 그대로 뜬다(`flutter run`)
+- [ ] iOS 알림이 그대로 뜬다(설정 값을 안 건드렸으므로 그대로여야 한다)

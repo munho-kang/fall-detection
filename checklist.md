@@ -196,3 +196,18 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 - [x] 색 검증 — dataviz 팔레트 검증기로 blue/neutral 쌍 통과 확인(CVD ΔE 19.1), 4단계 파랑 램프는 탈락(ΔE 6.3)해 3단계 명도 단조 램프+직접 라벨로 대체
 - [x] 렌더 검증 — 19장 전부 헤드리스 렌더 확인, 깔때기 텍스트 충돌·카드 상단 정렬 쏠림 2건 발견·수정
 - [x] 검증 — 웹 22 통과, 서버 36 통과, 구조 검사(19장 순차·태그 균형·Django 잔재 0·placeholder 0)
+
+## 17. Flutter 앱 Android 지원 (2026-07-27)
+
+12절에서 걷어냈던 Android를 다시 붙였다. 이번엔 FCM 없이 로컬 알림만이다. 경위는 context-notes.md "Android 재지원".
+
+- [x] 설계 — 화면 9개는 그대로, 갈라지는 곳은 알림·서버 주소 둘뿐. Flutter Web은 범위 밖(guardian.html과 중복)
+- [x] `android/` 생성 — `flutter create --platforms=android --org com.example`, 커밋 19개 파일
+- [x] `flutter create` 부작용 3개 되돌림 — `.metadata`의 ios 항목 복원, `pubspec.lock` 22.0.1 유지, 템플릿 `test/widget_test.dart` 삭제
+- [x] 알림 — 채널 `fall_alerts`, `Importance.max`/`Priority.high`, Android 13+ 런타임 권한 요청. iOS 설정 불변
+- [x] 알림 테스트 3종 — Android 초기화 설정 존재·헤드업 값·iOS 설정 불변(조용히 실패하는 자리라 값으로 고정)
+- [x] 서버 주소 — `API_HOST` 우선순위 유지, 기본값만 Android면 `10.0.2.2`
+- [x] 매니페스트 — 평문 HTTP 전역 허용, `POST_NOTIFICATIONS`·`INTERNET`, `tel` 가시성, 표시명 `Fall Guardian`
+- [x] 문서 — README 실행법·미검증 경고, 수동 검증 7절, 테스트 개수 4→7
+- [x] 검증 — `flutter analyze` 무경고, `flutter test` 7개 통과
+- [ ] **미검증** — APK 빌드·에뮬레이터 접속·알림 표시·권한 팝업·`tel` 발신. 이 맥에 Android SDK가 없다. 설치 후 `docs/manual-verification.md` 7절
