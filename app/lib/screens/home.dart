@@ -44,10 +44,7 @@ class HomeScreen extends StatelessWidget {
     final recent = events.where((e) => e.isAcknowledged).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         elevation: 0,
         title: const Text('홈 화면', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         actions: [
@@ -67,10 +64,10 @@ class HomeScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           // 방 추가 배너 — 방이 있어도 항상 노출(누르면 방 관리 탭으로)
-          _addRoomCard(),
+          _addRoomCard(context),
           const SizedBox(height: 20),
           if (connectionError != null) ...[
-            _connectionBanner(),
+            _connectionBanner(context),
             const SizedBox(height: 16),
           ],
           Text('확인하지 않은 알림', style: _titleStyle(context)),
@@ -78,10 +75,13 @@ class HomeScreen extends StatelessWidget {
           if (loadingEvents)
             const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
           else if (unread.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: Text('아직 감지된 낙상이 없습니다.', style: TextStyle(color: AppColors.onSurfaceVariant)),
+                child: Text(
+                  '아직 감지된 낙상이 없습니다.',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
               ),
             )
           else
@@ -97,12 +97,16 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  TextStyle _titleStyle(BuildContext context) =>
-      const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.onSurface);
+  TextStyle _titleStyle(BuildContext context) => TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w700,
+        color: Theme.of(context).colorScheme.onSurface,
+      );
 
-  Widget _addRoomCard() {
+  Widget _addRoomCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: AppColors.primaryContainer,
+      color: scheme.primaryContainer,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: () => onChangeTab(1),
@@ -111,29 +115,29 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Icon(Icons.grid_view, size: 32, color: AppColors.onPrimaryContainer),
+              Icon(Icons.grid_view, size: 32, color: scheme.onPrimaryContainer),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       '방 추가',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.onPrimaryContainer,
+                        color: scheme.onPrimaryContainer,
                       ),
                     ),
-                    SizedBox(height: 3),
+                    const SizedBox(height: 3),
                     Text(
                       '방을 등록해 두세요.',
-                      style: TextStyle(fontSize: 15, color: AppColors.onPrimaryContainer),
+                      style: TextStyle(fontSize: 15, color: scheme.onPrimaryContainer),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.onPrimaryContainer),
+              Icon(Icons.chevron_right, color: scheme.onPrimaryContainer),
             ],
           ),
         ),
@@ -141,22 +145,23 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _connectionBanner() {
+  Widget _connectionBanner(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.errorContainer,
+        color: scheme.errorContainer,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber, size: 20, color: AppColors.onErrorContainer),
+          Icon(Icons.warning_amber, size: 20, color: scheme.onErrorContainer),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               connectionError!,
-              style: const TextStyle(fontSize: 15, color: AppColors.onErrorContainer),
+              style: TextStyle(fontSize: 15, color: scheme.onErrorContainer),
             ),
           ),
         ],
@@ -166,9 +171,10 @@ class HomeScreen extends StatelessWidget {
 
   Widget _alertCard(BuildContext context, List<FallEvent> list, {required bool onlyFirst, required bool dimTitle}) {
     final items = onlyFirst ? list.take(1).toList() : list;
+    final outlineVariant = Theme.of(context).colorScheme.outlineVariant;
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.outlineVariant),
+        border: Border.all(color: outlineVariant),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -176,7 +182,7 @@ class HomeScreen extends StatelessWidget {
           for (int i = 0; i < items.length; i++) ...[
             _alertTile(context, items[i], dimTitle: dimTitle),
             if (i < items.length - 1)
-              const Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.outlineVariant),
+              Divider(height: 1, indent: 16, endIndent: 16, color: outlineVariant),
           ],
         ],
       ),
@@ -185,23 +191,24 @@ class HomeScreen extends StatelessWidget {
 
   Widget _alertTile(BuildContext context, FallEvent e, {required bool dimTitle}) {
     final acknowledged = e.isAcknowledged;
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       leading: Icon(
         acknowledged ? Icons.check_circle : Icons.warning_amber,
-        color: acknowledged ? AppColors.onSurfaceVariant : AppColors.error,
+        color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
       ),
       title: Text(
         e.roomLabel,
         style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
-          color: dimTitle ? AppColors.onSurfaceVariant : AppColors.onSurface,
+          color: dimTitle ? scheme.onSurfaceVariant : scheme.onSurface,
         ),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
-        child: Text(_fmt(e.occurredAt), style: const TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
+        child: Text(_fmt(e.occurredAt), style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)),
       ),
       // 우선순위: 119 신고됨 > 괜찮다고 말함 > 확인함/미확인 — 알림 확인 창과 같다
       trailing: e.isReported119
@@ -219,7 +226,7 @@ class HomeScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: acknowledged ? AppColors.onSurfaceVariant : AppColors.error,
+                    color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
                   ),
                 ),
       onTap: () async {
