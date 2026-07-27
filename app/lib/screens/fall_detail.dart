@@ -150,6 +150,8 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           _row('발생 시각', _fmt(_event.occurredAt)),
           _row('감지 신뢰도', '${(_event.confidence * 100).toStringAsFixed(0)}%'),
           _row('상태', _event.isAcknowledged ? '확인함 (${_fmt(_event.acknowledgedAt!)})' : '미확인'),
+          if (_event.isVoiceOk)
+            _row('음성 확인', '낙상자가 괜찮다고 말했습니다 (${_fmt(_event.voiceOkAt!)})'),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: _busy || _event.isAcknowledged ? null : _acknowledge,

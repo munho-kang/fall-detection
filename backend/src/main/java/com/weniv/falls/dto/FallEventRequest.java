@@ -32,5 +32,8 @@ public record FallEventRequest(
     Double confidence,
 
     @JsonProperty("reported_119_at")
-    OffsetDateTime reported119At) {
+    OffsetDateTime reported119At,
+
+    @JsonProperty("voice_ok_at")
+    OffsetDateTime voiceOkAt) {
 }

@@ -51,7 +51,7 @@ export function createEscalation(config = CONFIG) {
         case "LISTENING":
           if (heardOk) {
             state = "RESOLVED"; // 질문(10s) 전이면 질문도 생략된다
-            commands.push("MIC_OFF");
+            commands.push("SEND_OK", "MIC_OFF");
           } else if (t - startedAt >= c.QUESTION_AT) {
             state = "ASKING";
             commands.push("PLAY_QUESTION");
@@ -73,7 +73,7 @@ export function createEscalation(config = CONFIG) {
           // 마감 프레임에 함께 도착한 heardOk는 응답으로 인정한다 — 대답은 마감 전에 나왔다
           if (heardOk) {
             state = "RESOLVED";
-            commands.push("MIC_OFF");
+            commands.push("SEND_OK", "MIC_OFF");
           } else if (t - startedAt >= c.REPORT_AT) {
             state = "REPORTED";
             commands.push("REPORT", "MIC_OFF");
