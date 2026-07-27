@@ -22,6 +22,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   late FallEvent _event = widget.event;
   bool _busy = false;
   Timer? _refreshTimer;
+  int _actionEpoch = 0; // 확인·삭제가 완료될 때마다 +1
 
   @override
   void initState() {
@@ -44,11 +45,15 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   }
 
   Future<void> _refetch() async {
+    final epoch = _actionEpoch; // 요청 시점 스냅샷
     try {
       final events = await widget.api.listFalls();
       final idx = events.indexWhere((e) => e.id == _event.id);
       // _busy 중에는 덮어쓰지 않는다 — 확인·삭제 진행 중 상태가 폴링과 엇갈리면 안 된다.
-      if (idx != -1 && mounted && !_busy) setState(() => _event = events[idx]);
+      // 요청 후 확인·삭제가 끝났으면(epoch 변동) 낡은 응답이다 — 버린다.
+      if (idx != -1 && mounted && !_busy && epoch == _actionEpoch) {
+        setState(() => _event = events[idx]);
+      }
     } on UnauthorizedException {
       // 목록 화면의 폴러가 곧 같은 401을 받아 로그아웃을 처리한다. 여기서는 조용히 둔다.
     } catch (_) {
@@ -63,6 +68,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       if (!mounted) return;
       setState(() {
         _event = updated;
+        _actionEpoch += 1;
         _busy = false;
       });
     } catch (e) {
@@ -94,6 +100,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
     try {
       await widget.api.deleteFall(_event.id);
       if (!mounted) return;
+      _actionEpoch += 1;
       // 결과 없이 pop 한다. 목록이 null 경로에서 서버 상태로 다시 그린다.
       Navigator.of(context).pop();
     } catch (e) {
