@@ -23,9 +23,6 @@ class AppColors {
   static const errorContainer = Color(0xFFFBE3DD);
   static const onErrorContainer = Color(0xFFD64A2F);
 
-  // 파괴적 동작 — 톤 낮춘 tonal
-  static const dangerBg = Color(0xFFF7DAD2);
-  static const dangerFg = Color(0xFFA03920);
 
   static const inverseSurface = Color(0xFF2B3230);
   static const pageBg = Color(0xFFE2E6E6);
