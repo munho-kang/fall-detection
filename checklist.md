@@ -239,9 +239,9 @@ Spring Boot 백엔드의 구현 구조와 동작을 설명하는 `docs/backend-a
 
 설계: [docs/superpowers/specs/2026-07-27-pitch-deck-design.md](docs/superpowers/specs/2026-07-27-pitch-deck-design.md)
 
-- [ ] 웹 리서치 — 통계·시장·기술 3에이전트, 출처 페이지 확인된 수치만 채택
-- [ ] pre.html 캡쳐 7장 추출·재사용 매핑, MediaPipe 다이어그램 신규 캡쳐
-- [ ] 슬라이드 16장 구성(템플릿 + 파이썬 치환으로 web/pitch.html 생성)
-- [ ] 차트 팔레트 검증(validate_palette.js, 다크 서피스)
-- [ ] 검증 — HTML 파서·JS 구문·이미지 디코드·npm test·로컬 서버 확인
-- [ ] context-notes 결정 기록·커밋
+- [x] 웹 리서치 — 통계·시장·기술 3에이전트, 출처 페이지 확인된 수치만 채택
+- [x] pre.html 캡쳐 7장 추출·재사용 매핑, MediaPipe 다이어그램 신규 캡쳐
+- [x] 슬라이드 16장 구성(템플릿 + 파이썬 치환으로 web/pitch.html 생성)
+- [x] 차트 팔레트 검증(validate_palette.js, 다크 서피스)
+- [x] 검증 — HTML 파서·JS 구문·이미지 디코드·npm test·로컬 서버 확인
+- [x] context-notes 결정 기록·커밋
