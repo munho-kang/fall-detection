@@ -1,5 +1,10 @@
 // 웹 푸시 수신 서비스 워커 — 알림 표시와 클릭 시 보호자 페이지 열기만 한다
 
+// 같은 오리진(포트 5500은 Live Server 기본값)에 남은 옛 워커가 제어권을 계속 쥐면
+// 이 워커가 대기 상태로 밀려난다. 즉시 인계받아 그 상태를 만들지 않는다.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
