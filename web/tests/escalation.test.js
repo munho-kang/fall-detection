@@ -153,4 +153,52 @@ describe("escalation", () => {
     expect(r.times("REPORT")).toEqual([21000]);
     expect(esc.state).toBe("REPORTED");
   });
+
+  it("질문 전 '괜찮아'(RESOLVED)에 SEND_OK가 MIC_OFF와 함께 정확히 1회 나간다", () => {
+    const esc = createEscalation();
+    const r = run(esc, [
+      ...standing(0, 1000),
+      ...fallen(1000, 6000, { 4000: "heardOk" }),
+      ...alerted(6000, 26000),
+    ]);
+
+    expect(r.times("SEND_OK")).toEqual([4000]);
+    expect(r.times("MIC_OFF")).toEqual([4000]);
+    expect(r.times("REPORT")).toEqual([]);
+  });
+
+  it("질문 후 대기 중 '괜찮아'(WAITING→RESOLVED)에도 SEND_OK가 1회 나간다", () => {
+    const esc = createEscalation();
+    const r = run(esc, [
+      ...standing(0, 1000),
+      ...fallen(1000, 6000),
+      ...alerted(6000, 26000, { 11500: "ttsEnded", 15000: "heardOk" }),
+    ]);
+
+    expect(r.times("SEND_OK")).toEqual([15000]);
+  });
+
+  it("무응답 신고(REPORTED) 경로에는 SEND_OK가 없다", () => {
+    const esc = createEscalation();
+    const r = run(esc, [
+      ...standing(0, 1000),
+      ...fallen(1000, 6000),
+      ...alerted(6000, 26000, { 11500: "ttsEnded" }),
+    ]);
+
+    expect(r.times("SEND_OK")).toEqual([]);
+    expect(r.times("REPORT")).toEqual([21000]);
+  });
+
+  it("RESOLVED 후 재무장 전에 heardOk가 또 와도 SEND_OK는 한 번뿐이다", () => {
+    const esc = createEscalation();
+    // 15000에 해제된 뒤 16000의 heardOk는 늦게 도착한 STT 결과다 — 중복 전송이 없어야 한다
+    const r = run(esc, [
+      ...standing(0, 1000),
+      ...fallen(1000, 6000),
+      ...alerted(6000, 26000, { 11500: "ttsEnded", 15000: "heardOk", 16000: "heardOk" }),
+    ]);
+
+    expect(r.times("SEND_OK")).toEqual([15000]);
+  });
 });
