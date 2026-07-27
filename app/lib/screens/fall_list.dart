@@ -90,10 +90,7 @@ class _FallListScreenState extends State<FallListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -109,10 +106,10 @@ class _FallListScreenState extends State<FallListScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.errorContainer,
+                  color: Theme.of(context).colorScheme.errorContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(_error!, style: const TextStyle(color: AppColors.onErrorContainer)),
+                child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
               ),
               const SizedBox(height: 16),
             ],
@@ -138,7 +135,7 @@ class _FallListScreenState extends State<FallListScreen> {
                     for (int i = 0; i < _events.length; i++) ...[
                       _alertTile(_events[i]),
                       if (i < _events.length - 1)
-                        const Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.outlineVariant),
+                        Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.outlineVariant),
                     ],
                   ],
                 ),
@@ -151,23 +148,24 @@ class _FallListScreenState extends State<FallListScreen> {
 
   Widget _alertTile(FallEvent e) {
     final acknowledged = e.isAcknowledged;
+    final scheme = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       leading: Icon(
         acknowledged ? Icons.check_circle : Icons.warning_amber,
-        color: acknowledged ? AppColors.onSurfaceVariant : AppColors.error,
+        color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
       ),
       title: Text(
         e.roomLabel,
         style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
-          color: acknowledged ? AppColors.onSurfaceVariant : AppColors.onSurface,
+          color: acknowledged ? scheme.onSurfaceVariant : scheme.onSurface,
         ),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
-        child: Text(_fmt(e.occurredAt), style: const TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
+        child: Text(_fmt(e.occurredAt), style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)),
       ),
       // 우선순위: 119 신고됨 > 괜찮다고 말함 > 확인함/미확인 — 안전 쪽이 이긴다
       trailing: e.isReported119
@@ -185,7 +183,7 @@ class _FallListScreenState extends State<FallListScreen> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: acknowledged ? AppColors.onSurfaceVariant : AppColors.error,
+                    color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
                   ),
                 ),
       onTap: () async {

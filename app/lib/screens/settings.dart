@@ -66,10 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -92,13 +89,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),
                       ),
                     ),
-                    Divider(height: 1, color: AppColors.outlineVariant, indent: 0, endIndent: 0),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant, indent: 0, endIndent: 0),
                     ListTile(
                       title: const Text('화면 크기', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
                       trailing: _textScaleSeg(),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     ),
-                    Divider(height: 1, color: AppColors.outlineVariant),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     SwitchListTile(
                       value: _notificationsOn,
                       onChanged: _setNotificationsOn,
@@ -111,19 +108,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppColors.errorContainer,
+                      color: Theme.of(context).colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning_amber, size: 18, color: AppColors.onErrorContainer),
+                        Icon(Icons.warning_amber, size: 18, color: Theme.of(context).colorScheme.onErrorContainer),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             '알림을 끄면 낙상 알림이 더이상 가지 않습니다.',
                             style: TextStyle(
                               fontSize: 12 * (_textScale.factor),
-                              color: AppColors.onErrorContainer,
+                              color: Theme.of(context).colorScheme.onErrorContainer,
                               letterSpacing: -0.01,
                             ),
                           ),
@@ -138,21 +135,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     ListTile(
                       title: const Text('공지사항', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
+                      trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       onTap: () => _snack('준비 중입니다'),
                     ),
-                    const Divider(height: 1, color: AppColors.outlineVariant),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     ListTile(
                       title: const Text('문의하기', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.onSurfaceVariant),
+                      trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       onTap: () => _snack('준비 중입니다'),
                     ),
-                    const Divider(height: 1, color: AppColors.outlineVariant),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                     ListTile(
                       title: const Text('앱 버전', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: const Text(
+                      trailing: Text(
                         'MVP v1.0',
-                        style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant),
+                        style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ),
                   ],
@@ -165,7 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _textScaleSeg() {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -180,7 +177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 alignment: Alignment.center,
                 decoration: _textScale == TextScale.values[i]
                     ? BoxDecoration(
-                        color: AppColors.primaryContainer,
+                        color: Theme.of(context).colorScheme.primaryContainer,
                         borderRadius: BorderRadius.horizontal(
                           left: i == 0 ? const Radius.circular(20) : Radius.zero,
                           right: i == TextScale.values.length - 1 ? const Radius.circular(20) : Radius.zero,
@@ -192,15 +189,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     color: _textScale == TextScale.values[i]
-                        ? AppColors.onPrimaryContainer
-                        : AppColors.onSurface,
+                        ? Theme.of(context).colorScheme.onPrimaryContainer
+                        : Theme.of(context).colorScheme.onSurface,
                     fontWeight: _textScale == TextScale.values[i] ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
             ),
             if (i < TextScale.values.length - 1)
-              const SizedBox(width: 1, child: SizedBox(height: 24, child: VerticalDivider(color: AppColors.outline))),
+              SizedBox(width: 1, child: SizedBox(height: 24, child: VerticalDivider(color: Theme.of(context).colorScheme.outline))),
           ],
         ],
       ),
@@ -223,7 +220,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.only(top: 14, bottom: 6),
               child: Text(
                 heading,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
             ...children,

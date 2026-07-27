@@ -3,9 +3,13 @@
 
 import 'package:fall_guardian/api.dart';
 import 'package:fall_guardian/app_theme.dart';
+import 'package:fall_guardian/models.dart';
+import 'package:fall_guardian/screens/fall_list.dart';
 import 'package:fall_guardian/screens/home.dart';
+import 'package:fall_guardian/screens/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // 다크 테마의 값 — app_theme.dart와 맞춘다
 const darkOnSurface = Color(0xFFE2E6E5);
@@ -23,7 +27,48 @@ Future<void> pumpDark(WidgetTester tester, Widget screen) async {
 Color? colorOf(WidgetTester tester, String text) =>
     tester.widget<Text>(find.text(text)).style?.color;
 
+class FakeApi extends Api {
+  @override
+  Future<List<FallEvent>> listFalls() async => const [];
+}
+
+final sampleEvent = FallEvent(
+  id: 1,
+  roomName: '안방',
+  roomNumber: 1,
+  occurredAt: DateTime(2026, 7, 28, 4, 35),
+  createdAt: DateTime(2026, 7, 28, 4, 35),
+  confidence: 0.9,
+);
+
 void main() {
+  // SettingsScreen이 initState에서 LocalStore를 읽는다
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  testWidgets('설정 — 카드 제목이 다크 보조 글자색이다', (tester) async {
+    await pumpDark(tester, const SettingsScreen());
+    await tester.pump(); // _load()의 비동기 응답
+
+    expect(colorOf(tester, '앱 설정'), darkOnSurfaceVariant);
+    expect(colorOf(tester, 'MVP v1.0'), darkOnSurfaceVariant);
+  });
+
+  testWidgets('알림 목록 — 타일 시각이 다크 보조 글자색이다', (tester) async {
+    await pumpDark(
+      tester,
+      FallListScreen(
+        api: FakeApi(),
+        events: [sampleEvent],
+        loading: false,
+        connectionError: null,
+        onLogout: () {},
+        onRefresh: () async {},
+      ),
+    );
+
+    expect(colorOf(tester, '7월 28일 04:35'), darkOnSurfaceVariant);
+  });
+
   testWidgets('홈 — 섹션 제목과 방 추가 배너가 다크 글자색이다', (tester) async {
     await pumpDark(
       tester,
