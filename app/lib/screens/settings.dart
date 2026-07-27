@@ -137,7 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
+      appBar: AppBar(title: const Text('보호자 페이지')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

@@ -100,11 +100,11 @@ class _FallListScreenState extends State<FallListScreen> {
       appBar: AppBar(
         title: const Text('낙상 알림'),
         actions: [
-          IconButton(
+          TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => SettingsScreen(api: widget.api)),
             ),
-            icon: const Icon(Icons.settings),
+            child: const Text('보호자 페이지'),
           ),
           IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
         ],
