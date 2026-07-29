@@ -67,10 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         elevation: 0,
         title: const Text('프로필', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
         actions: [
@@ -101,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   _contactPhone?.isNotEmpty == true ? _contactPhone! : '연락처 미등록',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant),
+                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
                 _sectionCard(
@@ -133,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _row('로그아웃', '', () => _confirmLogout(), trailingIcon: Icons.logout, dimText: false),
                     _row('회원 탈퇴', '', () => _confirmWithdraw(),
                         trailingIcon: Icons.delete_outline,
-                        textColor: AppColors.dangerFg),
+                        textColor: dangerColors(Theme.of(context).brightness).fg),
                   ],
                 ),
               ],
@@ -142,6 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _avatar() {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: SizedBox(
         width: 88,
@@ -152,11 +150,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: 88,
               height: 88,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryContainer,
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.person, size: 44, color: AppColors.onPrimaryContainer),
+              child: Icon(Icons.person, size: 44, color: scheme.onPrimaryContainer),
             ),
             Positioned(
               right: -2,
@@ -167,7 +165,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surface, width: 2),
+                  // 링은 페이지 배경을 오려낸 것처럼 보여야 한다 — 다크에서
+                  // scaffoldBackgroundColor와 colorScheme.surface가 서로 다르다
+                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
                 ),
                 child: const Icon(Icons.camera_alt, size: 16, color: AppColors.onPrimary),
               ),
@@ -194,10 +194,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   heading,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -205,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           for (int i = 0; i < rows.length; i++) ...[
             rows[i],
             if (i < rows.length - 1)
-              const Divider(height: 1, color: AppColors.outlineVariant),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
           ],
         ],
       ),
@@ -232,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 17,
-                  color: textColor ?? AppColors.onSurface,
+                  color: textColor ?? Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -243,14 +243,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   value,
                   style: TextStyle(
                     fontSize: 15,
-                    color: valueColor ?? AppColors.onSurfaceVariant,
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             Icon(
               trailingIcon ?? Icons.chevron_right,
               size: 20,
-              color: textColor ?? AppColors.onSurfaceVariant,
+              color: textColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),
@@ -338,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (subtitle != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(subtitle, style: const TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant)),
+                child: Text(subtitle, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             TextField(
               controller: controller,
@@ -370,25 +370,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _confirmWithdraw() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-        title: const Text('회원 탈퇴', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-        content: const Text(
-          '계정과 알림 기록이 모두 삭제되며 되돌릴 수 없습니다. 정말 탈퇴하시겠어요?',
-          style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.dangerBg,
-              foregroundColor: AppColors.dangerFg,
-            ),
-            child: const Text('탈퇴'),
+      builder: (context) {
+        final tone = dangerColors(Theme.of(context).brightness);
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          title: const Text('회원 탈퇴', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+          content: Text(
+            '계정과 알림 기록이 모두 삭제되며 되돌릴 수 없습니다. 정말 탈퇴하시겠어요?',
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: tone.bg,
+                foregroundColor: tone.fg,
+              ),
+              child: const Text('탈퇴'),
+            ),
+          ],
+        );
+      },
     );
     if (ok != true) return;
     // 백엔드 탈퇴 endpoint가 없으므로 로컬 토큰/프로필만 삭제

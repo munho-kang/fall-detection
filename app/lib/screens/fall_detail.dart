@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../app_theme.dart';
+import '../app_theme.dart' show AppColors, dangerColors;
 import '../api.dart';
 import '../models.dart';
 
@@ -123,10 +123,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
   Widget build(BuildContext context) {
     final phoneRegistered = _elderPhone != null && _elderPhone!.isNotEmpty;
     return Scaffold(
-      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.onSurface,
         leading: BackButton(onPressed: () => Navigator.of(context).pop(_event)),
         title: const Text('알림', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
       ),
@@ -153,7 +150,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
                   _event.isAcknowledged
                       ? '확인함 (${_fmt(_event.acknowledgedAt!)})'
                       : '미확인',
-                  valueColor: _event.isAcknowledged ? AppColors.onSurfaceVariant : AppColors.error,
+                  valueColor: _event.isAcknowledged ? Theme.of(context).colorScheme.onSurfaceVariant : AppColors.error,
                 ),
                 if (_event.isVoiceOk)
                   _row(
@@ -185,10 +182,10 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           ),
           if (!phoneRegistered) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '프로필에서 전화번호를 등록하면 켜집니다.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: AppColors.onSurfaceVariant),
+              style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
           const SizedBox(height: 12),
@@ -232,7 +229,14 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
         children: [
           SizedBox(
             width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 15, height: 1.5, color: AppColors.onSurfaceVariant)),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.5,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
           Expanded(
             child: Text(
@@ -241,7 +245,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 height: 1.4,
-                color: valueColor ?? AppColors.onSurface,
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
@@ -260,6 +264,11 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
     bool danger = false,
     VoidCallback? onPressed,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    // 원래 상수 Color(0x1F191C1B) · Color(0x61191C1B)는 라이트 onSurface에
+    // Material 비활성 알파(배경 12% · 전경 38%)를 씌운 값이다. 의미를 그대로 두고 밝기만 따라가게 한다.
+    final disabledBg = scheme.onSurface.withValues(alpha: 0.12);
+    final disabledFg = scheme.onSurface.withValues(alpha: 0.38);
     final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(16));
     final inner = Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -278,8 +287,8 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.onPrimary,
-            disabledBackgroundColor: const Color(0x1F191C1B),
-            disabledForegroundColor: const Color(0x61191C1B),
+            disabledBackgroundColor: disabledBg,
+            disabledForegroundColor: disabledFg,
             shape: shape,
           ),
           child: inner,
@@ -294,8 +303,8 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.error,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0x1F191C1B),
-            disabledForegroundColor: const Color(0x61191C1B),
+            disabledBackgroundColor: disabledBg,
+            disabledForegroundColor: disabledFg,
             shape: shape,
           ),
           child: inner,
@@ -303,15 +312,16 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       );
     }
     if (danger) {
+      final tone = dangerColors(Theme.of(context).brightness);
       return SizedBox(
         height: 48,
         child: FilledButton(
           onPressed: enabled ? onPressed : null,
           style: FilledButton.styleFrom(
-            backgroundColor: AppColors.dangerBg,
-            foregroundColor: AppColors.dangerFg,
-            disabledBackgroundColor: const Color(0xFFF7DAD2).withValues(alpha: 0.4),
-            disabledForegroundColor: const Color(0xFFA03920).withValues(alpha: 0.38),
+            backgroundColor: tone.bg,
+            foregroundColor: tone.fg,
+            disabledBackgroundColor: tone.bg.withValues(alpha: 0.4),
+            disabledForegroundColor: tone.fg.withValues(alpha: 0.38),
             shape: shape,
           ),
           child: inner,
@@ -323,10 +333,10 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       child: OutlinedButton(
         onPressed: enabled ? onPressed : null,
         style: OutlinedButton.styleFrom(
-          backgroundColor: outlinedWithSurface ? Theme.of(context).colorScheme.surfaceContainer : null,
-          foregroundColor: AppColors.onSurface,
-          side: const BorderSide(color: AppColors.outline),
-          disabledForegroundColor: const Color(0x61191C1B),
+          backgroundColor: outlinedWithSurface ? scheme.surfaceContainer : null,
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outline),
+          disabledForegroundColor: disabledFg,
           shape: shape,
         ),
         child: inner,

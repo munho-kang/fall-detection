@@ -16,7 +16,6 @@ class StartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -26,7 +25,7 @@ class StartScreen extends StatelessWidget {
               const SizedBox(height: 72),
               Center(child: brandLogo()),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 '낙상 알림',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -34,14 +33,14 @@ class StartScreen extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   height: 1.3,
                   letterSpacing: -0.02,
-                  color: AppColors.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 '돌봄 대상자의 낙상을 감지해\n보호자에게 실시간으로 알려드립니다.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, height: 1.5, color: AppColors.onSurfaceVariant),
+                style: TextStyle(fontSize: 15, height: 1.5, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 36),
               // tall 버튼(56dp). 손이 큰 사용자도 정확히 누르도록
@@ -69,7 +68,7 @@ class StartScreen extends StatelessWidget {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.outline),
+                    side: BorderSide(color: Theme.of(context).colorScheme.outline),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                     textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
