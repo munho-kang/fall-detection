@@ -167,50 +167,14 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
   }
 
   Future<void> _editRoom([Room? room]) async {
-    final name = TextEditingController(text: room?.name ?? '');
-    final number = TextEditingController(text: room?.number.toString() ?? '');
-    final saved = await showDialog<bool>(
+    // 입력값은 창이 pop할 때 결과로 받는다 — 컨트롤러는 창이 소유한다(_RoomEditDialog 주석).
+    final entered = await showDialog<_RoomDraft>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-        title: Text(
-          room == null ? '방 추가' : '방 수정',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 라벨 없는 밑줄형 — 다이얼로그 내부 입력
-            TextField(
-              controller: name,
-              autofocus: true,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: number,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('저장')),
-        ],
-      ),
+      builder: (_) => _RoomEditDialog(room: room),
     );
-    final nameText = name.text.trim();
-    final n = int.tryParse(number.text.trim());
-    name.dispose();
-    number.dispose();
-    if (saved != true) return;
+    if (entered == null) return; // 취소
+    final nameText = entered.name.trim();
+    final n = int.tryParse(entered.number.trim());
     if (nameText.isEmpty || n == null) {
       _snack('이름과 숫자 번호를 모두 입력하세요.');
       return;
@@ -267,5 +231,75 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+// 방 추가·수정 창이 입력한 값 — 다듬기·숫자 변환은 받는 쪽이 한다
+typedef _RoomDraft = ({String name, String number});
+
+// 컨트롤러를 창이 소유해야 하는 이유: showDialog가 돌려주는 future는 pop 시점에 곧바로
+// 완료되지만 라우트는 퇴장 애니메이션이 끝날 때까지 살아 있다. 호출부에서 future를
+// 받자마자 dispose하면 그 사이 리빌드되는 TextField가 죽은 컨트롤러를 구독해
+// "A TextEditingController was used after being disposed"로 터진다.
+// State.dispose는 라우트가 언마운트될 때(=TextField가 사라진 뒤) 불려 안전하다.
+class _RoomEditDialog extends StatefulWidget {
+  const _RoomEditDialog({this.room});
+
+  final Room? room;
+
+  @override
+  State<_RoomEditDialog> createState() => _RoomEditDialogState();
+}
+
+class _RoomEditDialogState extends State<_RoomEditDialog> {
+  late final _name = TextEditingController(text: widget.room?.name ?? '');
+  late final _number = TextEditingController(text: widget.room?.number.toString() ?? '');
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _number.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      title: Text(
+        widget.room == null ? '방 추가' : '방 수정',
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 라벨 없는 밑줄형 — 다이얼로그 내부 입력
+          TextField(
+            controller: _name,
+            autofocus: true,
+            decoration: const InputDecoration(
+              border: UnderlineInputBorder(),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _number,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              border: UnderlineInputBorder(),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+        FilledButton(
+          onPressed: () => Navigator.pop<_RoomDraft>(context, (name: _name.text, number: _number.text)),
+          child: const Text('저장'),
+        ),
+      ],
+    );
   }
 }

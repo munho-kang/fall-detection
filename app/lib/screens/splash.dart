@@ -41,13 +41,18 @@ class _SplashScreenState extends State<SplashScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.only(top: 72),
+          // Scaffold body는 가로 constraints를 느슨하게 준다 — 기본 center 정렬만 믿으면
+          // Column이 가장 넓은 자식 폭으로 수축해 화면 왼쪽에 붙는다. 시작 화면과 같은
+          // stretch + textAlign 조합으로 폭을 채운다.
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              brandLogo(),
+              Center(child: brandLogo()),
               const SizedBox(height: 24),
               const Text(
                 '낙상 알림',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w800,
@@ -59,6 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 10),
               const Text(
                 '프라이버시 보존형 낙상 감지',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.5,

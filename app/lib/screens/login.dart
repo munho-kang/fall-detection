@@ -37,9 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await widget.api.login(_username.text, _password.text);
       if (!mounted) return;
-      // MainShell로 교체. 뒤로 가기로 시작 화면으로 되돌아가지 않게
-      Navigator.of(context).pushReplacement(
+      // 스택을 전부 걷어낸다 — pushReplacement는 이 로그인 라우트만 바꿔서 아래의
+      // 시작 화면이 남고, 로그인된 홈에 뒤로가기 화살표가 생긴다. 회원가입과 같은 방식.
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => MainShell(api: widget.api)),
+        (route) => false,
       );
     } catch (e) {
       if (!mounted) return;

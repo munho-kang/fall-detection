@@ -325,41 +325,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required TextInputType keyboardType,
     required Future<void> Function(String) onSaved,
   }) async {
-    final controller = TextEditingController(text: value);
-    final saved = await showDialog<bool>(
+    // 입력값은 창이 pop할 때 결과로 받는다 — 컨트롤러는 창이 소유한다(_FieldEditDialog 주석).
+    final entered = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-        title: Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (subtitle != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(subtitle, style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ),
-            TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('저장')),
-        ],
+      builder: (_) => _FieldEditDialog(
+        title: title,
+        subtitle: subtitle,
+        value: value,
+        keyboardType: keyboardType,
       ),
     );
-    final v = controller.text.trim();
-    controller.dispose();
-    if (saved != true) return;
-    await onSaved(v);
+    if (entered == null) return; // 취소
+    await onSaved(entered.trim());
   }
 
   Future<void> _confirmLogout() async {
@@ -402,5 +379,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+}
+
+// 컨트롤러를 창이 소유해야 하는 이유: showDialog가 돌려주는 future는 pop 시점에 곧바로
+// 완료되지만 라우트는 퇴장 애니메이션이 끝날 때까지 살아 있다. 호출부에서 future를
+// 받자마자 dispose하면 그 사이 리빌드되는 TextField가 죽은 컨트롤러를 구독해
+// "A TextEditingController was used after being disposed"로 터진다.
+// State.dispose는 라우트가 언마운트될 때(=TextField가 사라진 뒤) 불려 안전하다.
+class _FieldEditDialog extends StatefulWidget {
+  const _FieldEditDialog({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.keyboardType,
+  });
+
+  final String title;
+  final String? subtitle;
+  final String value;
+  final TextInputType keyboardType;
+
+  @override
+  State<_FieldEditDialog> createState() => _FieldEditDialogState();
+}
+
+class _FieldEditDialogState extends State<_FieldEditDialog> {
+  late final _controller = TextEditingController(text: widget.value);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      title: Text(widget.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.subtitle != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                widget.subtitle!,
+                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+            ),
+          TextField(
+            controller: _controller,
+            keyboardType: widget.keyboardType,
+            decoration: const InputDecoration(
+              border: UnderlineInputBorder(),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+        FilledButton(
+          onPressed: () => Navigator.pop<String>(context, _controller.text),
+          child: const Text('저장'),
+        ),
+      ],
+    );
   }
 }
