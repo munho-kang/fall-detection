@@ -1,5 +1,6 @@
 // Django API 호출과 토큰 보관
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
@@ -11,7 +12,16 @@ import 'models.dart';
 class UnauthorizedException implements Exception {}
 
 class Api {
+  // 테스트에서 가짜 클라이언트를 꽂을 수 있어야 응답 없는 서버를 재현할 수 있다
+  Api({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
   static const _tokenKey = 'fall_token';
+
+  // LAN 안의 서버라 정상 응답은 금방 온다. 응답 없는 요청 하나가 화면과 폴러의
+  // _inFlight 가드를 무기한 잡아두지 않도록 모든 호출은 5초에 끊는다.
+  static const _timeout = Duration(seconds: 5);
 
   // 우선순위: --dart-define=API_HOST(같은 와이파이의 Mac IP) > 에뮬레이터/시뮬레이터 기본값.
   // iOS 시뮬레이터·데스크톱은 호스트를 127.0.0.1로 본다.
@@ -48,12 +58,22 @@ class Api {
         if (_token != null) 'Authorization': 'Token $_token',
       };
 
+  // 모든 HTTP 호출은 이 헬퍼를 거친다 — 타임아웃이 빠진 호출이 생기지 않게 한다.
+  // 화면이 예외 문구를 그대로 보여주므로 영어 TimeoutException 대신 한국어로 바꾼다.
+  Future<http.Response> _send(Future<http.Response> request) async {
+    try {
+      return await request.timeout(_timeout);
+    } on TimeoutException {
+      throw Exception('서버가 응답하지 않습니다. 같은 와이파이에 있는지 확인해 주세요.');
+    }
+  }
+
   Future<String> login(String username, String password) async {
-    final res = await http.post(
+    final res = await _send(_client.post(
       Uri.parse('$baseUrl/api/auth/login/'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': username, 'password': password}),
-    );
+    ));
     if (res.statusCode != 200) {
       throw Exception('아이디 또는 비밀번호가 올바르지 않습니다.');
     }
@@ -63,11 +83,11 @@ class Api {
   }
 
   Future<String> signup(String username, String password) async {
-    final res = await http.post(
+    final res = await _send(_client.post(
       Uri.parse('$baseUrl/api/auth/signup/'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'username': username, 'password': password}),
-    );
+    ));
     if (res.statusCode != 201) {
       throw Exception(_firstErrorMessage(res) ?? '회원가입에 실패했습니다.');
     }
@@ -92,7 +112,7 @@ class Api {
   }
 
   Future<List<FallEvent>> listFalls() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/falls/'), headers: _headers);
+    final res = await _send(_client.get(Uri.parse('$baseUrl/api/falls/'), headers: _headers));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) throw Exception('목록을 불러오지 못했습니다 (${res.statusCode}).');
     final list = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
@@ -100,17 +120,17 @@ class Api {
   }
 
   Future<FallEvent> acknowledge(int id) async {
-    final res = await http.post(
+    final res = await _send(_client.post(
       Uri.parse('$baseUrl/api/falls/$id/acknowledge/'),
       headers: _headers,
-    );
+    ));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) throw Exception('확인 처리에 실패했습니다 (${res.statusCode}).');
     return FallEvent.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
   }
 
   Future<void> deleteFall(int id) async {
-    final res = await http.delete(Uri.parse('$baseUrl/api/falls/$id/'), headers: _headers);
+    final res = await _send(_client.delete(Uri.parse('$baseUrl/api/falls/$id/'), headers: _headers));
     if (res.statusCode == 401) throw UnauthorizedException();
     // 미확인 기록 삭제는 서버가 400 + 한국어 문구로 거절한다. 문구를 새로 짓지 말고 그대로 올린다.
     if (res.statusCode != 204) {
@@ -119,7 +139,7 @@ class Api {
   }
 
   Future<List<Room>> listRooms() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/rooms/'), headers: _headers);
+    final res = await _send(_client.get(Uri.parse('$baseUrl/api/rooms/'), headers: _headers));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) throw Exception('방 목록을 불러오지 못했습니다 (${res.statusCode}).');
     final list = jsonDecode(utf8.decode(res.bodyBytes)) as List<dynamic>;
@@ -127,11 +147,11 @@ class Api {
   }
 
   Future<Room> createRoom(String name, int number) async {
-    final res = await http.post(
+    final res = await _send(_client.post(
       Uri.parse('$baseUrl/api/rooms/'),
       headers: _headers,
       body: jsonEncode({'name': name, 'number': number}),
-    );
+    ));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 201) {
       throw Exception(_firstErrorMessage(res) ?? '방을 추가하지 못했습니다.');
@@ -140,11 +160,11 @@ class Api {
   }
 
   Future<Room> renameRoom(int id, String name, int number) async {
-    final res = await http.patch(
+    final res = await _send(_client.patch(
       Uri.parse('$baseUrl/api/rooms/$id/'),
       headers: _headers,
       body: jsonEncode({'name': name, 'number': number}),
-    );
+    ));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) {
       throw Exception(_firstErrorMessage(res) ?? '방 정보를 바꾸지 못했습니다.');
@@ -153,24 +173,24 @@ class Api {
   }
 
   Future<void> deleteRoom(int id) async {
-    final res = await http.delete(Uri.parse('$baseUrl/api/rooms/$id/'), headers: _headers);
+    final res = await _send(_client.delete(Uri.parse('$baseUrl/api/rooms/$id/'), headers: _headers));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 204) throw Exception('방을 삭제하지 못했습니다 (${res.statusCode}).');
   }
 
   Future<Profile> getProfile() async {
-    final res = await http.get(Uri.parse('$baseUrl/api/profile/'), headers: _headers);
+    final res = await _send(_client.get(Uri.parse('$baseUrl/api/profile/'), headers: _headers));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) throw Exception('프로필을 불러오지 못했습니다 (${res.statusCode}).');
     return Profile.fromJson(jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
   }
 
   Future<Profile> updateProfile(String elderPhone) async {
-    final res = await http.put(
+    final res = await _send(_client.put(
       Uri.parse('$baseUrl/api/profile/'),
       headers: _headers,
       body: jsonEncode({'elder_phone': elderPhone}),
-    );
+    ));
     if (res.statusCode == 401) throw UnauthorizedException();
     if (res.statusCode != 200) {
       throw Exception(_firstErrorMessage(res) ?? '전화번호를 저장하지 못했습니다.');
