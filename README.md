@@ -84,9 +84,10 @@ flutter devices                               # 연결된 기기·시뮬레이�
 flutter run                                   # iOS 시뮬레이터
 flutter run -d <에뮬레이터 id>                # Android 에뮬레이터 — 보통 emulator-5554
 flutter run --dart-define=API_HOST=<Mac IP>   # 실기기 — 같은 와이파이의 Mac IP
+flutter run -d chrome                         # 웹(보호자 앱) — 크롬으로 실행
 ```
 
-시뮬레이터·에뮬레이터는 서버 주소가 자동으로 잡힌다. iOS 시뮬레이터는 `127.0.0.1:8000`, Android 에뮬레이터는 `10.0.2.2:8000`이다(에뮬레이터 안에서 `127.0.0.1`은 호스트 맥이 아니라 에뮬레이터 자신이다). 실기기는 양쪽 다 같은 와이파이에 물린 Mac의 IP를 `API_HOST`로 넘긴다(`app/lib/api.dart`). 릴리즈 설치도 같다 — `flutter run --release --dart-define=API_HOST=<Mac IP>`.
+시뮬레이터·에뮬레이터는 서버 주소가 자동으로 잡힌다. iOS 시뮬레이터는 `127.0.0.1:8000`, Android 에뮬레이터는 `10.0.2.2:8000`이다(에뮬레이터 안에서 `127.0.0.1`은 호스트 맥이 아니라 에뮬레이터 자신이다). 실기기는 양쪽 다 같은 와이파이에 물린 Mac의 IP를 `API_HOST`로 넘긴다(`app/lib/api.dart`). 릴리즈 설치도 같다 — `flutter run --release --dart-define=API_HOST=<Mac IP>`. 웹은 페이지를 연 호스트가 곧 서버 주소다(크롬 실행은 localhost:8000, `API_HOST`로 바꿀 수 있다). 배포는 `cd app && flutter build web` — `app/build/web`의 정적 파일을 아무 정적 서버로 서빙하면 된다.
 
 에뮬레이터 id는 환경마다 다르니 `flutter devices`로 확인한다.
 
