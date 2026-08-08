@@ -109,5 +109,17 @@ void main() {
         'http://127.0.0.1:8000',
       );
     });
+
+    test('웹이면 안드로이드 브라우저라도 페이지 호스트가 이긴다 — isWeb 검사가 플랫폼보다 먼저다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '',
+          isWeb: true,
+          pageUri: Uri.parse('http://192.168.0.7:8080/'),
+          platform: TargetPlatform.android,
+        ),
+        'http://192.168.0.7:8000',
+      );
+    });
   });
 }

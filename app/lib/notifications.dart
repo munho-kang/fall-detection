@@ -9,8 +9,8 @@ import 'models.dart';
 class Notifications {
   static final _plugin = FlutterLocalNotificationsPlugin();
 
-  // 웹에는 이 플러그인의 구현이 없다(호출 시 MissingPluginException). 웹에서는 탭이
-  // 열려 있는 동안 사고 발생 모달이 알림 역할을 하므로 OS 알림은 조용히 건너뛴다.
+  // 웹 구현 존재 여부와 무관하게, 웹은 인앱 사고 발생 모달 전용이 설계 결정이다
+  // (스펙 결정 3 — 브라우저 알림 미도입). OS 알림은 웹에서 조용히 건너뛴다.
   // kIsWeb은 상수라 VM 테스트에서 웹 경로를 못 타 — 오버라이드를 열어 둔다.
   @visibleForTesting
   static bool? debugIsWebOverride;

@@ -13,8 +13,8 @@
 
 1. `api.dart:5` — `dart:io`의 `Platform`으로 Android 에뮬레이터 여부를 가른다. `dart:io`는
    웹 타깃에서 쓸 수 없다.
-2. `notifications.dart` — `flutter_local_notifications`는 웹 구현이 없어 호출 시
-   `MissingPluginException`이 난다(컴파일은 됨).
+2. `notifications.dart` — `flutter_local_notifications`의 웹 경로는 쓰지 않기로 했다.
+   웹 알림은 결정 3에 따라 인앱 모달 전용이다.
 
 나머지 의존성은 전부 웹 구현이 있다: `http`(fetch), `shared_preferences`(localStorage),
 `url_launcher`(새 탭/프로토콜 핸들러). 백엔드 CORS는 이미 전 오리진·전 메서드·전 헤더
