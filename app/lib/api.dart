@@ -2,8 +2,9 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,14 +24,34 @@ class Api {
   // _inFlight 가드를 무기한 잡아두지 않도록 모든 호출은 5초에 끊는다.
   static const _timeout = Duration(seconds: 5);
 
-  // 우선순위: --dart-define=API_HOST(같은 와이파이의 Mac IP) > 에뮬레이터/시뮬레이터 기본값.
-  // iOS 시뮬레이터·데스크톱은 호스트를 127.0.0.1로 본다.
+  // 우선순위: --dart-define=API_HOST(같은 와이파이의 서버 IP) > 플랫폼 기본값.
+  // 웹은 페이지를 서빙한 호스트가 곧 백엔드가 있는 LAN 호스트다(호스트가 없는
+  // file:// 실행은 127.0.0.1). iOS 시뮬레이터·데스크톱은 호스트를 127.0.0.1로 본다.
   // Android 에뮬레이터에서 127.0.0.1은 호스트가 아니라 에뮬레이터 자신이다. 호스트는 10.0.2.2다.
-  // 실기기는 양쪽 다 같은 LAN의 Mac IP가 필요하므로 API_HOST로 지정한다.
-  static String get baseUrl {
-    const host = String.fromEnvironment('API_HOST');
-    if (host.isNotEmpty) return 'http://$host:8000';
-    return Platform.isAndroid ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
+  static String get baseUrl => resolveBaseUrl(
+        apiHostDefine: const String.fromEnvironment('API_HOST'),
+        isWeb: kIsWeb,
+        pageUri: Uri.base,
+        platform: defaultTargetPlatform,
+      );
+
+  // 분기가 전부 파라미터라 VM 테스트에서 웹·Android 경로를 그대로 재현할 수 있다
+  @visibleForTesting
+  static String resolveBaseUrl({
+    required String apiHostDefine,
+    required bool isWeb,
+    required Uri pageUri,
+    required TargetPlatform platform,
+  }) {
+    if (apiHostDefine.isNotEmpty) return 'http://$apiHostDefine:8000';
+    if (isWeb) {
+      return pageUri.host.isEmpty
+          ? 'http://127.0.0.1:8000'
+          : 'http://${pageUri.host}:8000';
+    }
+    return platform == TargetPlatform.android
+        ? 'http://10.0.2.2:8000'
+        : 'http://127.0.0.1:8000';
   }
 
   String? _token;

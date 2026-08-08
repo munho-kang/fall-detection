@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:fall_guardian/api.dart';
 import 'package:fall_guardian/models.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -45,5 +46,68 @@ void main() {
     await tester.pump();
 
     expect(result, isEmpty);
+  });
+
+  // baseUrl 분기 — 웹 지원으로 dart:io Platform을 걷어내면서 분기가 전부 주입 가능해졌다
+  group('resolveBaseUrl', () {
+    test('API_HOST가 지정되면 플랫폼과 무관하게 그 호스트다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '192.168.0.5',
+          isWeb: true,
+          pageUri: Uri.parse('http://192.168.0.7:8080/'),
+          platform: TargetPlatform.android,
+        ),
+        'http://192.168.0.5:8000',
+      );
+    });
+
+    test('웹은 페이지를 연 호스트가 곧 API 호스트다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '',
+          isWeb: true,
+          pageUri: Uri.parse('http://192.168.0.7:8080/index.html'),
+          platform: TargetPlatform.windows,
+        ),
+        'http://192.168.0.7:8000',
+      );
+    });
+
+    test('웹인데 페이지 호스트가 비면(file:// 등) 127.0.0.1로 간다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '',
+          isWeb: true,
+          pageUri: Uri.parse('file:///C:/site/index.html'),
+          platform: TargetPlatform.windows,
+        ),
+        'http://127.0.0.1:8000',
+      );
+    });
+
+    test('Android 에뮬레이터에서 호스트는 10.0.2.2다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '',
+          isWeb: false,
+          pageUri: Uri(),
+          platform: TargetPlatform.android,
+        ),
+        'http://10.0.2.2:8000',
+      );
+    });
+
+    test('iOS 시뮬레이터·데스크톱은 127.0.0.1이다', () {
+      expect(
+        Api.resolveBaseUrl(
+          apiHostDefine: '',
+          isWeb: false,
+          pageUri: Uri(),
+          platform: TargetPlatform.iOS,
+        ),
+        'http://127.0.0.1:8000',
+      );
+    });
   });
 }
