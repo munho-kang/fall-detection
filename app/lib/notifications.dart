@@ -1,6 +1,6 @@
 // flutter_local_notifications 래퍼
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'local_store.dart';
@@ -8,6 +8,14 @@ import 'models.dart';
 
 class Notifications {
   static final _plugin = FlutterLocalNotificationsPlugin();
+
+  // 웹에는 이 플러그인의 구현이 없다(호출 시 MissingPluginException). 웹에서는 탭이
+  // 열려 있는 동안 사고 발생 모달이 알림 역할을 하므로 OS 알림은 조용히 건너뛴다.
+  // kIsWeb은 상수라 VM 테스트에서 웹 경로를 못 타 — 오버라이드를 열어 둔다.
+  @visibleForTesting
+  static bool? debugIsWebOverride;
+
+  static bool get _isWeb => debugIsWebOverride ?? kIsWeb;
 
   // android/iOS 어느 쪽이든 null이면 그 플랫폼에서 예외도 로그도 없이 알림이 안 뜬다.
   // 조용히 실패하는 자리라 테스트가 붙잡는다.
@@ -38,6 +46,7 @@ class Notifications {
   );
 
   static Future<void> init() async {
+    if (_isWeb) return;
     await _plugin.initialize(settings: settings);
     // Android 13+는 런타임 권한이 따로 있다. 매니페스트 선언만으로는 알림이 안 뜬다.
     // iOS 권한은 위 DarwinInitializationSettings가 initialize 중에 요청한다.
@@ -58,6 +67,7 @@ class Notifications {
   }
 
   static Future<void> show(FallEvent event) async {
+    if (_isWeb) return;
     final on = await isEnabled();
     if (!on) return;
     await _plugin.show(

@@ -56,4 +56,20 @@ void main() {
       '12:00 발생 · 낙상자가 괜찮다고 말한 낙상 사고입니다',
     );
   });
+
+  // 웹에는 플러그인 구현이 없다 — 가드가 없으면 아래 두 호출은
+  // 플러그인 채널 호출까지 내려가 예외로 끝난다(테스트 환경에도 채널이 없다)
+  test('웹에서는 init이 OS 알림 플러그인을 건드리지 않는다', () async {
+    Notifications.debugIsWebOverride = true;
+    addTearDown(() => Notifications.debugIsWebOverride = null);
+
+    await Notifications.init();
+  });
+
+  test('웹에서는 show도 OS 알림 플러그인을 건드리지 않는다', () async {
+    Notifications.debugIsWebOverride = true;
+    addTearDown(() => Notifications.debugIsWebOverride = null);
+
+    await Notifications.show(_event());
+  });
 }
