@@ -12,11 +12,16 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 // 실패만 돌려주는 페이크 런처 — Windows 호스트의 flutter test는 진짜 런처를 등록할 수
 // 있어, 교체하지 않으면 버튼 탭 테스트가 호스트에서 전화 앱을 연다. (dial_test와 같은 이유)
 class _FakeUrlLauncher extends UrlLauncherPlatform {
+  String? lastUrl;
+
   @override
   LinkDelegate? get linkDelegate => null;
 
   @override
-  Future<bool> launchUrl(String url, LaunchOptions options) async => false;
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    lastUrl = url;
+    return false;
+  }
 }
 
 class _FakeApi extends Api {
@@ -86,9 +91,12 @@ Future<void> _drainSnackBar(WidgetTester tester) async {
 }
 
 void main() {
+  late _FakeUrlLauncher launcher;
+
   setUp(() {
     // 모든 테스트에서 진짜 런처를 차단한다 — 탭 테스트는 실패 경로(스낵바)로 고정된다
-    UrlLauncherPlatform.instance = _FakeUrlLauncher();
+    launcher = _FakeUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
   });
 
   testWidgets('방 이름·방 번호·발생 시각이 창에 뜬다', (tester) async {
@@ -170,6 +178,7 @@ void main() {
     // 페이크 런처가 실패를 돌려줘 스낵바가 뜨고 창은 남는다
     expect(find.text('사고 발생'), findsOneWidget);
     expect(find.text('전화 앱을 열 수 없습니다.'), findsOneWidget);
+    expect(launcher.lastUrl, 'tel:01012345678');
 
     await _drainSnackBar(tester);
   });
@@ -182,6 +191,7 @@ void main() {
 
     expect(find.text('사고 발생'), findsOneWidget);
     expect(find.text('전화 앱을 열 수 없습니다.'), findsOneWidget);
+    expect(launcher.lastUrl, 'tel:01000000119');
 
     await _drainSnackBar(tester);
   });

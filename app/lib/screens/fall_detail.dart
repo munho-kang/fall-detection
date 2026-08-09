@@ -254,6 +254,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
     bool danger = false,
     VoidCallback? onPressed,
   }) {
+    // 사고 발생 창(fall_alert_dialog.dart)이 이 버튼 수치·스타일을 미러링한다 — 바꾸면 같이 바꾼다
     final scheme = Theme.of(context).colorScheme;
     // 원래 상수 Color(0x1F191C1B) · Color(0x61191C1B)는 라이트 onSurface에
     // Material 비활성 알파(배경 12% · 전경 38%)를 씌운 값이다. 의미를 그대로 두고 밝기만 따라가게 한다.
