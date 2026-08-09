@@ -30,6 +30,9 @@ class _FakeApi extends Api {
     ackIds.add(id);
     return responses.last.firstWhere((e) => e.id == id);
   }
+
+  @override
+  Future<Profile> getProfile() async => const Profile(elderPhone: '');
 }
 
 FallEvent _event(int id, {DateTime? voiceOkAt}) => FallEvent(

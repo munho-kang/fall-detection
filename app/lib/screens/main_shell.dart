@@ -108,7 +108,7 @@ class _MainShellState extends State<MainShell> {
           context: context,
           barrierDismissible: false, // 바깥을 눌러도 안 닫힌다
           useRootNavigator: true, // 설정·상세처럼 위에 쌓인 화면도 덮는다
-          builder: (_) => FallAlertDialog(event: event),
+          builder: (_) => FallAlertDialog(api: widget.api, event: event),
         );
       }
     } finally {
