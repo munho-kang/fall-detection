@@ -3,10 +3,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../app_theme.dart' show AppColors, dangerColors;
 import '../api.dart';
+import '../app_theme.dart' show AppColors, dangerColors;
+import '../dial.dart';
 import '../models.dart';
 
 class FallDetailScreen extends StatefulWidget {
@@ -109,16 +109,6 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
 
   String? _elderPhone;
 
-  static const _emergencyPhone = '01000000119';
-
-  Future<void> _dial(String number) async {
-    final uri = Uri(scheme: 'tel', path: number);
-    if (!await launchUrl(uri)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('전화 앱을 열 수 없습니다.')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final phoneRegistered = _elderPhone != null && _elderPhone!.isNotEmpty;
@@ -178,7 +168,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
             enabled: phoneRegistered,
             filled: false,
             outlinedWithSurface: true,
-            onPressed: phoneRegistered ? () => _dial(_elderPhone!) : null,
+            onPressed: phoneRegistered ? () => dial(context, _elderPhone!) : null,
           ),
           if (!phoneRegistered) ...[
             const SizedBox(height: 8),
@@ -196,7 +186,7 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
             enabled: !_event.isReported119,
             filled: false,
             emergency: true,
-            onPressed: _event.isReported119 ? null : () => _dial(_emergencyPhone),
+            onPressed: _event.isReported119 ? null : () => dial(context, emergencyPhone),
           ),
           if (_event.isReported119)
             Padding(
