@@ -27,6 +27,7 @@
 - Create: `app/lib/dial.dart`
 - Create: `app/test/dial_test.dart`
 - Modify: `app/lib/screens/fall_detail.dart` (import 정리, `_emergencyPhone`·`_dial` 삭제, 호출부 교체)
+- Modify: `app/pubspec.yaml` (dev_dependencies에 `url_launcher_platform_interface: ^2.3.0` 추가 후 `flutter pub get` — 테스트가 플랫폼 구현을 페이크로 교체하기 위해. pubspec.lock 변동도 커밋)
 
 **Interfaces:**
 - Consumes: 없음 (url_launcher는 pubspec에 이미 있다)
@@ -35,41 +36,108 @@
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
+먼저 `app/pubspec.yaml`의 `dev_dependencies`에 `url_launcher_platform_interface: ^2.3.0`을
+추가하고 `flutter pub get`을 실행한다.
+
+> **왜 페이크인가:** Windows 호스트의 `flutter test`는 Dart 플러그인 레지스트런트를 실행해
+> `url_launcher_windows`의 Dart 구현이 진짜로 등록된다 — `launchUrl`이 예외를 던지는 게
+> 아니라 실제로 열려서 true를 돌려준다(호스트에서 전화 앱이 열릴 수도 있다). 채널 모킹도
+> Dart 구현은 채널을 안 쓰므로 소용없다. url_launcher의 공식 테스트 방식대로
+> `UrlLauncherPlatform.instance`를 페이크로 교체한다.
+
 `app/test/dial_test.dart` 생성:
 
 ```dart
-// 전화 발신 헬퍼 — 전화 앱이 없는 환경에서 스낵바로 알리는지
+// 전화 발신 헬퍼 — 전화 앱을 못 여는 환경에서 스낵바로 알리는지
 
 import 'package:fall_guardian/dial.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+// 실제 플랫폼 구현 대신 꽂는 페이크 — Windows 호스트에서는 진짜 런처가 등록되므로
+// 교체하지 않으면 테스트가 호스트에서 전화 앱을 연다.
+class _FakeUrlLauncher extends UrlLauncherPlatform {
+  _FakeUrlLauncher({this.result = false, this.throwInstead = false});
+
+  final bool result;
+  final bool throwInstead;
+  String? lastUrl;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    lastUrl = url;
+    if (throwInstead) throw PlatformException(code: 'launch_failed');
+    return result;
+  }
+}
+
+Future<void> _pumpHost(WidgetTester tester) async {
+  await tester.pumpWidget(MaterialApp(
+    home: Scaffold(
+      body: Builder(
+        builder: (context) => ElevatedButton(
+          onPressed: () => dial(context, '01012345678'),
+          child: const Text('걸기'),
+        ),
+      ),
+    ),
+  ));
+}
+
+// 스낵바 표시 타이머(기본 4초)를 소진한다 — pending timer로 테스트가 깨지지 않게
+Future<void> _drainSnackBar(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 4));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('전화 앱을 못 열면 스낵바가 뜬다', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () => dial(context, '01012345678'),
-            child: const Text('걸기'),
-          ),
-        ),
-      ),
-    ));
+    UrlLauncherPlatform.instance = _FakeUrlLauncher(result: false);
+    await _pumpHost(tester);
 
-    // 테스트 환경엔 url_launcher 플러그인이 없어 launchUrl이 MissingPluginException을
-    // 던진다 — dial이 이를 삼키고 스낵바로 바꾸는지 본다.
     await tester.tap(find.text('걸기'));
     await tester.pumpAndSettle();
 
     expect(find.text('전화 앱을 열 수 없습니다.'), findsOneWidget);
 
-    // 스낵바 표시 타이머를 소진해 pending timer로 테스트가 깨지지 않게 한다
-    await tester.pump(const Duration(seconds: 4));
+    await _drainSnackBar(tester);
+  });
+
+  testWidgets('launchUrl이 예외를 던져도 스낵바로 흡수한다', (tester) async {
+    UrlLauncherPlatform.instance = _FakeUrlLauncher(throwInstead: true);
+    await _pumpHost(tester);
+
+    await tester.tap(find.text('걸기'));
     await tester.pumpAndSettle();
+
+    expect(find.text('전화 앱을 열 수 없습니다.'), findsOneWidget);
+
+    await _drainSnackBar(tester);
+  });
+
+  testWidgets('전화 앱이 열리면 tel: 주소로 걸고 스낵바가 없다', (tester) async {
+    final launcher = _FakeUrlLauncher(result: true);
+    UrlLauncherPlatform.instance = launcher;
+    await _pumpHost(tester);
+
+    await tester.tap(find.text('걸기'));
+    await tester.pumpAndSettle();
+
+    expect(launcher.lastUrl, 'tel:01012345678');
+    expect(find.text('전화 앱을 열 수 없습니다.'), findsNothing);
   });
 }
 ```
+
+주의: `UrlLauncherPlatform`의 추상 멤버가 위 오버라이드 외에 더 있다고 analyzer가 요구하면,
+요구하는 멤버만 무해한 기본값으로 추가 구현한다. `link.dart` import가 없는 버전이면
+`linkDelegate` 오버라이드와 해당 import를 함께 제거한다.
 
 - [ ] **Step 2: 실패 확인**
 
@@ -108,7 +176,7 @@ Future<void> dial(BuildContext context, String number) async {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `flutter test test/dial_test.dart`
-Expected: PASS (1 test)
+Expected: PASS (3 tests)
 
 - [ ] **Step 5: `fall_detail.dart`가 공용 헬퍼를 쓰도록 정리**
 
@@ -152,7 +220,7 @@ Expected: 전부 PASS — `fall_detail_test.dart`는 수정 없이 통과해야 
 - [ ] **Step 7: 커밋**
 
 ```bash
-git add app/lib/dial.dart app/test/dial_test.dart app/lib/screens/fall_detail.dart
+git add app/lib/dial.dart app/test/dial_test.dart app/lib/screens/fall_detail.dart app/pubspec.yaml app/pubspec.lock
 git commit -m "refactor: 전화 발신을 dial.dart로 공용화 — launchUrl 예외도 스낵바로 흡수"
 ```
 
@@ -183,6 +251,18 @@ import 'package:fall_guardian/models.dart';
 import 'package:fall_guardian/screens/fall_alert_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+// 실패만 돌려주는 페이크 런처 — Windows 호스트의 flutter test는 진짜 런처를 등록할 수
+// 있어, 교체하지 않으면 버튼 탭 테스트가 호스트에서 전화 앱을 연다. (dial_test와 같은 이유)
+class _FakeUrlLauncher extends UrlLauncherPlatform {
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async => false;
+}
 
 class _FakeApi extends Api {
   _FakeApi({this.elderPhone = ''});
@@ -251,6 +331,11 @@ Future<void> _drainSnackBar(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() {
+    // 모든 테스트에서 진짜 런처를 차단한다 — 탭 테스트는 실패 경로(스낵바)로 고정된다
+    UrlLauncherPlatform.instance = _FakeUrlLauncher();
+  });
+
   testWidgets('방 이름·방 번호·발생 시각이 창에 뜬다', (tester) async {
     await _open(tester);
 
@@ -327,7 +412,7 @@ void main() {
     await tester.tap(find.text('돌봄 대상자에게 전화'));
     await tester.pumpAndSettle();
 
-    // 전화 앱이 없는 테스트 환경 — dial이 예외를 삼키고 스낵바를 띄우며 창은 남는다
+    // 페이크 런처가 실패를 돌려줘 스낵바가 뜨고 창은 남는다
     expect(find.text('사고 발생'), findsOneWidget);
     expect(find.text('전화 앱을 열 수 없습니다.'), findsOneWidget);
 
