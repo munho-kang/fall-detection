@@ -1,4 +1,4 @@
-// Django API 호출과 토큰 보관
+// 백엔드 API 호출과 토큰 보관
 
 import 'dart:async';
 import 'dart:convert';

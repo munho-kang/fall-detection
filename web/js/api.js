@@ -1,7 +1,7 @@
-// Django API 호출 래퍼와 토큰 보관
+// 백엔드 API 호출 래퍼와 토큰 보관
 
-// 정적 서버(:5500)와 Django(:8000)는 같은 Mac에서 뜬다. 같은 와이파이의 다른 기기가
-// http://<Mac IP>:5500으로 열어도, 접속한 호스트가 곧 Django 호스트다.
+// 정적 서버(:5500)와 백엔드(:8000)는 같은 Mac에서 뜬다. 같은 와이파이의 다른 기기가
+// http://<Mac IP>:5500으로 열어도, 접속한 호스트가 곧 백엔드 호스트다.
 export const API_BASE = `http://${location.hostname}:8000`;
 
 const TOKEN_KEY = "fall_token";
