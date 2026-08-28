@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
-import '../app_theme.dart' show AppColors, dangerColors;
+import '../app_theme.dart' show AppColors;
 import '../dial.dart';
 import '../models.dart';
 
@@ -303,16 +303,15 @@ class _FallDetailScreenState extends State<FallDetailScreen> {
       );
     }
     if (danger) {
-      final tone = dangerColors(Theme.of(context).brightness);
       return SizedBox(
         height: 48,
         child: FilledButton(
           onPressed: enabled ? onPressed : null,
           style: FilledButton.styleFrom(
-            backgroundColor: tone.bg,
-            foregroundColor: tone.fg,
-            disabledBackgroundColor: tone.bg.withValues(alpha: 0.4),
-            disabledForegroundColor: tone.fg.withValues(alpha: 0.38),
+            backgroundColor: AppColors.dangerBg,
+            foregroundColor: AppColors.dangerFg,
+            disabledBackgroundColor: AppColors.dangerBg.withValues(alpha: 0.4),
+            disabledForegroundColor: AppColors.dangerFg.withValues(alpha: 0.38),
             shape: shape,
           ),
           child: inner,

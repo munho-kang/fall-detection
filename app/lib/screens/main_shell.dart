@@ -20,7 +20,7 @@ class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.api, this.onSettingsResume});
 
   final Api api;
-  // 설정 화면에서 돌아오면 불린다 — main.dart에서 prefs를 다시 읽어 다크모드/배율 적용
+  // 설정 화면에서 돌아오면 불린다 — main.dart에서 prefs를 다시 읽어 배율 적용
   final VoidCallback? onSettingsResume;
 
   @override

@@ -45,12 +45,11 @@ FallEvent _event({DateTime? reported119At}) => FallEvent(
 
 Future<void> _open(
   WidgetTester tester, {
-  bool dark = false,
   String elderPhone = '',
   DateTime? reported119At,
 }) async {
   await tester.pumpWidget(MaterialApp(
-    theme: buildAppTheme(dark: dark, scale: TextScale.normal),
+    theme: buildAppTheme(scale: TextScale.normal),
     // 스낵바가 실제로 그려지려면 ScaffoldMessenger에 등록된 Scaffold가 필요하다
     home: Scaffold(
       body: Builder(
@@ -131,12 +130,6 @@ void main() {
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-
-    expect(find.text('사고 발생'), findsOneWidget);
-  });
-
-  testWidgets('다크 테마에서도 오버플로 없이 그려진다', (tester) async {
-    await _open(tester, dark: true);
 
     expect(find.text('사고 발생'), findsOneWidget);
   });

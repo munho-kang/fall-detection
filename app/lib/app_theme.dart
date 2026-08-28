@@ -1,4 +1,4 @@
-// 딥 틸 컬러스킴과 라이트/다크 ThemeData, 화면 크기 배율 적용
+// 딥 틸 컬러스킴과 라이트 전용 ThemeData, 화면 크기 배율 적용 — 다크모드는 두지 않는다
 
 import 'package:flutter/material.dart';
 
@@ -23,6 +23,9 @@ class AppColors {
   static const errorContainer = Color(0xFFFBE3DD);
   static const onErrorContainer = Color(0xFFD64A2F);
 
+  // 파괴적 동작(기록 삭제 · 방 삭제 · 회원 탈퇴) 색 — ColorScheme에 대응 슬롯이 없다
+  static const dangerBg = Color(0xFFF7DAD2);
+  static const dangerFg = Color(0xFFA03920);
 
   static const inverseSurface = Color(0xFF2B3230);
   static const pageBg = Color(0xFFE2E6E6);
@@ -55,30 +58,29 @@ extension TextScaleX on TextScale {
   }
 }
 
-ThemeData buildAppTheme({required bool dark, required TextScale scale}) {
-  final base = ThemeData(useMaterial3: true, brightness: dark ? Brightness.dark : Brightness.light);
+ThemeData buildAppTheme({required TextScale scale}) {
+  final base = ThemeData(useMaterial3: true);
   final scheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
-    brightness: dark ? Brightness.dark : Brightness.light,
     primary: AppColors.primary,
     onPrimary: AppColors.onPrimary,
-    primaryContainer: dark ? const Color(0xFF1E4640) : AppColors.primaryContainer,
-    onPrimaryContainer: dark ? const Color(0xFFB8E7DD) : AppColors.onPrimaryContainer,
-    surface: dark ? const Color(0xFF1B1F1E) : AppColors.surface,
-    surfaceContainer: dark ? const Color(0xFF222625) : AppColors.surfaceContainer,
-    surfaceContainerHigh: dark ? const Color(0xFF222625) : AppColors.surfaceContainerHigh,
-    onSurface: dark ? const Color(0xFFE2E6E5) : AppColors.onSurface,
-    onSurfaceVariant: dark ? const Color(0xFFBFC9C6) : AppColors.onSurfaceVariant,
+    primaryContainer: AppColors.primaryContainer,
+    onPrimaryContainer: AppColors.onPrimaryContainer,
+    surface: AppColors.surface,
+    surfaceContainer: AppColors.surfaceContainer,
+    surfaceContainerHigh: AppColors.surfaceContainerHigh,
+    onSurface: AppColors.onSurface,
+    onSurfaceVariant: AppColors.onSurfaceVariant,
     outline: AppColors.outline,
-    outlineVariant: dark ? const Color(0xFF3A4442) : AppColors.outlineVariant,
+    outlineVariant: AppColors.outlineVariant,
     error: AppColors.error,
-    errorContainer: dark ? const Color(0xFF4A241C) : AppColors.errorContainer,
-    onErrorContainer: dark ? const Color(0xFFFFB4A0) : AppColors.onErrorContainer,
+    errorContainer: AppColors.errorContainer,
+    onErrorContainer: AppColors.onErrorContainer,
   );
 
   return base.copyWith(
     colorScheme: scheme,
-    scaffoldBackgroundColor: dark ? const Color(0xFF131716) : AppColors.surface,
+    scaffoldBackgroundColor: AppColors.surface,
     textTheme: base.textTheme.apply(
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
@@ -86,7 +88,7 @@ ThemeData buildAppTheme({required bool dark, required TextScale scale}) {
       fontSizeDelta: 0,
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: dark ? const Color(0xFF131716) : AppColors.surface,
+      backgroundColor: AppColors.surface,
       foregroundColor: scheme.onSurface,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -98,9 +100,3 @@ ThemeData buildAppTheme({required bool dark, required TextScale scale}) {
     ),
   );
 }
-
-// 파괴적 동작(기록 삭제 · 방 삭제 · 회원 탈퇴) 색 — ColorScheme에 대응 슬롯이 없어 밝기로 직접 고른다.
-// BuildContext가 아니라 Brightness를 받으므로 위젯 없이 단위 테스트할 수 있다.
-({Color bg, Color fg}) dangerColors(Brightness brightness) => brightness == Brightness.dark
-    ? (bg: const Color(0xFF43201A), fg: const Color(0xFFFFB4A0))
-    : (bg: const Color(0xFFF7DAD2), fg: const Color(0xFFA03920));

@@ -195,7 +195,6 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) {
-        final tone = dangerColors(Theme.of(context).brightness);
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
           title: Text(
@@ -211,8 +210,8 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
-                backgroundColor: tone.bg,
-                foregroundColor: tone.fg,
+                backgroundColor: AppColors.dangerBg,
+                foregroundColor: AppColors.dangerFg,
               ),
               child: const Text('삭제'),
             ),

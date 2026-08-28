@@ -1,4 +1,4 @@
-// 설정 창 — 앱 설정(다크모드 · 화면 크기 · 알림) + 지원 및 정보
+// 설정 창 — 앱 설정(화면 크기 · 알림) + 지원 및 정보
 
 import 'package:flutter/material.dart';
 
@@ -13,8 +13,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // 다크모드 — auto(true)면 시스템 따라감. false면 _darkMode 값 사용
-  bool _darkMode = false;
   TextScale _textScale = TextScale.normal;
   bool _notificationsOn = true;
   bool _loading = true;
@@ -26,28 +24,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _load() async {
-    final auto = await LocalStore.isDarkModeAuto();
-    final dark = await LocalStore.isDarkMode();
     final scale = await LocalStore.textScale();
     final notif = await LocalStore.notificationsOn();
-    final platformDark =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
     if (!mounted) return;
     setState(() {
-      // auto 모드면 시스템 밝기를 표시, 아니면 저장된 값을 표시
-      _darkMode = auto ? platformDark : dark;
       _textScale = scale;
       _notificationsOn = notif;
       _loading = false;
     });
-  }
-
-  // 시스템 다크모드 여부 — MaterialApp이 themeMode로 처리하므로 여기서는
-  // SharedPreferences에 쓰기만 한다. main.dart는 설정 화면에서 돌아오면
-  // prefs를 다시 읽어(themeMode · textScaler) 즉시 반영한다.
-  Future<void> _setDarkMode(bool dark) async {
-    await LocalStore.setDarkMode(dark);
-    setState(() => _darkMode = dark);
   }
 
   Future<void> _setTextScale(TextScale scale) async {
@@ -81,15 +65,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _sectionCard(
                   heading: '앱 설정',
                   children: [
-                    SwitchListTile(
-                      value: _darkMode,
-                      onChanged: _setDarkMode,
-                      title: const Text(
-                        '다크모드',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),
-                      ),
-                    ),
-                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant, indent: 0, endIndent: 0),
                     ListTile(
                       title: const Text('화면 크기', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
                       trailing: _textScaleSeg(),

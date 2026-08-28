@@ -1,4 +1,4 @@
-// SharedPreferences 래퍼 — 다크모드·화면 크기·알림 설정·프로필 로컬 필드 보관
+// SharedPreferences 래퍼 — 화면 크기·알림 설정·프로필 로컬 필드 보관
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,8 +7,6 @@ import 'app_theme.dart' show TextScale;
 class LocalStore {
   const LocalStore._();
 
-  static const _kDarkMode = 'local.dark_mode';
-  static const _kDarkModeAuto = 'local.dark_mode_auto';
   static const _kTextScale = 'local.text_scale';
   static const _kNotificationsOn = 'local.notifications_on';
 
@@ -24,28 +22,6 @@ class LocalStore {
   static Future<SharedPreferences> _instance() async {
     _prefs ??= await SharedPreferences.getInstance();
     return _prefs!;
-  }
-
-  // 다크모드 — auto가 true면 시스템 따라감, 아니면 _kDarkMode 값 사용
-  static Future<bool> isDarkModeAuto() async {
-    final p = await _instance();
-    return p.getBool(_kDarkModeAuto) ?? true;
-  }
-
-  static Future<bool> isDarkMode() async {
-    final p = await _instance();
-    return p.getBool(_kDarkMode) ?? false;
-  }
-
-  static Future<void> setDarkModeAuto(bool auto) async {
-    final p = await _instance();
-    await p.setBool(_kDarkModeAuto, auto);
-  }
-
-  static Future<void> setDarkMode(bool dark) async {
-    final p = await _instance();
-    await p.setBool(_kDarkMode, dark);
-    await p.setBool(_kDarkModeAuto, false);
   }
 
   // 화면 크기

@@ -130,7 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _row('로그아웃', '', () => _confirmLogout(), trailingIcon: Icons.logout, dimText: false),
                     _row('회원 탈퇴', '', () => _confirmWithdraw(),
                         trailingIcon: Icons.delete_outline,
-                        textColor: dangerColors(Theme.of(context).brightness).fg),
+                        textColor: AppColors.dangerFg),
                   ],
                 ),
               ],
@@ -165,8 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
-                  // 링은 페이지 배경을 오려낸 것처럼 보여야 한다 — 다크에서
-                  // scaffoldBackgroundColor와 colorScheme.surface가 서로 다르다
+                  // 링은 페이지 배경을 오려낸 것처럼 보여야 한다
                   border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
                 ),
                 child: const Icon(Icons.camera_alt, size: 16, color: AppColors.onPrimary),
@@ -348,7 +347,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) {
-        final tone = dangerColors(Theme.of(context).brightness);
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
           title: const Text('회원 탈퇴', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
@@ -361,8 +359,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
-                backgroundColor: tone.bg,
-                foregroundColor: tone.fg,
+                backgroundColor: AppColors.dangerBg,
+                foregroundColor: AppColors.dangerFg,
               ),
               child: const Text('탈퇴'),
             ),
@@ -373,7 +371,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (ok != true) return;
     // 백엔드 탈퇴 endpoint가 없으므로 로컬 토큰/프로필만 삭제
     await LocalStore.clearProfile();
-    // 다크모드/화면크기/알림 설정은 계정 설정이므로 유지
+    // 화면크기/알림 설정은 계정 설정이므로 유지
     widget.onLogout();
   }
 
