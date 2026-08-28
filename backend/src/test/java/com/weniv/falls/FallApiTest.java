@@ -1,12 +1,7 @@
-// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·신고·괜찮음 병합·푸시 1회/0회·삭제 204/400/404
+// 낙상 API 계약 테스트 — 목록 격리·최신순·guardian 강제·acknowledge 멱등·중복 POST 200·신고·괜찮음 병합·삭제 204/400/404
 package com.weniv.falls;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,19 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.jayway.jsonpath.JsonPath;
 import com.weniv.falls.domain.FallEvent;
 import com.weniv.falls.service.FallService;
-import com.weniv.falls.service.PushService;
 
 class FallApiTest extends IntegrationTestBase {
-
-    @MockitoBean
-    PushService pushService;   // pytest의 send_to_guardian_async 목 등가 — 발송 호출 여부만 검증
 
     private String fallPayload(String confidence) {
         return "{\"room_name\": \"안방\", \"room_number\": 1, "
@@ -128,32 +117,6 @@ class FallApiTest extends IntegrationTestBase {
     }
 
     @Test
-    void created_post_sends_push_once() throws Exception {
-        String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
-                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
-            .andExpect(status().isCreated())
-            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        long id = ((Number) JsonPath.read(body, "$.id")).longValue();
-
-        ArgumentCaptor<FallEvent> captor = ArgumentCaptor.forClass(FallEvent.class);
-        verify(pushService, times(1)).sendToGuardianAsync(captor.capture());
-        assertThat(captor.getValue().getId()).isEqualTo(id);
-    }
-
-    @Test
-    void duplicate_post_sends_no_push() throws Exception {
-        mockMvc.perform(authed(post("/api/falls/"), guardian)
-                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
-            .andExpect(status().isCreated());
-        clearInvocations(pushService);
-
-        mockMvc.perform(authed(post("/api/falls/"), guardian)
-                .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
-            .andExpect(status().isOk());
-        verify(pushService, never()).sendToGuardianAsync(any());
-    }
-
-    @Test
     void post_accepts_offset_and_stores_utc() throws Exception {
         // 스펙 5절 — 입력은 +09:00 오프셋도 받아 UTC로 변환 저장한다
         mockMvc.perform(authed(post("/api/falls/"), guardian)
@@ -223,14 +186,13 @@ class FallApiTest extends IntegrationTestBase {
     }
 
     @Test
-    void duplicate_post_merges_reported_119_at_and_sends_no_push() throws Exception {
+    void duplicate_post_merges_reported_119_at() throws Exception {
         // 정상 경로 — 5s 원본 201 뒤에 20s 신고 재-POST가 200으로 병합된다
         String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
                 .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         int firstId = JsonPath.read(body, "$.id");
-        clearInvocations(pushService);
 
         mockMvc.perform(authed(post("/api/falls/"), guardian)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -240,7 +202,6 @@ class FallApiTest extends IntegrationTestBase {
             .andExpect(jsonPath("$.reported_119_at").value("2026-07-23T03:00:20Z"));
 
         assertThat(fallEventRepository.count()).isEqualTo(1);
-        verify(pushService, never()).sendToGuardianAsync(any());   // 200 병합은 푸시가 없다
     }
 
     @Test
@@ -286,14 +247,13 @@ class FallApiTest extends IntegrationTestBase {
     }
 
     @Test
-    void duplicate_post_merges_voice_ok_at_and_sends_no_push() throws Exception {
+    void duplicate_post_merges_voice_ok_at() throws Exception {
         // 정상 경로 — 5s 원본 201 뒤에 응답 재-POST가 200으로 병합된다
         String body = mockMvc.perform(authed(post("/api/falls/"), guardian)
                 .contentType(MediaType.APPLICATION_JSON).content(fallPayload("0.9")))
             .andExpect(status().isCreated())
             .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         int firstId = JsonPath.read(body, "$.id");
-        clearInvocations(pushService);
 
         mockMvc.perform(authed(post("/api/falls/"), guardian)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -303,7 +263,6 @@ class FallApiTest extends IntegrationTestBase {
             .andExpect(jsonPath("$.voice_ok_at").value("2026-07-23T03:00:12Z"));
 
         assertThat(fallEventRepository.count()).isEqualTo(1);
-        verify(pushService, never()).sendToGuardianAsync(any());   // 200 병합은 푸시가 없다
     }
 
     @Test

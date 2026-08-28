@@ -26,12 +26,11 @@
                       │
              [Spring Boot 4.1 + PostgreSQL 18]  (backend/)
                       │
-             ┌────────┴────────┐
-        웹 푸시(즉시)   GET /api/falls/ ← 5초 폴링
-             │                │
-     [보호자 페이지      [Flutter 앱 (app/)]
-      web/guardian.html]  iOS · Android · 웹 브라우저
-                          새 낙상 → 사고 발생 창 + 로컬 알림
+             GET /api/falls/ ← 5초 폴링
+                      │
+             [Flutter 앱 (app/)]
+              iOS · Android · 웹 브라우저
+              새 낙상 → 사고 발생 창 + 로컬 알림
 ```
 
 ## 감지 알고리즘 — 세 관문
@@ -61,7 +60,7 @@ STANDING ──속도──▶ FALLING ──자세──▶ FALLEN ──시간
 | 0초 | 낙상 확정 → 보호자에게 전송 |
 | 10초 | 스피커로 "괜찮으세요?" 질문 |
 | ~20초 | 대답을 들음 — "괜찮아"면 해제하고 앱에 "괜찮다고 말함"으로 표시 |
-| 20초 | 무응답이면 119 신고를 기록(`reported_119_at`)하고 앱·보호자 페이지에 배지 표시 |
+| 20초 | 무응답이면 119 신고를 기록(`reported_119_at`)하고 앱에 배지 표시 |
 
 브라우저 내장 음성 인식(Web Speech API)을 쓴다. 자기 목소리를 되받지 않도록 재생 중에는 청취를 멈추고, 상태머신에서 한 번 더 막는다. 신고 기록은 **새 엔드포인트 없이** 같은 `POST /api/falls/`를 다시 보내 서버가 첫 값을 보존하며 병합한다.
 
@@ -99,8 +98,6 @@ python3 -m http.server 5500
 
 `http://127.0.0.1:5500`에서 로그인(첫 사용이면 회원가입) → 방 선택(없으면 그 자리에서 추가) → 감지 시작 → 카메라·마이크 권한 허용.
 
-보호자 페이지는 `http://127.0.0.1:5500/guardian.html`이다. 같은 계정으로 로그인하면 낙상 목록 확인, 방·연락처 관리, 브라우저 푸시 구독을 할 수 있다.
-
 **감지 페이지는 Mac에서 연다.** `getUserMedia`(카메라)가 요구하는 보안 컨텍스트를 `localhost`가 충족하므로 HTTPS 없이 동작한다. API 주소는 접속한 호스트를 그대로 따라가므로(`web/js/api.js`) 별도 설정이 없다. Mac IP는 `ipconfig getifaddr en0`으로 확인한다.
 
 ### 3. Flutter 앱
@@ -121,28 +118,6 @@ flutter run -d chrome                         # 웹 — 크롬으로 실행
 
 에뮬레이터 id는 환경마다 다르니 `flutter devices`로 확인한다.
 
-## 푸시 알림 (선택)
-
-푸시 없이도 전체 기능이 동작한다(앱·보호자 페이지를 켜 두면 5초 폴링이 알린다). 아래 환경변수를 붙여 백엔드를 실행하면 화면이 꺼져 있어도 알림이 온다. 비워 두면 해당 채널만 조용히 꺼진다.
-
-| 채널 | 대상 | 필요한 환경변수 |
-|------|------|-----------------|
-| 표준 웹 푸시 | 데스크톱 브라우저(보호자 페이지) | `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
-
-웹 푸시 키는 한 번만 만들면 된다. 공개키는 서버가 개인키에서 계산하므로 따로 없다.
-
-```bash
-npx web-push generate-vapid-keys   # 출력의 Private Key가 VAPID_PRIVATE_KEY다
-```
-
-환경변수를 붙여 서버를 띄운 뒤, 보호자 페이지(`http://127.0.0.1:5500/guardian.html`)에서 **알림 켜기**를 누른다.
-
-```bash
-cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> ./gradlew bootRun
-```
-
-웹 푸시 구독은 보안 컨텍스트가 필요해 `localhost`로 연 페이지에서 켠다. 발송은 로컬 서버로도 된다 — 푸시 서비스 자체는 브라우저 벤더의 인터넷 서버라서다.
-
 ## API
 
 토큰 헤더(`Authorization: Token <키>`) 인증이다. 로그인·가입·헬스체크만 공개다.
@@ -157,17 +132,15 @@ cd backend && VAPID_PRIVATE_KEY=<키> VAPID_SUBJECT=mailto:<본인이메일> ./g
 | `DELETE` | `/api/falls/{id}/` | 확인한 기록 삭제 |
 | `GET` `POST` `GET/PUT/PATCH/DELETE` | `/api/rooms/`, `/api/rooms/{id}/` | 방 관리 |
 | `GET` `PUT` | `/api/profile/` | 보호자·돌봄 대상자 정보 |
-| `POST` `DELETE` | `/api/push/devices/` | 푸시 기기 등록·해제 |
-| `GET` | `/api/push/vapid-key/` | 웹 푸시 공개키 |
 
 낙상 데이터는 계정별로 격리된다 — 조회·수정·삭제가 전부 `findByIdAndGuardianId`를 거친다.
 
 ## 테스트
 
 ```bash
-cd backend && ./gradlew test    # 48개 — 인증·소유권·방·프로필·푸시·전송 멱등성·기록 삭제·119/괜찮음 병합
+cd backend && ./gradlew test    # 37개 — 인증·소유권·방·프로필·전송 멱등성·기록 삭제·119/괜찮음 병합
                                 #        (fall_detection_test DB 필요: createdb fall_detection_test)
-cd web     && npm test          # 34개 — 상태머신 시나리오(낙상 12·음성 에스컬레이션 12)·오프라인 큐 6·폴링 배너 4
+cd web     && npm test          # 30개 — 상태머신 시나리오(낙상 12·음성 에스컬레이션 12)·오프라인 큐 6
 cd app     && flutter test      # 76개 — 화면·모델·폴링·알림·다크모드·사고 발생 창·전화 발신
 ```
 
@@ -176,12 +149,10 @@ cd app     && flutter test      # 76개 — 화면·모델·폴링·알림·다�
 서버를 띄운 채 도는 E2E도 따로 있다. 실행 조건은 [docs/manual-verification.md](docs/manual-verification.md) 8절에 있다.
 
 ```bash
-cd web     && npm run test:e2e        # 실제 Chrome으로 보호자 페이지 기록 삭제
 cd web     && npm run test:e2e:sw     # 서비스 워커 캐시 축출
 cd web     && npm run test:e2e:301    # 캐시된 301 처리
 cd app     && flutter test integration_test/fall_delete_test.dart -d <UDID>
 cd scripts/e2e && node queue-e2e.mjs  # 오프라인 큐 재전송
-cd scripts/e2e && node push-e2e.mjs   # 웹 푸시 구독→발송→수신
 ```
 
 ## 문서

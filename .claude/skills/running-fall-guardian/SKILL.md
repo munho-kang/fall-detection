@@ -10,7 +10,7 @@ description: Use when running, installing, or demoing this fall-detection projec
 | 구성 | 포트 | 기동 |
 |---|---|---|
 | Spring Boot | 8000 | `cd backend && ./gradlew bootRun` |
-| 감지·보호자 페이지 | 5500 | `cd web && python3 -m http.server 5500` |
+| 감지 페이지 | 5500 | `cd web && python3 -m http.server 5500` |
 | Flutter 앱 | — | 아래 iOS 실기기 절차 |
 
 전제는 PostgreSQL이 떠 있고 `fall_detection` DB가 있는 것이다. 없으면 `createdb fall_detection`.

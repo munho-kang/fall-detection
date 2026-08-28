@@ -1,4 +1,4 @@
-// 낙상 엔드포인트 — 신규 201 + 비동기 푸시 / 중복 200 + 푸시 없음
+// 낙상 엔드포인트 — 신규 201 / 중복 200
 package com.weniv.falls.controller;
 
 import java.util.List;
@@ -17,17 +17,14 @@ import com.weniv.falls.domain.Guardian;
 import com.weniv.falls.dto.FallEventRequest;
 import com.weniv.falls.dto.FallEventResponse;
 import com.weniv.falls.service.FallService;
-import com.weniv.falls.service.PushService;
 
 @RestController
 public class FallController {
 
     private final FallService fallService;
-    private final PushService pushService;
 
-    public FallController(FallService fallService, PushService pushService) {
+    public FallController(FallService fallService) {
         this.fallService = fallService;
-        this.pushService = pushService;
     }
 
     @GetMapping("/api/falls/")
@@ -39,9 +36,6 @@ public class FallController {
     public ResponseEntity<FallEventResponse> create(@AuthenticationPrincipal Guardian guardian,
                                                     @Valid @RequestBody FallEventRequest request) {
         FallService.CreateResult result = fallService.create(guardian, request);
-        if (result.created()) {
-            pushService.sendToGuardianAsync(result.event());   // 201일 때만 발송
-        }
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
             .body(FallEventResponse.from(result.event()));
     }

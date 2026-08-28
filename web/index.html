@@ -19,7 +19,6 @@
       </form>
       <p class="error" id="error"></p>
       <p class="alt-link">계정이 없나요? <a href="signup.html">회원가입</a></p>
-      <p class="alt-link">보호자이신가요? <a href="guardian.html">보호자 페이지</a></p>
       <p class="privacy">
         이 페이지는 웹캠 영상을 브라우저 안에서만 처리합니다. 영상과 관절 좌표는 서버로 전송되지
         않습니다.
@@ -36,7 +35,7 @@
       // clean-URL 서버(npx serve류)가 남긴 `detect.html → 301 /detect` 응답이 HTTP 캐시에 박혀
       // 로그인 후 이동이 열흘간 404로 가는 사고도 있었다(DevTools의 Clear site data로도 안 지워진다).
       // 이동 대상을 캐시 우회로 다시 받아, 오염된 항목을 정상 200으로 덮어쓴다.
-      for (const p of ["detect.html", "guardian.html"]) fetch(p, { cache: "reload" }).catch(() => {});
+      fetch("detect.html", { cache: "reload" }).catch(() => {});
 
       const form = document.getElementById("form");
       const error = document.getElementById("error");
@@ -47,12 +46,9 @@
         const button = form.querySelector("button");
         button.disabled = true;
         try {
-          const next = new URLSearchParams(location.search).get("next");
-          // 오픈 리다이렉트 방지 — 우리 페이지 2개만 허용한다
-          const target = ["guardian.html", "detect.html"].includes(next) ? next : "detect.html";
           setToken(await login(form.username.value, form.password.value));
           // 캐시 키를 바꿔, 위 덮어쓰기가 아직 안 끝났더라도 오염된 301 캐시를 확실히 비껴간다
-          location.href = `${target}?t=${Date.now()}`;
+          location.href = `detect.html?t=${Date.now()}`;
         } catch (err) {
           error.textContent = err.message;
           button.disabled = false;

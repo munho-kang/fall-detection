@@ -10,8 +10,3 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
-
-push:
-  vapid:
-    private-key: ""    # 셸에 VAPID 환경변수가 있어도 테스트에 새지 않게 고정
-    subject: ""

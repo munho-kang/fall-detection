@@ -25,14 +25,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
-	// 웹 푸시 — RFC 8291 암호화 발송. 구현 시점 최신판 확인: Maven Central 기준 5.1.2 (2026-07 확인)
-	implementation('nl.martijndwars:web-push:5.1.2') {
-		exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'   // 구세대 BC와 중복 방지
-	}
-	implementation 'org.bouncycastle:bcprov-jdk18on:1.80'
-	// web-push의 POM은 httpclient·jose4j를 runtime scope로 선언해 컴파일 클래스패스에 없다 — 명시 추가
-	implementation 'org.apache.httpcomponents:httpclient:4.5.13'
-	implementation 'org.bitbucket.b_c:jose4j:0.7.9'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'

@@ -11,8 +11,3 @@ spring:
     hibernate:
       ddl-auto: none     # 스키마는 Flyway가 소유한다
     open-in-view: false
-
-push:
-  vapid:
-    private-key: ${VAPID_PRIVATE_KEY:}   # 미설정이면 푸시 조용히 비활성 (스펙 7절)
-    subject: ${VAPID_SUBJECT:}

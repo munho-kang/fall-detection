@@ -15,10 +15,9 @@ export function logoutAndRedirect() {
   location.href = "index.html";
 }
 
-export function requireToken(next) {
+export function requireToken() {
   const token = getToken();
-  // 로그인 후 원래 가려던 페이지로 돌아올 수 있게 next를 남긴다 (index.html이 화이트리스트 검사)
-  if (!token) location.href = next ? `index.html?next=${encodeURIComponent(next)}` : "index.html";
+  if (!token) location.href = "index.html";
   return token;
 }
 
@@ -121,76 +120,4 @@ export async function createRoom(name, number) {
   });
   if (!res.ok) throw new Error(await firstErrorMessage(res, "방을 추가하지 못했습니다."));
   return res.json();
-}
-
-export async function listFalls() {
-  const res = await authFetch("/api/falls/");
-  if (!res.ok) throw new Error(`목록을 불러오지 못했습니다 (${res.status}).`);
-  return res.json();
-}
-
-export async function acknowledgeFall(id) {
-  const res = await authFetch(`/api/falls/${id}/acknowledge/`, { method: "POST" });
-  if (!res.ok) throw new Error(`확인 처리에 실패했습니다 (${res.status}).`);
-  return res.json();
-}
-
-export async function deleteFall(id) {
-  const res = await authFetch(`/api/falls/${id}/`, { method: "DELETE" });
-  // 미확인 기록 삭제는 서버가 400 + 한국어 문구로 거절한다. 문구를 새로 짓지 말고 그대로 올린다.
-  if (!res.ok) {
-    throw new Error(await firstErrorMessage(res, `기록을 삭제하지 못했습니다 (${res.status}).`));
-  }
-}
-
-export async function renameRoom(id, name) {
-  const res = await authFetch(`/api/rooms/${id}/`, {
-    method: "PATCH",
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) throw new Error(await firstErrorMessage(res, "이름을 바꾸지 못했습니다."));
-  return res.json();
-}
-
-export async function deleteRoomById(id) {
-  const res = await authFetch(`/api/rooms/${id}/`, { method: "DELETE" });
-  if (!res.ok) throw new Error(`방을 삭제하지 못했습니다 (${res.status}).`);
-}
-
-export async function getProfile() {
-  const res = await authFetch("/api/profile/");
-  if (!res.ok) throw new Error(`연락처를 불러오지 못했습니다 (${res.status}).`);
-  return res.json();
-}
-
-export async function updateProfile(elderPhone) {
-  const res = await authFetch("/api/profile/", {
-    method: "PUT",
-    body: JSON.stringify({ elder_phone: elderPhone }),
-  });
-  if (!res.ok) throw new Error(await firstErrorMessage(res, "연락처를 저장하지 못했습니다."));
-  return res.json();
-}
-
-export async function getVapidKey() {
-  const res = await authFetch("/api/push/vapid-key/");
-  if (res.status === 503) throw new Error("서버에 웹 푸시 키가 설정되지 않았습니다.");
-  if (!res.ok) throw new Error(`푸시 키를 가져오지 못했습니다 (${res.status}).`);
-  return res.json(); // { key }
-}
-
-export async function registerPushDevice(kind, token) {
-  const res = await authFetch("/api/push/devices/", {
-    method: "POST",
-    body: JSON.stringify({ kind, token }),
-  });
-  if (!res.ok) throw new Error(`알림 등록에 실패했습니다 (${res.status}).`);
-}
-
-export async function deletePushDevice(token) {
-  const res = await authFetch("/api/push/devices/", {
-    method: "DELETE",
-    body: JSON.stringify({ token }),
-  });
-  if (!res.ok) throw new Error(`알림 해제에 실패했습니다 (${res.status}).`);
 }

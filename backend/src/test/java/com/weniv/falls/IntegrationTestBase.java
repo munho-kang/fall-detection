@@ -18,7 +18,6 @@ import com.weniv.falls.repository.AuthTokenRepository;
 import com.weniv.falls.repository.FallEventRepository;
 import com.weniv.falls.repository.GuardianProfileRepository;
 import com.weniv.falls.repository.GuardianRepository;
-import com.weniv.falls.repository.PushDeviceRepository;
 import com.weniv.falls.repository.RoomRepository;
 
 @SpringBootTest
@@ -32,7 +31,6 @@ public abstract class IntegrationTestBase {
     @Autowired protected FallEventRepository fallEventRepository;
     @Autowired protected RoomRepository roomRepository;
     @Autowired protected GuardianProfileRepository guardianProfileRepository;
-    @Autowired protected PushDeviceRepository pushDeviceRepository;
     @Autowired protected PasswordEncoder passwordEncoder;
 
     protected Guardian guardian;   // pytest fixture guardian(g1) 등가
@@ -41,7 +39,7 @@ public abstract class IntegrationTestBase {
     @BeforeEach
     void resetDatabase() {
         jdbcTemplate.execute(
-            "TRUNCATE TABLE push_device, guardian_profile, room, fall_event, auth_token, guardian "
+            "TRUNCATE TABLE guardian_profile, room, fall_event, auth_token, guardian "
                 + "RESTART IDENTITY CASCADE");
         guardian = createGuardian("g1");
         other = createGuardian("g2");

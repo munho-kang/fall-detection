@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- backend/ Spring Boot API의 구현 구조와 동작(요청 흐름·인증·소유권·멱등성·푸시)을 설명하는 문서 -->
+<!-- backend/ Spring Boot API의 구현 구조와 동작(요청 흐름·인증·소유권·멱등성)을 설명하는 문서 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -212,14 +212,13 @@
       <li><a href="#ownership">소유권 격리 — 왜 전부 404인가</a></li>
       <li><a href="#idempotency">멱등성 — 같은 낙상은 두 번 저장되지 않는다</a></li>
       <li><a href="#validation">검증과 에러 계약 — 형태가 요구사항이다</a></li>
-      <li><a href="#push">웹 푸시 — 실패해도 되는 기능</a></li>
       <li><a href="#ops">마이그레이션 · 테스트 · 실행</a></li>
     </ol>
   </div>
 
   <h2 id="map"><span class="step">1</span>전체 지도 — 무엇으로 만들어졌나</h2>
 
-  <p>이 백엔드가 하는 일은 한 줄로 요약된다. <b>브라우저가 판정한 낙상을 받아 저장하고, 보호자에게 알리고, 보호자만 볼 수 있게 돌려준다.</b> 영상도 관절 좌표도 서버에 오지 않는다 — 낙상이 확정된 순간 4개 필드만 한 번 도착한다.</p>
+  <p>이 백엔드가 하는 일은 한 줄로 요약된다. <b>브라우저가 판정한 낙상을 받아 저장하고, 보호자만 볼 수 있게 돌려준다.</b> 영상도 관절 좌표도 서버에 오지 않는다 — 낙상이 확정된 순간 4개 필드만 한 번 도착한다.</p>
 
   <p>원래 Django + DRF로 만들어져 있었고 2026-07-25에 Spring Boot로 전면 교체됐다. 이때 <b>클라이언트(웹·Flutter 앱)를 한 줄도 고치지 않는 것</b>이 최우선 제약이었다. 이 문서에 반복해서 나오는 "기존 계약"이라는 말은 전부 이 제약을 가리킨다. 경로의 끝 슬래시, 상태 코드, snake_case 필드명, 에러 JSON의 모양까지 전부 Django 시절 그대로여야 했다.</p>
 
@@ -233,34 +232,30 @@
     <tr><td>빌드</td><td>Gradle + 래퍼</td><td>Gradle 미설치 환경에서도 <code>./gradlew</code>로 동작</td></tr>
     <tr><td>DB</td><td>PostgreSQL 18</td><td>유니크 제약이 멱등성의 근거라 실제 RDB가 필요했다</td></tr>
     <tr><td>ORM</td><td>Spring Data JPA (Hibernate)</td><td>—</td></tr>
-    <tr><td>마이그레이션</td><td>Flyway (<code>V1__init.sql</code>)</td><td>제약 <b>이름</b>을 SQL로 못박기 위해 (8절)</td></tr>
+    <tr><td>마이그레이션</td><td>Flyway (<code>V1__init.sql</code>)</td><td>제약 <b>이름</b>을 SQL로 못박기 위해 (7절)</td></tr>
     <tr><td>인증</td><td>Spring Security + 커스텀 토큰 필터</td><td>DRF <code>TokenAuthentication</code> 등가 (3절)</td></tr>
-    <tr><td>웹 푸시</td><td><code>nl.martijndwars:web-push</code> + BouncyCastle</td><td>RFC 8291 암호화 발송 (7절)</td></tr>
-    <tr><td>테스트</td><td>JUnit 5 + MockMvc + 실 Postgres</td><td>43개 (8절)</td></tr>
+    <tr><td>테스트</td><td>JUnit 5 + MockMvc + 실 Postgres</td><td>37개 (7절)</td></tr>
   </table>
   </div>
 
   <h3>패키지 구조</h3>
 
-  <p>표준 레이어드 아키텍처다. 도메인이 6개뿐이라 패키지-바이-피처는 이점이 없다고 보고 계층별로 나눴다.</p>
+  <p>표준 레이어드 아키텍처다. 도메인이 5개뿐이라 패키지-바이-피처는 이점이 없다고 보고 계층별로 나눴다.</p>
 
 <pre><code>backend/src/main/java/com/weniv/falls/
 ├─ FallsApplication.java      <span class="c"># 진입점</span>
 ├─ config/                    <span class="c"># 횡단 설정</span>
 │  ├─ SecurityConfig.java       <span class="c"># 필터체인·인가 규칙·BCrypt 빈</span>
 │  ├─ TokenAuthFilter.java      <span class="c"># Authorization 헤더 → SecurityContext</span>
-│  ├─ CorsConfig.java           <span class="c"># 전 오리진 허용</span>
-│  └─ AsyncConfig.java          <span class="c"># 푸시 전용 스레드풀</span>
+│  └─ CorsConfig.java           <span class="c"># 전 오리진 허용</span>
 ├─ controller/                <span class="c"># HTTP 경계 — 얇다</span>
 │  ├─ AuthController · FallController · RoomController
-│  └─ ProfileController · PushController · HealthController
+│  └─ ProfileController · HealthController
 ├─ service/                   <span class="c"># 비즈니스 규칙 — 두껍다</span>
-│  ├─ AuthService · FallService · RoomService · ProfileService
-│  └─ PushDeviceService · PushService · VapidService
-│     └─ WebPushClient (인터페이스) ← MartijnDwarsWebPushClient
-├─ repository/                <span class="c"># Spring Data 파생 쿼리 인터페이스 6개</span>
-├─ domain/                    <span class="c"># JPA 엔티티 6개</span>
-├─ dto/                       <span class="c"># 요청·응답 record 11개</span>
+│  └─ AuthService · FallService · RoomService · ProfileService
+├─ repository/                <span class="c"># Spring Data 파생 쿼리 인터페이스 5개</span>
+├─ domain/                    <span class="c"># JPA 엔티티 5개</span>
+├─ dto/                       <span class="c"># 요청·응답 record 8개</span>
 └─ error/                     <span class="c"># 예외 2종 + GlobalExceptionHandler</span>
 
 backend/src/main/resources/
@@ -282,9 +277,9 @@ backend/src/main/resources/
     <div class="layer"><b>domain</b> <span>테이블에 대응하는 엔티티. 상태를 바꾸는 메서드를 스스로 갖는다.</span></div>
   </div>
 
-  <p>계층 규칙은 하나다. <b>컨트롤러는 얇게, 서비스는 두껍게.</b> <code>FallController</code> 전체가 46줄이고 그중 로직이라 부를 만한 것은 "생성됐으면 201과 푸시, 아니면 200"이라는 한 줄뿐이다. 나머지 판단은 전부 <code>FallService</code>에 있다.</p>
+  <p>계층 규칙은 하나다. <b>컨트롤러는 얇게, 서비스는 두껍게.</b> <code>FallController</code>에서 로직이라 부를 만한 것은 "새로 생성됐으면 201, 아니면 200"이라는 한 줄뿐이다. 나머지 판단은 전부 <code>FallService</code>에 있다.</p>
 
-  <h3>데이터 모델 — 엔티티 6개</h3>
+  <h3>데이터 모델 — 엔티티 5개</h3>
 
   <p>전부 <code>guardian</code>(보호자 계정)에 매달려 있다. 계정을 지우면 그 계정의 데이터가 <code>ON DELETE CASCADE</code>로 전부 따라 지워진다.</p>
 
@@ -316,11 +311,6 @@ backend/src/main/resources/
       <td>"어르신께 전화" 번호 하나. 접근할 때 없으면 만든다.</td>
       <td><code>guardian_id</code> 유니크</td>
     </tr>
-    <tr>
-      <td><code>PushDevice</code></td>
-      <td>웹 푸시 구독. <code>token</code>은 브라우저가 준 구독 JSON 문자열 통째다.</td>
-      <td><code>token</code> <b>전역</b> 유니크 (7절)</td>
-    </tr>
   </table>
   </div>
 
@@ -338,13 +328,11 @@ backend/src/main/resources/
     <tr><td><span class="pill post">POST</span><code>/api/auth/login/</code></td><td>아이디·비번 → <code>{"token"}</code>. 실패 400.</td></tr>
     <tr><td><span class="pill post">POST</span><code>/api/auth/signup/</code></td><td>가입 후 <b>즉시 토큰까지</b> 201로 발급.</td></tr>
     <tr><td><span class="pill get">GET</span><code>/api/falls/</code></td><td>내 낙상 목록, 최신순(<code>id</code> 역순).</td></tr>
-    <tr><td><span class="pill post">POST</span><code>/api/falls/</code></td><td>낙상 등록. 신규 201 + 푸시 / 재전송 200 + 푸시 없음. <code>reported_119_at</code>이 있으면 저장·병합(첫 값 보존).</td></tr>
+    <tr><td><span class="pill post">POST</span><code>/api/falls/</code></td><td>낙상 등록. 신규 201 / 재전송 200. <code>reported_119_at</code>이 있으면 저장·병합(첫 값 보존).</td></tr>
     <tr><td><span class="pill post">POST</span><code>/api/falls/{id}/acknowledge/</code></td><td>확인 처리. 멱등 — 첫 확인 시각을 덮어쓰지 않는다.</td></tr>
     <tr><td><span class="pill del">DEL</span><code>/api/falls/{id}/</code></td><td>기록 삭제. 확인한 기록만 — 미확인 400, 남의 기록은 확인 여부와 무관하게 404.</td></tr>
     <tr><td><span class="pill get">GET</span><code>/api/rooms/</code> 외 5개</td><td>방 CRUD. <code>PUT</code>·<code>PATCH</code>·<code>DELETE</code> 포함.</td></tr>
     <tr><td><span class="pill get">GET</span><span class="pill put">PUT</span><code>/api/profile/</code></td><td>어르신 연락처 조회·수정. 없으면 만들어서 준다.</td></tr>
-    <tr><td><span class="pill post">POST</span><span class="pill del">DEL</span><code>/api/push/devices/</code></td><td>푸시 구독 등록(201) · 해제(항상 204).</td></tr>
-    <tr><td><span class="pill get">GET</span><code>/api/push/vapid-key/</code></td><td>공개키. 서버에 키가 없으면 503.</td></tr>
   </table>
   </div>
 
@@ -403,7 +391,7 @@ public ResponseEntity&lt;FallEventResponse&gt; create(@AuthenticationPrincipal G
 
     Optional&lt;FallEvent&gt; existing = findDuplicate(guardian, request, occurredAt);
     if (existing.isPresent()) {
-        return new CreateResult(existing.get(), false);   <span class="c">// 재전송 — 기존 행, 푸시 없음</span>
+        return new CreateResult(existing.get(), false);   <span class="c">// 재전송 — 기존 행</span>
     }
     try {
         FallEvent saved = fallEventRepository.saveAndFlush(new FallEvent(
@@ -420,19 +408,15 @@ public ResponseEntity&lt;FallEventResponse&gt; create(@AuthenticationPrincipal G
     </div>
 
     <div class="fstep">
-      <h4>컨트롤러가 상태 코드를 고르고 푸시를 건다 <span class="tag">controller/FallController.java:40</span></h4>
+      <h4>컨트롤러가 상태 코드를 고른다 <span class="tag">controller/FallController.java:36</span></h4>
 <pre><code>FallService.CreateResult result = fallService.create(guardian, request);
-if (result.created()) {
-    pushService.sendToGuardianAsync(result.event());   <span class="c">// 201일 때만 발송</span>
-}
 return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
     .body(FallEventResponse.from(result.event()));</code></pre>
-      <p>컨트롤러의 로직은 이게 전부다. <b>푸시가 <code>created()</code> 안쪽에 있는 것</b>이 중요하다 — 감지 브라우저가 오프라인 큐에 쌓아둔 낙상을 재전송해도 보호자 폰이 다시 울리지 않는다.</p>
+      <p>컨트롤러의 로직은 이게 전부다. 새로 만들었으면 201, 이미 있던 낙상이면 200 — 감지 브라우저가 오프라인 큐에 쌓아둔 낙상을 재전송해도 새 행이 생기지 않는다.</p>
     </div>
 
     <div class="fstep">
-      <h4>응답은 즉시 나가고, 푸시는 다른 스레드에서 진행된다 <span class="tag">service/PushService.java:36</span></h4>
-      <p><code>sendToGuardianAsync</code>에는 <code>@Async("pushExecutor")</code>가 붙어 있다. 호출은 즉시 반환되고 실제 발송은 전용 스레드풀에서 일어난다. <b>브라우저 벤더의 푸시 서버가 응답할 때까지 기다리느라 낙상 등록 응답이 늦어지면 안 되기 때문이다.</b></p>
+      <h4>응답이 나간다</h4>
 <pre><code>HTTP/1.1 201 Created
 
 {
@@ -454,7 +438,7 @@ return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.
     <p><code>occurred_at</code>은 <b>브라우저가 판정한 낙상 순간</b>이고, <code>created_at</code>은 서버에 도착해 저장된 시각이다. 평소엔 1초 차이지만, 감지 기기가 오프라인이었다가 나중에 재전송하면 몇 시간 벌어질 수 있다. 보호자에게는 <code>occurred_at</code>을 보여줘야 한다 — 알림이 늦게 왔다고 넘어진 시각까지 늦어지는 것은 아니기 때문이다.</p>
   </div>
 
-  <p>이제 이 여정에서 스쳐 간 것들을 하나씩 본다. <b>누구인지 확정하는 방법</b>(3절), <b>남의 데이터를 막는 방법</b>(4절), <b>중복을 흡수하는 방법</b>(5절), <b>에러를 만드는 방법</b>(6절), <b>푸시를 보내는 방법</b>(7절)이다.</p>
+  <p>이제 이 여정에서 스쳐 간 것들을 하나씩 본다. <b>누구인지 확정하는 방법</b>(3절), <b>남의 데이터를 막는 방법</b>(4절), <b>중복을 흡수하는 방법</b>(5절), <b>에러를 만드는 방법</b>(6절)이다.</p>
 
   <h2 id="auth"><span class="step">3</span>인증 — 토큰 하나로 끝내기</h2>
 
@@ -589,7 +573,6 @@ public record FallEventRequest(
     <tr><td>낙상 1건</td><td><code>findByIdAndGuardianId(id, guardianId)</code></td></tr>
     <tr><td>방 1건</td><td><code>findByIdAndGuardianId(id, guardianId)</code></td></tr>
     <tr><td>방 목록</td><td><code>findByGuardianIdOrderByNameAscNumberAsc(guardianId)</code></td></tr>
-    <tr><td>푸시 기기 해제</td><td><code>deleteByGuardianIdAndToken(guardianId, token)</code></td></tr>
   </table>
   </div>
 
@@ -687,7 +670,6 @@ CONSTRAINT uniq_fall_dedup UNIQUE (guardian_id, room_name, room_number, occurred
     <tr><td>DB</td><td>새 행 1개</td><td>변화 없음</td></tr>
     <tr><td>상태 코드</td><td><b>201</b> Created</td><td><b>200</b> OK</td></tr>
     <tr><td>응답 본문</td><td>새 이벤트</td><td><b>기존 이벤트</b> (같은 <code>id</code>)</td></tr>
-    <tr><td>푸시</td><td>발송</td><td><b>안 함</b></td></tr>
   </table>
   </div>
 
@@ -738,7 +720,7 @@ public void acknowledgeNow() {
   <table>
     <tr><th></th><th>Bean Validation (<code>@Valid</code>)</th><th>서비스 안 수동 검증</th></tr>
     <tr><td>어디에</td><td>DTO 필드의 어노테이션</td><td><code>AuthService</code>·<code>RoomService</code>의 <code>validate()</code></td></tr>
-    <tr><td>쓰는 곳</td><td>낙상 등록, 로그인, 푸시 기기 등록, 프로필</td><td>회원가입, 방 생성·수정</td></tr>
+    <tr><td>쓰는 곳</td><td>낙상 등록, 로그인, 프로필</td><td>회원가입, 방 생성·수정</td></tr>
     <tr><td>잘하는 것</td><td>"항상 참이어야 하는" 단순 규칙</td><td>DB를 봐야 하거나 <b>상황에 따라 달라지는</b> 규칙</td></tr>
   </table>
   </div>
@@ -795,131 +777,14 @@ private void validate(RoomRequest request, boolean requireAll) {
   <p>한 필드에 여러 위반이 걸릴 수 있으므로 <code>computeIfAbsent</code>로 <b>배열에 모은다</b>. DRF의 형태가 값이 아니라 배열인 이유도 같다.</p>
 
   <div class="box">
-    <b>고정 문자열 두 개는 함부로 못 바꾼다.</b>
-    <p>대부분의 에러 문구는 클라이언트가 그대로 표시만 하므로 자유롭게 바꿔도 된다. 그런데 두 개는 클라이언트가 <b>문자열을 비교해서 분기</b>한다.</p>
+    <b>고정 문자열 하나는 함부로 못 바꾼다.</b>
+    <p>대부분의 에러 문구는 클라이언트가 그대로 표시만 하므로 자유롭게 바꿔도 된다. 그런데 하나는 클라이언트가 <b>문자열을 비교해서 분기</b>한다.</p>
     <ul>
       <li><code>"같은 이름과 번호의 방이 이미 있습니다."</code> — 그래서 <code>RoomService.DUPLICATE_ROOM_MESSAGE</code> 상수로 뽑혀 있다.</li>
-      <li><code>"웹 푸시가 설정되지 않았습니다."</code> — 보호자 페이지가 이 503으로 "푸시 미설정" 안내를 띄운다.</li>
     </ul>
   </div>
 
-  <h2 id="push"><span class="step">7</span>웹 푸시 — 실패해도 되는 기능</h2>
-
-  <p>보호자 페이지를 닫아둬도 알림이 오게 하는 기능이다. 설계 원칙이 다른 절과 완전히 다르다. <b>이 기능은 실패해도 된다.</b></p>
-
-  <p>왜냐하면 <b>안전망이 이미 있기 때문</b>이다. 앱과 보호자 페이지는 5초마다 <code>GET /api/falls/</code>를 폴링한다. 푸시가 안 가도 화면을 켜 두면 알림이 뜬다. 푸시는 "화면이 꺼져 있을 때도 알려주는" 추가 편의일 뿐이다.</p>
-
-  <p>이 판단이 코드 전체를 관통한다.</p>
-
-  <h3>(a) 키가 없으면 조용히 꺼진다</h3>
-
-  <p>웹 푸시에는 VAPID 키가 필요하다. 서버 실행 시 환경변수로 주는데, <b>없어도 서버가 정상 기동한다.</b></p>
-
-  <p class="src">resources/application.yml:15</p>
-<pre><code>push:
-  vapid:
-    private-key: ${VAPID_PRIVATE_KEY:}   <span class="c"># 미설정이면 푸시 조용히 비활성</span>
-    subject: ${VAPID_SUBJECT:}</code></pre>
-
-  <p><code>${VAR:}</code>의 콜론 뒤 빈 값이 기본값이다. 키가 없으면 <code>VapidService.isConfigured()</code>가 <code>false</code>가 되고, 발송 시도 자체를 건너뛴다. <b>기능 하나가 설정되지 않았다고 서버 전체가 안 뜨는 것은 과한 반응</b>이라는 판단이다.</p>
-
-  <h3>(b) 공개키는 저장하지 않고 계산한다</h3>
-
-  <p>VAPID는 공개키·개인키 쌍인데 이 서버는 <b>개인키만</b> 받는다. 공개키는 필요할 때 계산한다.</p>
-
-  <p class="src">service/VapidService.java:44</p>
-<pre><code><span class="c">// P-256 공개키 = G × d (비압축 점 65바이트)를 base64url로.</span>
-public String publicKey() {
-    if (!isConfigured()) return null;
-    if (cachedPublicKey != null) return cachedPublicKey;
-    try {
-        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("prime256v1");
-        BigInteger d = new BigInteger(1, Base64.getUrlDecoder().decode(privateKey));
-        byte[] point = spec.getG().multiply(d).normalize().getEncoded(false);
-        cachedPublicKey = Base64.getUrlEncoder().withoutPadding().encodeToString(point);
-        return cachedPublicKey;
-    } catch (Exception e) {
-        log.error("VAPID 공개키 파생 실패 — 키 형식을 확인하세요…", e);
-        return null;   <span class="c">// → 503 경로. 서버는 계속 돈다</span>
-    }
-}</code></pre>
-
-  <p>타원곡선 암호에서 <b>공개키는 개인키로부터 유일하게 결정된다</b>(기준점 G를 개인키 d배 한 점). 그래서 둘 다 보관할 이유가 없다 — 설정할 값이 절반으로 줄고, 두 키가 짝이 안 맞는 실수가 원천적으로 사라진다. 계산 결과는 캐시해서 한 번만 한다.</p>
-
-  <p>여기서도 실패 처리는 같다. 키 형식이 잘못돼도 <code>null</code>을 돌려주고 로그만 남긴다. 그러면 <code>/api/push/vapid-key/</code>가 503을 주고, 보호자 페이지가 "푸시 미설정" 안내를 띄운다.</p>
-
-  <h3>(c) 발송은 응답 밖에서, 실패는 삼킨다</h3>
-
-  <p class="src">service/PushService.java:36</p>
-<pre><code><span class="c">// POST 응답이 외부 HTTP를 기다리지 않도록 스레드풀에서 발송한다</span>
-@Async("pushExecutor")
-public void sendToGuardianAsync(FallEvent event) { sendToGuardian(event); }
-
-public void sendToGuardian(FallEvent event) {
-    try {
-        if (!vapidService.isConfigured()) return;   <span class="c">// 키 미설정 — 조용히 비활성</span>
-        Long guardianId = event.getGuardian().getId();
-        for (PushDevice device : pushDeviceRepository.findByGuardianId(guardianId)) {
-            sendOne(device, event);
-        }
-    } catch (Exception e) {
-        log.error("푸시 발송 중 예상 밖 오류 (event={})", event.getId(), e);   <span class="c">// 삼킨다</span>
-    }
-}</code></pre>
-
-  <p>두 겹으로 감싼다. <code>sendOne</code>이 기기 하나의 실패를 잡아 <b>다음 기기 발송을 막지 않게</b> 하고, 바깥 <code>try</code>가 그 밖의 모든 예외를 잡아 <b>API 응답에 영향을 주지 않게</b> 한다. 보통은 예외를 삼키는 게 나쁜 습관이지만, 여기서는 "낙상은 저장됐는데 푸시 실패로 500을 돌려주는" 상황이 훨씬 나쁘다.</p>
-
-  <p>스레드풀은 <b>데몬 스레드</b>로 만든다(<code>AsyncConfig.java:20</code>). 데몬이 아니면 발송 대기 중인 작업이 남아 있을 때 서버가 종료되지 않고 매달린다.</p>
-
-  <h3>(d) 만료된 구독은 그 자리에서 정리한다</h3>
-
-  <p class="src">service/PushService.java:56</p>
-<pre><code>int status = webPushClient.send(device.getToken(), payloadJson(event));
-if (status == 404 || status == 410) {
-    pushDeviceRepository.delete(device);   <span class="c">// 만료된 구독은 그 자리에서 정리한다</span>
-} else if (status &gt;= 400) {
-    log.error("웹 푸시 발송 실패 (device={}, status={})", device.getId(), status);
-}</code></pre>
-
-  <p>브라우저를 지우거나 알림을 껐으면 푸시 서비스가 <code>404</code>/<code>410 Gone</code>을 준다. 이건 일시적 실패가 아니라 <b>영구적으로 죽은 구독</b>이라는 뜻이므로, 재시도하지 않고 삭제한다. 별도 정리 배치가 필요 없어진다.</p>
-
-  <h3>(e) 라이브러리를 인터페이스 뒤에 숨긴다</h3>
-
-  <p><code>WebPushClient</code>는 메서드 하나짜리 인터페이스다.</p>
-
-<pre><code><span class="c">// 웹 푸시 발송 어댑터 경계 — 테스트는 이 인터페이스를 목으로 바꿔 외부 HTTP를 차단한다</span>
-public interface WebPushClient {
-    int send(String subscriptionJson, String payload) throws Exception;
-}</code></pre>
-
-  <p>구현체 <code>MartijnDwarsWebPushClient</code>가 실제 라이브러리를 쓴다. 인터페이스를 하나 끼운 이유는 <b>테스트</b>다. 이게 없으면 푸시 테스트가 진짜 구글 서버에 요청을 보낸다 — 느리고, 네트워크가 없으면 실패하고, 결과가 매번 다르다. 테스트에서는 이 인터페이스를 가짜 구현으로 바꿔 "무엇이 발송됐는지"만 확인한다.</p>
-
-  <div class="box warn">
-    <b>실제로 겪은 함정 — 인코딩을 명시해야 했다.</b>
-    <p>라이브러리의 인자 없는 <code>send(notification)</code>은 구식 <code>AESGCM</code> 인코딩으로 동작하는데, 구글의 푸시 서버가 이걸 <code>403 crypto-key header had invalid format</code>으로 거부한다. 구독도 키 파생도 전부 정상인데 발송만 실패해서 원인을 찾기 어려웠다. 표준 인코딩을 명시해서 해결했다.</p>
-<pre><code>var response = delegate().send(new Notification(subscription, payload), Encoding.AES128GCM);</code></pre>
-    <p>라이브러리 기본값이 항상 현재 표준은 아니라는 사례다. <code>MartijnDwarsWebPushClient.java:35</code>에 이 경위가 주석으로 남아 있다.</p>
-  </div>
-
-  <h3>구독 토큰은 왜 전역 유니크인가</h3>
-
-  <p><code>PushDevice.token</code>은 보호자별이 아니라 <b>전체에서</b> 유니크다. 브라우저 하나가 만드는 구독은 하나뿐이라 계정보다 기기가 더 근본적인 단위이기 때문이다.</p>
-
-  <p>이 제약 덕분에 계정 전환이 자연스럽게 처리된다.</p>
-
-  <p class="src">service/PushDeviceService.java:20</p>
-<pre><code>@Transactional
-public void register(Guardian guardian, String kind, String token) {
-    pushDeviceRepository.findByToken(token).ifPresentOrElse(
-        device -&gt; device.reassign(guardian, kind),   <span class="c">// 다른 계정에 있으면 현 사용자로 이전</span>
-        () -&gt; pushDeviceRepository.save(new PushDevice(guardian, kind, token)));
-}</code></pre>
-
-  <p>A 계정으로 알림을 켜뒀다가 로그아웃하고 B 계정으로 켜면, 새 행이 생기는 게 아니라 <b>기존 행의 주인이 바뀐다</b>. 이걸 안 했다면 A의 낙상 알림이 B가 쓰는 브라우저로 계속 갔을 것이다.</p>
-
-  <p><code>@Transactional</code>이 붙은 이유는 <code>reassign</code>이 <b>조회한 엔티티의 필드만 바꾸고 <code>save</code>를 호출하지 않기</b> 때문이다. JPA는 트랜잭션이 끝날 때 관리 중인 엔티티의 변경을 감지해 자동으로 <code>UPDATE</code>를 보낸다(변경 감지). 트랜잭션이 없으면 이 동작이 일어나지 않아 변경이 사라진다.</p>
-
-  <h2 id="ops"><span class="step">8</span>마이그레이션 · 테스트 · 실행</h2>
+  <h2 id="ops"><span class="step">7</span>마이그레이션 · 테스트 · 실행</h2>
 
   <h3>스키마는 Flyway가 소유한다</h3>
 
@@ -937,12 +802,7 @@ public void register(Guardian guardian, String kind, String token) {
 
   <p><code>open-in-view: false</code>도 짚어둘 만하다. 기본값이 <code>true</code>인데, 그 경우 HTTP 응답을 만드는 동안까지 DB 연결을 붙잡고 있어 지연 로딩이 아무 데서나 쿼리를 날린다. 꺼두면 <b>지연 로딩 문제가 컨트롤러가 아니라 서비스 안에서 즉시 드러난다.</b></p>
 
-  <div class="box">
-    <b>비동기 스레드에서 지연 로딩을 피한 자리.</b>
-    <p><code>PushService.sendToGuardian</code>은 <code>event.getGuardian().getId()</code>만 부른다. <code>getUsername()</code>이었다면 실제 조회가 필요해 실패했을 것이다 — 비동기 스레드에는 영속성 컨텍스트가 없기 때문이다. <b><code>getId()</code>는 프록시가 이미 알고 있는 값이라 DB를 안 본다.</b> 이 사정이 코드에 주석으로 남아 있다(<code>PushService.java:44</code>).</p>
-  </div>
-
-  <h3>테스트 — 43개, 전부 실제 DB에 붙는다</h3>
+  <h3>테스트 — 37개, 전부 실제 DB에 붙는다</h3>
 
   <p>모킹 위주 단위 테스트가 아니라 <b>통합 테스트</b>다. 실제 PostgreSQL(<code>fall_detection_test</code>)에 붙고, MockMvc로 진짜 HTTP 요청을 만들어 필터체인부터 통과시킨다.</p>
 
@@ -950,7 +810,7 @@ public void register(Guardian guardian, String kind, String token) {
 <pre><code>@BeforeEach
 void resetDatabase() {
     jdbcTemplate.execute(
-        "TRUNCATE TABLE push_device, guardian_profile, room, fall_event, auth_token, guardian "
+        "TRUNCATE TABLE guardian_profile, room, fall_event, auth_token, guardian "
             + "RESTART IDENTITY CASCADE");
     guardian = createGuardian("g1");
     other    = createGuardian("g2");
@@ -963,28 +823,22 @@ void resetDatabase() {
   <div class="tablewrap">
   <table>
     <tr><th>테스트</th><th>개수</th><th>고정하는 것</th></tr>
-    <tr><td><code>FallApiTest</code></td><td>16</td><td>멱등 POST, 201/200 분기, 소유권, acknowledge 멱등, 오프셋 → UTC 변환, 삭제 204/400/404, 신고 병합·불변</td></tr>
+    <tr><td><code>FallApiTest</code></td><td>19</td><td>멱등 POST, 201/200 분기, 소유권, acknowledge 멱등, 오프셋 → UTC 변환, 삭제 204/400/404, 신고·괜찮음 병합·불변</td></tr>
     <tr><td><code>AuthApiTest</code></td><td>6</td><td>로그인·가입, 토큰 재사용, 가입 검증 에러 형태</td></tr>
     <tr><td><code>RoomApiTest</code></td><td>5</td><td>CRUD, 중복 400, PATCH 부분 수정, 남의 방 404</td></tr>
-    <tr><td><code>PushDeviceApiTest</code></td><td>4</td><td>등록·계정 이전, 해제는 항상 204</td></tr>
     <tr><td><code>DomainConstraintTest</code></td><td>4</td><td>유니크 제약·CASCADE가 DB에서 실제로 동작하는가</td></tr>
-    <tr><td><code>PushSendTest</code></td><td>3</td><td>발송 페이로드, 404/410 구독 정리 (가짜 <code>WebPushClient</code>)</td></tr>
-    <tr><td><code>PushSendDisabledTest</code></td><td>2</td><td>키 미설정 시 조용히 비활성</td></tr>
     <tr><td><code>ProfileApiTest</code></td><td>2</td><td>get-or-create, 수정</td></tr>
     <tr><td><code>HealthApiTest</code></td><td>1</td><td>헬스체크</td></tr>
   </table>
   </div>
 
 <pre><code>createdb fall_detection_test   <span class="c"># 최초 1회</span>
-./gradlew test                 <span class="c"># 43 tests, 0 failures</span></code></pre>
+./gradlew test                 <span class="c"># 37 tests, 0 failures</span></code></pre>
 
   <h3>실행</h3>
 
 <pre><code>createdb fall_detection        <span class="c"># 최초 1회</span>
-./gradlew bootRun              <span class="c"># 0.0.0.0:8000</span>
-
-<span class="c"># 푸시까지 켜려면 (선택)</span>
-VAPID_PRIVATE_KEY=&lt;키&gt; VAPID_SUBJECT=mailto:&lt;이메일&gt; ./gradlew bootRun</code></pre>
+./gradlew bootRun              <span class="c"># 0.0.0.0:8000</span></code></pre>
 
   <p>바인딩이 <code>127.0.0.1</code>이 아니라 <code>0.0.0.0</code>인 것은 <b>같은 와이파이의 폰이 Mac의 IP로 접속</b>해야 하기 때문이다. 기본값이면 같은 기기에서만 붙을 수 있다.</p>
 
@@ -997,7 +851,6 @@ VAPID_PRIVATE_KEY=&lt;키&gt; VAPID_SUBJECT=mailto:&lt;이메일&gt; ./gradlew b
   <ul>
     <li><b>안전은 검증이 아니라 구조로 만든다.</b> 소유자 위조를 막은 방법은 검사하는 것이 아니라 <b>DTO에 그 필드를 두지 않는 것</b>이었다. 리포지토리 메서드 이름에 <code>AndGuardianId</code>를 넣는 것도 같은 방식이다.</li>
     <li><b>불변식은 최대한 아래층에 둔다.</b> 중복 방지를 애플리케이션이 아니라 DB 제약에 맡겼기 때문에 동시 요청에도 뚫리지 않는다. 애플리케이션의 사전 조회는 최적화일 뿐이다.</li>
-    <li><b>기능마다 실패의 무게가 다르다.</b> 낙상 저장은 실패하면 안 되지만 푸시는 실패해도 된다. 그래서 한쪽은 DB 제약까지 동원하고 다른 쪽은 예외를 삼킨다. 모든 코드에 같은 엄격함을 적용하는 것이 항상 옳지는 않다.</li>
     <li><b>관행을 벗어난 자리에는 이유를 남긴다.</b> <code>FallService</code>에 <code>@Transactional</code>이 없는 것, <code>save</code> 대신 <code>saveAndFlush</code>를 쓴 것, 인코딩을 명시한 것은 전부 이유가 있고 그 이유가 주석으로 코드 옆에 있다. 다음에 읽는 사람이 "빠뜨렸나 보다" 하고 고치면 버그가 되기 때문이다.</li>
   </ul>
 
