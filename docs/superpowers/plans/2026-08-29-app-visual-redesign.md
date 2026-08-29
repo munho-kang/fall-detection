@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - 기능·API·폴링·인증·설정 저장 로직 변경 금지. 라이트 테마 하나뿐(다크 분기 금지). 새 화면·새 패키지 금지.
-- `buildAppTheme({required TextScale scale})`와 `TextScale`(작게 0.9 · 보통 1.0 · 크게 1.15)은 시그니처·값 유지 — `main.dart`·`local_store.dart`·`settings.dart`·`app_theme_test.dart`가 쓴다.
+- `TextScale`(작게 0.9 · 보통 1.0 · 크게 1.15)은 값 유지. 배율은 `buildAppTheme()`가 아니라 `main.dart`의 `MaterialApp.builder`에서 `applyTextScale(context, scale, child)`로 건다(스펙 §8 — 구현 중 발견한 버그 수정).
 - 팔레트는 스펙 §2 표의 값을 그대로: bg `#F7F8FA` · card `#FFFFFF` · text `#191F28` · textSub `#6B7684` · textMuted `#8B95A1` · hairline `#F2F4F6` · border `#E5E8EB` · primary `#0E9F6E` · primaryLight `#14B98A` · primaryTint `#E3F6EE` · onPrimaryTint `#0A7A55` · danger `#E5323F` · dangerLight `#F25A66` · dangerTint `#FDECEE` · dangerDeep `#C9353F` · mutedHero `#6B7684→#4E5968` · 그림자 `#000000` 5% blur 10 offset (0,2).
 - 모서리: 카드 18 · 히어로 22 · 버튼 14 · 창 24 · 입력칸 14 · 칩 999. 버튼 높이 52(시작 화면 56). 화면 패딩 좌우 20.
 - 글꼴 `Pretendard` 400/600/700. 제목 22/700, 섹션·타일 제목·버튼 17/700, 본문 17/400, 보조 15, 칩·탭 13/700.
@@ -114,7 +114,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final theme = buildAppTheme(scale: TextScale.normal);
+  final theme = buildAppTheme();
 
   test('테마는 라이트 하나뿐이다', () {
     expect(theme.brightness, Brightness.light);
@@ -445,7 +445,7 @@ void main() {
 
   testWidgets('타일은 방 이름·시각·상태 칩을 그린다', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(scale: TextScale.normal),
+      theme: buildAppTheme(),
       home: Scaffold(body: FallTile(event: _event(ok: t), onTap: () {})),
     ));
     expect(find.text('안방 1'), findsOneWidget);
@@ -456,7 +456,7 @@ void main() {
   testWidgets('동작 버튼은 onPressed가 없으면 눌리지 않는다', (tester) async {
     var pressed = 0;
     await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(scale: TextScale.normal),
+      theme: buildAppTheme(),
       home: Scaffold(
         body: Column(children: [
           ActionButton(label: '켜짐', kind: ActionKind.emergency, onPressed: () => pressed++),
@@ -1275,7 +1275,7 @@ cd /Users/munhokang/82107/fall-detection && git add app/lib/screens/login.dart a
 ```dart
   group('홈 히어로', () {
     Widget home({List<FallEvent> events = const [], String? error, bool loading = false}) => MaterialApp(
-          theme: buildAppTheme(scale: TextScale.normal),
+          theme: buildAppTheme(),
           home: HomeScreen(
             events: events,
             rooms: const [],

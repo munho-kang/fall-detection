@@ -49,7 +49,7 @@ Future<void> _open(
   DateTime? reported119At,
 }) async {
   await tester.pumpWidget(MaterialApp(
-    theme: buildAppTheme(scale: TextScale.normal),
+    theme: buildAppTheme(),
     // 스낵바가 실제로 그려지려면 ScaffoldMessenger에 등록된 Scaffold가 필요하다
     home: Scaffold(
       body: Builder(

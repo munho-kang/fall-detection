@@ -279,3 +279,13 @@ class ActionButton extends StatelessWidget {
    화면 크기 '크게'에서 글자 잘림 없음.
 3. `flutter build web --release`가 통과해 글꼴 자산이 웹 번들에 들어가는지 확인.
 4. 스크린샷 재캡처 후 README 갱신, 커밋.
+
+## 8. 구현 중 수정 (2026-08-29)
+
+- **화면 크기 배율은 MediaQuery로 건다.** §2는 `textTheme.apply(fontSizeFactor:)`를 그대로 쓴다고
+  했으나, 구현 중 새 테마 테스트가 그 방식이 애초에 동작하지 않았음을 드러냈다 — `ThemeData`의
+  textTheme은 지역화 전이라 `fontSize`가 없고, 그래서 `작게`/`크게`에서 디버그 빌드는 `TextStyle.apply`의
+  assert로 죽고 릴리스 빌드는 아무것도 안 커졌다. 이제 `buildAppTheme()`는 배율을 받지 않고,
+  `main.dart`가 `MaterialApp.builder`에서 `applyTextScale(context, scale, child)`로 `MediaQuery.textScaler`를
+  건다. 명시 `fontSize`가 있는 글자까지 전부 배율이 걸리므로 설정이 실제로 동작하게 된다.
+  `app_theme_test.dart`가 세 배율의 렌더 높이를 비교해 지킨다.

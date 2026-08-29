@@ -69,7 +69,7 @@ void main() {
   /// 실제 진입 흐름대로 MainShell을 띄우고, 홈의 종 아이콘으로 알림 확인 창에 들어간다.
   Future<void> openList(WidgetTester tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(scale: TextScale.normal),
+      theme: buildAppTheme(),
       home: MainShell(api: api),
     ));
     await tester.pumpAndSettle();

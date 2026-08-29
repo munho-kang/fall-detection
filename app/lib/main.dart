@@ -60,7 +60,9 @@ class _FallGuardianAppState extends State<FallGuardianApp> {
     return MaterialApp(
       title: '낙상 알림',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(scale: _scale),
+      theme: buildAppTheme(),
+      // 화면 크기 배율은 테마가 아니라 MediaQuery로 — 명시 크기가 있는 글자까지 전부 걸린다
+      builder: (context, child) => applyTextScale(context, _scale, child!),
       home: _buildHome(),
     );
   }
