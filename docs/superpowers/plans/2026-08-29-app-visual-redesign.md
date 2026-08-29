@@ -2660,36 +2660,23 @@ cd /Users/munhokang/82107/fall-detection && git add app/lib/app_theme.dart && gi
 
 로 바꾼다.
 
-- [ ] **Step 2: 시뮬레이터·백엔드 준비**
+- [ ] **Step 2: 자동 촬영 스크립트** (실행 중 변경 — 백엔드 대신 가짜 Api, 스펙 §8)
 
-`running-fall-guardian` 스킬을 읽고 그 절차대로 백엔드(Spring Boot + PostgreSQL)를 띄우고 방 3개(거실 1 · 침실 2 · 화장실 3)와 낙상 4건(미확인 1 · 확인함 1 · 괜찮다고 말함 1 · 119 신고됨 1)을 만든다. iOS 시뮬레이터:
+`app/test_driver/integration_test.dart`(드라이버: 받은 PNG를 `../docs/screenshots/<이름>.png`로 저장)와
+`app/integration_test/screenshots_test.dart`(가짜 `Api`로 방 3개 · 낙상 4건을 심고 12개 화면을 순서대로 띄워
+`binding.takeScreenshot('01-splash')` … `'14-settings'`)를 만든다. 사고 발생 창은 첫 폴링(프라이밍) 뒤
+6초 실제 시간을 기다려 두 번째 폴링에서 새 낙상이 들어오게 한다. OS 알림 권한 창이 캡처를 덮지 않게
+`LocalStore.setNotificationsOn(false)`를 먼저 부른다.
+
+- [ ] **Step 3: 시뮬레이터에서 촬영**
 
 ```bash
 xcrun simctl list devices available | grep -i iphone | head -3     # UDID 하나 고른다
-xcrun simctl boot <UDID>; open -a Simulator
-cd /Users/munhokang/82107/fall-detection/app && flutter run -d <UDID>
-```
-
-백엔드를 띄울 수 없으면(PostgreSQL 없음 등) 서버 없이 열리는 화면(01 스플래시 · 02 시작 · 03 로그인 · 04 회원가입 · 14 설정)만 찍고, 못 찍은 파일 이름을 마지막 보고에 적는다.
-
-- [ ] **Step 3: 화면마다 캡처** (앱을 조작해 해당 화면을 띄운 뒤)
-
-```bash
-S=/Users/munhokang/82107/fall-detection/docs/screenshots
-xcrun simctl io booted screenshot $S/01-splash.png            # 앱 시작 직후 1초 안
-xcrun simctl io booted screenshot $S/02-start.png             # 로그아웃 상태 첫 화면
-xcrun simctl io booted screenshot $S/03-login.png
-xcrun simctl io booted screenshot $S/04-signup.png
-xcrun simctl io booted screenshot $S/05-home.png              # 미확인 0건(초록 히어로)
-xcrun simctl io booted screenshot $S/06-fall-alert-dialog.png # 새 낙상 POST 직후 뜨는 창
-xcrun simctl io booted screenshot $S/07-home-unread.png       # 미확인 1건(빨간 히어로)
-xcrun simctl io booted screenshot $S/08-fall-list.png
-xcrun simctl io booted screenshot $S/09-fall-detail.png       # 미확인 건
-xcrun simctl io booted screenshot $S/10-rooms.png
-xcrun simctl io booted screenshot $S/11-room-add-dialog.png
-xcrun simctl io booted screenshot $S/12-profile.png
-xcrun simctl io booted screenshot $S/13-withdraw-dialog.png
-xcrun simctl io booted screenshot $S/14-settings.png
+xcrun simctl boot <UDID>
+cd /Users/munhokang/82107/fall-detection/app && flutter analyze && \
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/screenshots_test.dart -d <UDID>
+ls -la ../docs/screenshots/*.png | head -14                        # 14장 모두 방금 시각인지
 ```
 
 - [ ] **Step 4: 눈으로 대조** — 각 PNG를 열어 스펙 §5와 시안(`.superpowers/brainstorm/2106-1787977035/content/*.html`)에 맞는지, '크게' 배율에서 글자가 잘리지 않는지 본다. 어긋나면 해당 화면 태스크로 돌아가 고치고 다시 찍는다.

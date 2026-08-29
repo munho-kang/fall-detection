@@ -289,3 +289,9 @@ class ActionButton extends StatelessWidget {
   `main.dart`가 `MaterialApp.builder`에서 `applyTextScale(context, scale, child)`로 `MediaQuery.textScaler`를
   건다. 명시 `fontSize`가 있는 글자까지 전부 배율이 걸리므로 설정이 실제로 동작하게 된다.
   `app_theme_test.dart`가 세 배율의 렌더 높이를 비교해 지킨다.
+- **스크린샷은 가짜 Api로 자동 촬영한다.** 결정 8은 백엔드 + 시드 데이터로 시뮬레이터에서 찍는다고
+  했으나, `integration_test/screenshots_test.dart`가 `Api`를 상속한 가짜(방 3개 · 낙상 4건 · 전화번호)로
+  12개 화면을 순서대로 띄우고 `takeScreenshot`으로 `docs/screenshots/NN-*.png`에 저장한다
+  (`test_driver/integration_test.dart`가 파일로 쓴다). 서버·DB 없이 명령 하나로 재현된다:
+  `cd app && flutter drive --driver=test_driver/integration_test.dart --target=integration_test/screenshots_test.dart -d <시뮬레이터 UDID>`.
+  Flutter 화면만 캡처되므로 옛 스크린샷과 달리 상단 상태 표시줄(시계·배터리)은 없다.
