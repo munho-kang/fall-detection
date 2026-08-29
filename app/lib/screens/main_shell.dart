@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../app_theme.dart';
 import '../models.dart';
 import '../notifications.dart';
 import '../poller.dart';
@@ -220,31 +221,30 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        height: 80,
-        indicatorColor: Theme.of(context).colorScheme.primaryContainer,
-        indicatorShape: const StadiumBorder(),
-        labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-        destinations: const [
-          NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: '홈',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.grid_view),
-            icon: Icon(Icons.grid_view_outlined),
-            label: '방 관리',
-          ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.person),
-            icon: Icon(Icons.person_outline),
-            label: '프로필',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        // 모양(흰 배경 · 높이 72 · 활성 초록)은 navigationBarTheme이 준다. 위 hairline만 여기서
+        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.hairline))),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => setState(() => _tab = i),
+          destinations: const [
+            NavigationDestination(
+              selectedIcon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
+              label: '홈',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.grid_view),
+              icon: Icon(Icons.grid_view_outlined),
+              label: '방 관리',
+            ),
+            NavigationDestination(
+              selectedIcon: Icon(Icons.person),
+              icon: Icon(Icons.person_outline),
+              label: '프로필',
+            ),
+          ],
+        ),
       ),
     );
   }
