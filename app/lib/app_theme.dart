@@ -29,24 +29,6 @@ class AppColors {
   static const mutedHeroEnd = Color(0xFF4E5968);
 
   static const shadow = Color(0x0D000000);
-
-  // ponytail: 화면 태스크(4~10)가 끝나면 지운다 — 옛 화면 코드가 컴파일되게 하는 임시 별칭
-  static const error = danger;
-  static const errorContainer = dangerTint;
-  static const onErrorContainer = dangerDeep;
-  static const dangerBg = dangerTint;
-  static const dangerFg = dangerDeep;
-  static const surface = bg;
-  static const surfaceContainer = card;
-  static const surfaceContainerHigh = card;
-  static const onSurface = text;
-  static const onSurfaceVariant = textSub;
-  static const outline = border;
-  static const outlineVariant = hairline;
-  static const primaryContainer = primaryTint;
-  static const onPrimaryContainer = onPrimaryTint;
-  static const inverseSurface = Color(0xFF2B3230);
-  static const pageBg = bg;
 }
 
 // 흰 카드 그림자 — AppCard와 카드처럼 보여야 하는 것들이 같이 쓴다
