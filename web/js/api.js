@@ -112,12 +112,3 @@ export async function listRooms() {
   if (!res.ok) throw new Error(`방 목록을 불러오지 못했습니다 (${res.status}).`);
   return res.json();
 }
-
-export async function createRoom(name, number) {
-  const res = await authFetch("/api/rooms/", {
-    method: "POST",
-    body: JSON.stringify({ name, number }),
-  });
-  if (!res.ok) throw new Error(await firstErrorMessage(res, "방을 추가하지 못했습니다."));
-  return res.json();
-}

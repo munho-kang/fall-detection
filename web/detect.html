@@ -14,15 +14,7 @@
       <h1>감지할 방 선택</h1>
       <label for="roomSelect">방</label>
       <select id="roomSelect"></select>
-      <p class="error hidden" id="noRooms">등록된 방이 없습니다. 아래에서 먼저 추가하세요.</p>
-      <details id="addRoom">
-        <summary>새 방 추가</summary>
-        <label for="newRoomName">방 이름</label>
-        <input id="newRoomName" maxlength="20" placeholder="안방" />
-        <label for="newRoomNumber">방 번호</label>
-        <input id="newRoomNumber" type="number" value="1" min="1" max="99" />
-        <button type="button" id="addRoomBtn">추가</button>
-      </details>
+      <p class="error hidden" id="noRooms">등록된 방이 없습니다. 보호자 앱의 방 관리에서 추가한 뒤 이 페이지를 새로고침하세요.</p>
       <button id="start" disabled>감지 시작</button>
       <p class="error" id="error"></p>
     </div>

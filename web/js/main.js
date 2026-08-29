@@ -1,6 +1,6 @@
 // 감지 페이지 조립 — 방 선택 → 웹캠 → MediaPipe → 상태머신 → 화면
 
-import { createRoom, listRooms, postFall, requireToken } from "./api.js";
+import { listRooms, postFall, requireToken } from "./api.js";
 import { createDetector } from "./detector.js";
 import { createEscalation } from "./escalation.js";
 import { drawSkeleton } from "./overlay.js";
@@ -19,10 +19,6 @@ const el = {
   banner: document.getElementById("banner"),
   roomSelect: document.getElementById("roomSelect"),
   noRooms: document.getElementById("noRooms"),
-  addRoom: document.getElementById("addRoom"),
-  newRoomName: document.getElementById("newRoomName"),
-  newRoomNumber: document.getElementById("newRoomNumber"),
-  addRoomBtn: document.getElementById("addRoomBtn"),
   room: document.getElementById("room"),
   state: document.getElementById("state"),
   metrics: document.getElementById("metrics"),
@@ -64,7 +60,8 @@ setInterval(flushQueue, 60_000);
 
 let rooms = [];
 
-async function refreshRooms(selectId) {
+// 방 추가·수정·삭제는 보호자 앱의 방 관리에서만 한다 — 이 페이지는 목록을 읽어 고르기만 한다
+async function refreshRooms() {
   rooms = await listRooms();
   el.roomSelect.innerHTML = "";
   for (const room of rooms) {
@@ -73,26 +70,13 @@ async function refreshRooms(selectId) {
     opt.textContent = `${room.name} ${room.number}`;
     el.roomSelect.append(opt);
   }
-  if (selectId != null) el.roomSelect.value = String(selectId);
   const empty = rooms.length === 0;
   el.noRooms.classList.toggle("hidden", !empty);
   el.start.disabled = empty; // 방 없이는 감지를 시작할 수 없다
-  if (empty) el.addRoom.open = true; // 설치 흐름이 안 끊기게 추가 폼을 바로 펼친다
 }
 
 refreshRooms().catch((err) => {
   el.error.textContent = err.message;
-});
-
-el.addRoomBtn.addEventListener("click", async () => {
-  el.error.textContent = "";
-  try {
-    const room = await createRoom(el.newRoomName.value.trim(), Number(el.newRoomNumber.value));
-    el.newRoomName.value = "";
-    await refreshRooms(room.id); // 방금 만든 방을 선택해 둔다
-  } catch (err) {
-    el.error.textContent = err.message;
-  }
 });
 
 el.start.addEventListener("click", async () => {
