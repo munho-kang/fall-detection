@@ -1,11 +1,12 @@
-// 스플래시 화면 — 딥 틸 배경에 로고, 1~2초 후 토큰 판단 결과로 분기
+// 스플래시 화면 — 초록 그라데이션 배경에 로고, 1~2초 후 토큰 판단 결과로 분기
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import '../api.dart';
+import '../app_theme.dart';
+import '../widgets.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.api, required this.onDone});
@@ -37,13 +38,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 72),
+      body: HeroBackground(
+        child: SafeArea(
           // Scaffold body는 가로 constraints를 느슨하게 준다 — 기본 center 정렬만 믿으면
-          // Column이 가장 넓은 자식 폭으로 수축해 화면 왼쪽에 붙는다. 시작 화면과 같은
-          // stretch + textAlign 조합으로 폭을 채운다.
+          // Column이 가장 넓은 자식 폭으로 수축해 화면 왼쪽에 붙는다. stretch + textAlign 조합으로 폭을 채운다.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -55,9 +53,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   height: 1.3,
-                  letterSpacing: -0.02,
+                  letterSpacing: -0.5,
                   color: AppColors.onPrimary,
                 ),
               ),
@@ -65,11 +63,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const Text(
                 '프라이버시 보존형 낙상 감지',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  height: 1.5,
-                  color: Color(0xC8FFFFFF),
-                ),
+                style: TextStyle(fontSize: 15, height: 1.5, color: Color(0xCCFFFFFF)),
               ),
               const Spacer(flex: 2),
             ],
@@ -78,17 +72,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-}
-
-// 스플래시와 시작 화면이 같은 로고 박스를 써 전환 때 배경만 바뀌고 로고는 제자리에 있다
-Widget brandLogo() {
-  return Container(
-    width: 120,
-    height: 120,
-    decoration: BoxDecoration(
-      color: AppColors.primaryContainer,
-      borderRadius: BorderRadius.circular(36),
-    ),
-    child: const Icon(Icons.shield_outlined, size: 60, color: AppColors.primary),
-  );
 }
