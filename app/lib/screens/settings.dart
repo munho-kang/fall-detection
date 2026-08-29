@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_theme.dart';
 import '../local_store.dart';
+import '../widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -55,77 +56,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('설정', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        title: const Text('설정'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
               children: [
                 _sectionCard(
                   heading: '앱 설정',
                   children: [
                     ListTile(
-                      title: const Text('화면 크기', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('화면 크기', style: TextStyle(fontSize: 17)),
                       trailing: _textScaleSeg(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     ),
-                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                    const Divider(),
                     SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
                       value: _notificationsOn,
                       onChanged: _setNotificationsOn,
-                      title: const Text('알림 설정', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
+                      title: const Text('알림 설정', style: TextStyle(fontSize: 17)),
                     ),
                   ],
                 ),
                 if (_showNotifWarning) ...[
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning_amber, size: 18, color: Theme.of(context).colorScheme.onErrorContainer),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '알림을 끄면 낙상 알림이 더이상 가지 않습니다.',
-                            style: TextStyle(
-                              fontSize: 12 * (_textScale.factor),
-                              color: Theme.of(context).colorScheme.onErrorContainer,
-                              letterSpacing: -0.01,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  const NoticeBanner(text: '알림을 끄면 낙상 알림이 더이상 가지 않습니다.'),
                 ],
                 const SizedBox(height: 16),
                 _sectionCard(
                   heading: '지원 및 정보',
                   children: [
                     ListTile(
-                      title: const Text('공지사항', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('공지사항', style: TextStyle(fontSize: 17)),
+                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
                       onTap: () => _snack('준비 중입니다'),
                     ),
-                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                    const Divider(),
                     ListTile(
-                      title: const Text('문의하기', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('문의하기', style: TextStyle(fontSize: 17)),
+                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
                       onTap: () => _snack('준비 중입니다'),
                     ),
-                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
-                    ListTile(
-                      title: const Text('앱 버전', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400)),
-                      trailing: Text(
-                        'MVP v1.0',
-                        style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      ),
+                    const Divider(),
+                    const ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('앱 버전', style: TextStyle(fontSize: 17)),
+                      trailing: Text('MVP v1.0', style: TextStyle(fontSize: 15, color: AppColors.textSub)),
                     ),
                   ],
                 ),
@@ -134,77 +114,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // 작게 · 보통 · 크게 — 연회색 알약 안에서 선택 칸만 초록 틴트
   Widget _textScaleSeg() {
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: AppColors.hairline, borderRadius: BorderRadius.circular(999)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (int i = 0; i < TextScale.values.length; i++) ...[
+          for (final s in TextScale.values)
             InkWell(
-              onTap: () => _setTextScale(TextScale.values[i]),
+              onTap: () => _setTextScale(s),
+              borderRadius: BorderRadius.circular(999),
               child: Container(
+                height: 32,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                height: 36,
                 alignment: Alignment.center,
-                decoration: _textScale == TextScale.values[i]
-                    ? BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.horizontal(
-                          left: i == 0 ? const Radius.circular(20) : Radius.zero,
-                          right: i == TextScale.values.length - 1 ? const Radius.circular(20) : Radius.zero,
-                        ),
-                      )
+                decoration: _textScale == s
+                    ? BoxDecoration(color: AppColors.primaryTint, borderRadius: BorderRadius.circular(999))
                     : null,
                 child: Text(
-                  TextScale.values[i].label,
+                  s.label,
                   style: TextStyle(
                     fontSize: 13,
-                    color: _textScale == TextScale.values[i]
-                        ? Theme.of(context).colorScheme.onPrimaryContainer
-                        : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: _textScale == TextScale.values[i] ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: _textScale == s ? FontWeight.w700 : FontWeight.w400,
+                    color: _textScale == s ? AppColors.primary : AppColors.textSub,
                   ),
                 ),
               ),
             ),
-            if (i < TextScale.values.length - 1)
-              SizedBox(width: 1, child: SizedBox(height: 24, child: VerticalDivider(color: Theme.of(context).colorScheme.outline))),
-          ],
         ],
       ),
     );
   }
 
   Widget _sectionCard({required String heading, required List<Widget> children}) {
-    // ListTile·SwitchListTile은 가장 가까운 Material에 그린다 — 색 있는 Container로 감싸면
-    // 디버그 검증이 예외를 던지므로 알림 목록 카드처럼 Material을 쓴다.
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 6),
-              child: Text(
-                heading,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            ...children,
-          ],
-        ),
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(heading, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textSub)),
+          ),
+          ...children,
+        ],
       ),
     );
   }

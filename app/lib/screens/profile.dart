@@ -2,9 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import '../api.dart';
+import '../app_theme.dart';
 import '../local_store.dart';
+import '../widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -68,8 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        title: const Text('프로필', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        title: const Text('프로필'),
         actions: [
           IconButton(
             icon: Badge(
@@ -86,21 +86,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
               children: [
                 _avatar(),
                 const SizedBox(height: 12),
                 Text(
                   _nickname ?? '보호자님',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 1.4),
                 ),
                 Text(
                   _contactPhone?.isNotEmpty == true ? _contactPhone! : '연락처 미등록',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: const TextStyle(fontSize: 15, color: AppColors.textSub),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 _sectionCard(
                   heading: '내 정보',
                   rows: [
@@ -118,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _caredPhone == null
                           ? '불러오는 중'
                           : (_caredPhone!.isEmpty ? '미등록' : _caredPhone!),
-                      valueColor: (_caredPhone?.isEmpty ?? false) ? AppColors.error : null,
+                      valueColor: (_caredPhone?.isEmpty ?? false) ? AppColors.danger : null,
                       () => _editCaredPhone(),
                     ),
                     _row('주소', _caredAddress ?? '', () => _editCaredAddress()),
@@ -127,10 +127,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
                 _sectionCard(
                   rows: [
-                    _row('로그아웃', '', () => _confirmLogout(), trailingIcon: Icons.logout, dimText: false),
+                    _row('로그아웃', '', () => _confirmLogout(), trailingIcon: Icons.logout),
                     _row('회원 탈퇴', '', () => _confirmWithdraw(),
-                        trailingIcon: Icons.delete_outline,
-                        textColor: AppColors.dangerFg),
+                        trailingIcon: Icons.delete_outline, textColor: AppColors.dangerDeep),
                   ],
                 ),
               ],
@@ -139,7 +138,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _avatar() {
-    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: SizedBox(
         width: 88,
@@ -150,11 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: 88,
               height: 88,
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.person, size: 44, color: scheme.onPrimaryContainer),
+              decoration: const BoxDecoration(color: AppColors.primaryTint, shape: BoxShape.circle),
+              child: const Icon(Icons.person, size: 44, color: AppColors.primary),
             ),
             Positioned(
               right: -2,
@@ -166,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                   // 링은 페이지 배경을 오려낸 것처럼 보여야 한다
-                  border: Border.all(color: Theme.of(context).scaffoldBackgroundColor, width: 2),
+                  border: Border.all(color: AppColors.bg, width: 2),
                 ),
                 child: const Icon(Icons.camera_alt, size: 16, color: AppColors.onPrimary),
               ),
@@ -178,11 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _sectionCard({String? heading, required List<Widget> rows}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
@@ -193,18 +184,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   heading,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textSub),
                 ),
               ),
             ),
           for (int i = 0; i < rows.length; i++) ...[
             rows[i],
-            if (i < rows.length - 1)
-              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+            if (i < rows.length - 1) const Divider(),
           ],
         ],
       ),
@@ -218,7 +204,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData? trailingIcon,
     Color? textColor,
     Color? valueColor,
-    bool dimText = true,
   }) {
     return InkWell(
       onTap: onTap,
@@ -227,30 +212,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 17,
-                  color: textColor ?? Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
+              child: Text(label, style: TextStyle(fontSize: 17, color: textColor ?? AppColors.text)),
             ),
             if (value.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: valueColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                child: Text(value, style: TextStyle(fontSize: 15, color: valueColor ?? AppColors.textSub)),
               ),
-            Icon(
-              trailingIcon ?? Icons.chevron_right,
-              size: 20,
-              color: textColor ?? Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+            Icon(trailingIcon ?? Icons.chevron_right, size: 20, color: textColor ?? AppColors.textMuted),
           ],
         ),
       ),
@@ -348,19 +317,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-          title: const Text('회원 탈퇴', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-          content: Text(
-            '계정과 알림 기록이 모두 삭제되며 되돌릴 수 없습니다. 정말 탈퇴하시겠어요?',
-            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
-          ),
+          title: const Text('회원 탈퇴'),
+          content: const Text('계정과 알림 기록이 모두 삭제되며 되돌릴 수 없습니다. 정말 탈퇴하시겠어요?'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('취소')),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.dangerBg,
-                foregroundColor: AppColors.dangerFg,
+                backgroundColor: AppColors.dangerTint,
+                foregroundColor: AppColors.dangerDeep,
               ),
               child: const Text('탈퇴'),
             ),
@@ -414,27 +379,20 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      title: Text(widget.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+      title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.subtitle != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                widget.subtitle!,
-                style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              ),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(widget.subtitle!),
             ),
           TextField(
             controller: _controller,
             keyboardType: widget.keyboardType,
-            decoration: const InputDecoration(
-              border: UnderlineInputBorder(),
-              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
-            ),
+            style: const TextStyle(fontSize: 17),
           ),
         ],
       ),
