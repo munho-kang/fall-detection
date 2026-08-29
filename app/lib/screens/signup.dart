@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import '../api.dart';
+import '../app_theme.dart';
 import 'main_shell.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -64,95 +64,61 @@ class _SignupScreenState extends State<SignupScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('회원가입'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 72),
-              // 규칙 안내 — 칸 위로 올려 다 치고 나서 읽는 경고가 아니라 치기 전 읽는 안내
-              Text(
+              const Text('회원가입', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5)),
+              const SizedBox(height: 6),
+              // 규칙 안내 — 칸 위에 두어 다 치고 나서 읽는 경고가 아니라 치기 전 읽는 안내
+              const Text(
                 '비밀번호는 영문자, 숫자, 특수기호를 섞어 8자 이상으로 만들어주세요.',
-                style: TextStyle(
-                  fontSize: 10,
-                  height: 1.5,
-                  letterSpacing: -0.02,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                style: TextStyle(fontSize: 15, height: 1.5, color: AppColors.textSub),
+              ),
+              const SizedBox(height: 28),
+              TextField(
+                controller: _username,
+                style: const TextStyle(fontSize: 17),
+                decoration: const InputDecoration(hintText: '아이디'),
               ),
               const SizedBox(height: 12),
-              _buildField(_username, '아이디'),
+              TextField(
+                controller: _password,
+                obscureText: true,
+                style: const TextStyle(fontSize: 17),
+                decoration: const InputDecoration(hintText: '비밀번호'),
+              ),
               const SizedBox(height: 12),
-              _buildField(_password, '비밀번호', obscure: true),
-              const SizedBox(height: 12),
-              _buildField(_confirm, '비밀번호 확인', obscure: true),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 48,
-                child: FilledButton(
-                  onPressed: _busy ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                    disabledBackgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
-                    disabledForegroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                  ),
-                  child: _busy
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),
-                        )
-                      : const Text('가입하기'),
-                ),
+              TextField(
+                controller: _confirm,
+                obscureText: true,
+                style: const TextStyle(fontSize: 17),
+                decoration: const InputDecoration(hintText: '비밀번호 확인'),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _busy ? null : _submit,
+                child: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onPrimary),
+                      )
+                    : const Text('가입하기'),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
                 Text(
                   _error!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.error,
-                  ),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.danger),
                 ),
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField(TextEditingController controller, String placeholder, {bool obscure = false}) {
-    return SizedBox(
-      height: 60,
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        style: TextStyle(fontSize: 17, height: 1.3, color: Theme.of(context).colorScheme.onSurface),
-        decoration: InputDecoration(
-          hintText: placeholder,
-          hintStyle: TextStyle(fontSize: 17, color: Theme.of(context).colorScheme.outline),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.primary, width: 2),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         ),
       ),
     );
