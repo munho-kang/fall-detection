@@ -55,9 +55,10 @@ class _RoomManagementScreenState extends State<RoomManagementScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
               children: [
-                // 한 줄 말줄임을 걷어냈다 — 아이폰 폭에서 잘리던 문구라, 확대의 일부는 끝까지 보이는 것이다
+                // 한 줄 말줄임을 걷어냈다 — 아이폰 폭에서 잘리던 문구라, 확대의 일부는 끝까지 보이는 것이다.
+                // 줄바꿈을 직접 넣는다: 자동 줄바꿈은 아이폰 폭에서 "다." 한 글자만 다음 줄로 떨군다
                 const Text(
-                  '방을 등록하면, 낙상 알림이 어디에서 일어났는지 표시됩니다.',
+                  '방을 등록하면,\n낙상 알림이 어디에서 일어났는지 표시됩니다.',
                   style: TextStyle(fontSize: 15, height: 1.4, color: AppColors.textSub),
                 ),
                 const SizedBox(height: 16),
