@@ -4,9 +4,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../app_theme.dart';
 import '../api.dart';
+import '../app_theme.dart';
 import '../models.dart';
+import '../widgets.dart';
 import 'fall_detail.dart';
 
 class FallListScreen extends StatefulWidget {
@@ -79,9 +80,6 @@ class _FallListScreenState extends State<FallListScreen> {
     }
   }
 
-  String _fmt(DateTime t) =>
-      '${t.month}월 ${t.day}일 ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-
   Future<void> _refresh() async {
     await widget.onRefresh(); // MainShell의 배지·홈 목록 갱신
     await _refetch(); // 이 화면 자체는 스냅샷이라 직접 다시 받는다
@@ -95,47 +93,32 @@ class _FallListScreenState extends State<FallListScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('알림', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+        title: const Text('알림'),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
           children: [
             if (_error != null) ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-              ),
+              NoticeBanner(text: _error!),
               const SizedBox(height: 16),
             ],
             if (_events.isEmpty)
-              SizedBox(
+              const SizedBox(
                 height: 400,
                 child: Center(
-                  child: Text(
-                    '아직 감지된 낙상이 없습니다.',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  ),
+                  child: Text('아직 감지된 낙상이 없어요.', style: TextStyle(fontSize: 15, color: AppColors.textSub)),
                 ),
               )
             else
-              // ListTile은 가장 가까운 Material에 배경·잉크를 그린다 — 색 있는 Container로 감싸면
-              // 디버그 검증이 예외를 던지므로 방 추가 카드처럼 Material을 쓴다.
-              Material(
-                color: Theme.of(context).colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
+              AppCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
                     for (int i = 0; i < _events.length; i++) ...[
-                      _alertTile(_events[i]),
-                      if (i < _events.length - 1)
-                        Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.outlineVariant),
+                      FallTile(event: _events[i], onTap: () => _open(_events[i])),
+                      if (i < _events.length - 1) const Divider(),
                     ],
                   ],
                 ),
@@ -146,53 +129,11 @@ class _FallListScreenState extends State<FallListScreen> {
     );
   }
 
-  Widget _alertTile(FallEvent e) {
-    final acknowledged = e.isAcknowledged;
-    final scheme = Theme.of(context).colorScheme;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      leading: Icon(
-        acknowledged ? Icons.check_circle : Icons.warning_amber,
-        color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
-      ),
-      title: Text(
-        e.roomLabel,
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: acknowledged ? scheme.onSurfaceVariant : scheme.onSurface,
-        ),
-      ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 2),
-        child: Text(_fmt(e.occurredAt), style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant)),
-      ),
-      // 우선순위: 119 신고됨 > 괜찮다고 말함 > 확인함/미확인 — 안전 쪽이 이긴다
-      trailing: e.isReported119
-          ? const Text(
-              '119 신고됨',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.error),
-            )
-          : e.isVoiceOk
-              ? const Text(
-                  '괜찮다고 말함',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary),
-                )
-              : Text(
-                  acknowledged ? '확인함' : '미확인',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: acknowledged ? scheme.onSurfaceVariant : AppColors.error,
-                  ),
-                ),
-      onTap: () async {
-        await Navigator.of(context).push<FallEvent>(
-          MaterialPageRoute(builder: (_) => FallDetailScreen(api: widget.api, event: e)),
-        );
-        // 돌아오면 MainShell 폴러가 곧 반영하지만, 즉시 새로고침 트리거
-        await _refresh();
-      },
+  Future<void> _open(FallEvent e) async {
+    await Navigator.of(context).push<FallEvent>(
+      MaterialPageRoute(builder: (_) => FallDetailScreen(api: widget.api, event: e)),
     );
+    // 돌아오면 MainShell 폴러가 곧 반영하지만, 즉시 새로고침 트리거
+    await _refresh();
   }
 }
