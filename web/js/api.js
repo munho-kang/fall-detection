@@ -6,6 +6,16 @@ export const API_BASE = `http://${location.hostname}:8000`;
 
 const TOKEN_KEY = "fall_token";
 
+// 서버가 안 떠 있거나 와이파이가 끊기면 fetch가 TypeError("Failed to fetch")를 던진다.
+// 브라우저 원문이 그대로 화면에 뜨면 안 되므로, 이 모듈의 모든 호출이 이 한 겹을 지난다.
+async function request(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch {
+    throw new Error("서버에 연결하지 못했습니다. 백엔드가 켜져 있는지 확인하세요.");
+  }
+}
+
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
@@ -22,7 +32,7 @@ export function requireToken() {
 }
 
 export async function login(username, password) {
-  const res = await fetch(`${API_BASE}/api/auth/login/`, {
+  const res = await request(`${API_BASE}/api/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -33,7 +43,7 @@ export async function login(username, password) {
 }
 
 export async function signup(username, password) {
-  const res = await fetch(`${API_BASE}/api/auth/signup/`, {
+  const res = await request(`${API_BASE}/api/auth/signup/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -48,7 +58,7 @@ class UnauthorizedError extends Error {}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function postFallOnce(payload) {
-  const res = await fetch(`${API_BASE}/api/falls/`, {
+  const res = await request(`${API_BASE}/api/falls/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -92,7 +102,7 @@ async function firstErrorMessage(res, fallback) {
 
 // 토큰을 붙여 호출하고 401이면 로그아웃까지 처리하는 공통 래퍼
 async function authFetch(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await request(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
