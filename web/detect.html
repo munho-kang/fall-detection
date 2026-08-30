@@ -5,41 +5,155 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>낙상 감지 — 감지 중</title>
+    <link rel="preload" href="fonts/Pretendard-Bold.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="css/style.css" />
   </head>
-  <body>
+  <body data-level="idle">
+    <!-- 아이콘 원본. 화면에는 <use>로만 나타난다. -->
+    <svg hidden aria-hidden="true">
+      <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="10" width="16" height="11" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6.5 9.5 17 4 11.5" />
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17S18 15 18 8.5" />
+        <path d="M13.7 20.5a2 2 0 0 1-3.4 0" />
+      </symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2.5" width="6" height="11" rx="3" />
+        <path d="M5.5 11v1a6.5 6.5 0 0 0 13 0v-1M12 18.5v3" />
+      </symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 16.9v2.8a2 2 0 0 1-2.2 2 19.6 19.6 0 0 1-8.5-3 19.3 19.3 0 0 1-6-6 19.6 19.6 0 0 1-3-8.6 2 2 0 0 1 2-2.2h2.8a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
+      </symbol>
+    </svg>
+
     <div id="banner" class="banner hidden"></div>
 
     <div id="setup" class="card">
       <h1>감지할 방 선택</h1>
       <label for="roomSelect">방</label>
       <select id="roomSelect"></select>
-      <p class="error hidden" id="noRooms">등록된 방이 없습니다. 보호자 앱의 방 관리에서 추가한 뒤 이 페이지를 새로고침하세요.</p>
+      <p class="error hidden" id="noRooms">
+        등록된 방이 없습니다. 보호자 앱의 방 관리에서 추가한 뒤 이 페이지를 새로고침하세요.
+      </p>
       <button id="start" disabled>감지 시작</button>
       <p class="error" id="error"></p>
+      <p class="privacy">
+        <svg><use href="#i-lock" /></svg>
+        <span>
+          카메라 영상은 이 브라우저 안에서만 처리됩니다. 영상과 관절 좌표는 서버로 전송되지 않습니다.
+        </span>
+      </p>
     </div>
 
-    <div id="stage" class="hidden">
-      <!-- MediaPipe 입력용. 화면에는 절대 표시하지 않는다. -->
-      <video id="video" playsinline hidden></video>
-      <canvas id="canvas" width="640" height="480"></canvas>
-      <div id="status">
-        <h1 id="room"></h1>
-        <div id="state">—</div>
-        <p class="metric" id="metrics"></p>
-        <p id="escalation" class="hidden"></p>
-        <p class="metric" id="sent">전송된 낙상 0건</p>
-        <!-- 임계값 실측 튜닝용. 튜닝이 끝나면 이 블록과 js/tuning.js를 함께 제거한다. -->
-        <div class="tuning">
-          <p class="metric" id="peak"></p>
-          <p class="metric">동작 하나를 마칠 때마다 <b>r</b> 키로 시행을 끊는다.</p>
-          <button id="download">CSV 다운로드</button>
-        </div>
-        <div class="privacy">
-          검은 배경 위 스켈레톤이 전부입니다. 영상과 관절 좌표는 이 브라우저를 벗어나지 않습니다.
-          마이크는 낙상 확인 응급 구간에만 켜지고, 그 음성은 브라우저 음성 인식(구글 서버)으로 처리됩니다.
-        </div>
-      </div>
+    <div id="stageWrap" class="hidden">
+      <header class="topbar">
+        <span class="live" id="live">감시 중</span>
+        <span class="room" id="room"></span>
+        <span class="sent" id="sent">전송된 낙상 0건</span>
+        <span class="clock" id="clock"></span>
+      </header>
+
+      <main id="stage">
+        <!-- MediaPipe 입력용. 화면에는 절대 표시하지 않는다. -->
+        <video id="video" playsinline hidden></video>
+        <section class="viewport">
+          <canvas id="canvas" width="640" height="480"></canvas>
+        </section>
+
+        <aside class="panel">
+          <section class="verdict">
+            <div class="verdict-head" id="verdict">준비 중</div>
+            <div class="verdict-sub" id="verdictSub">카메라를 켜는 중입니다</div>
+          </section>
+
+          <section class="gates" id="gates">
+            <h2>낙상 판정 세 관문</h2>
+            <p class="gates-note">세 개가 순서대로 다 열려야 낙상으로 봅니다.</p>
+
+            <div class="gate" id="gate1">
+              <div class="gate-top">
+                <span class="gate-idx">1</span>
+                <span class="gate-label">빠르게 내려갔나</span>
+                <span class="gate-value">0.00</span>
+              </div>
+              <div class="gate-track"><div class="gate-fill"></div><div class="gate-mark"></div></div>
+              <div class="gate-foot">
+                <span>기준 0.45/초</span>
+                <span class="gate-state"><svg><use href="#i-check" /></svg><em>대기</em></span>
+              </div>
+            </div>
+
+            <div class="gate" id="gate2">
+              <div class="gate-top">
+                <span class="gate-idx">2</span>
+                <span class="gate-label">몸통이 수평인가</span>
+                <span class="gate-value">0°</span>
+              </div>
+              <div class="gate-track"><div class="gate-fill"></div><div class="gate-mark"></div></div>
+              <div class="gate-foot">
+                <span>기준 60°</span>
+                <span class="gate-state"><svg><use href="#i-check" /></svg><em>대기</em></span>
+              </div>
+            </div>
+
+            <div class="gate" id="gate3">
+              <div class="gate-top">
+                <span class="gate-idx">3</span>
+                <span class="gate-label">5초 동안 못 일어나나</span>
+                <span class="gate-value">0.0초</span>
+              </div>
+              <div class="gate-track"><div class="gate-fill"></div><div class="gate-mark"></div></div>
+              <div class="gate-foot">
+                <span>기준 5초</span>
+                <span class="gate-state"><svg><use href="#i-check" /></svg><em>대기</em></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="escalation hidden" id="escalation">
+            <h2>응급 대응</h2>
+            <div class="steps">
+              <div class="step" id="step1">
+                <svg><use href="#i-bell" /></svg>
+                보호자 알림<br />5초
+              </div>
+              <div class="step" id="step2">
+                <svg><use href="#i-mic" /></svg>
+                괜찮으세요?<br />10초
+              </div>
+              <div class="step" id="step3">
+                <svg><use href="#i-phone" /></svg>
+                119 신고<br />20초
+              </div>
+            </div>
+            <div class="escalation-foot">
+              <span class="escalation-status" id="escalationStatus"></span>
+              <span class="countdown" id="countdown"></span>
+            </div>
+          </section>
+
+          <p class="privacy">
+            <svg><use href="#i-lock" /></svg>
+            <span>
+              화면에 보이는 것은 검은 배경 위 뼈대뿐입니다. 영상과 관절 좌표는 이 브라우저를 벗어나지
+              않습니다. 마이크는 낙상 확인 응급 구간에만 켜지고, 그 음성은 브라우저 음성 인식(구글
+              서버)으로 처리됩니다.
+            </span>
+          </p>
+
+          <!-- 임계값 실측 튜닝용. d 키로만 열린다. -->
+          <div class="tuning">
+            <p id="peak"></p>
+            <p>동작 하나를 마칠 때마다 <b>r</b> 키로 시행을 끊는다.</p>
+            <button id="download">CSV 다운로드</button>
+          </div>
+        </aside>
+      </main>
     </div>
 
     <script type="module" src="js/main.js"></script>

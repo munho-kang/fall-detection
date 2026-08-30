@@ -1,42 +1,162 @@
-/* 감지 클라이언트 공용 스타일 */
+/* 감지 클라이언트 공용 스타일 — 어두운 관제실 톤.
+   색은 보호자 앱(app/lib/app_theme.dart)의 초록/빨강 의미를 그대로 쓰되
+   어두운 바탕에서 4.5:1 이상을 내도록 밝기를 올린 값이다. */
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("../fonts/Pretendard-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("../fonts/Pretendard-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
 
 :root {
-  --bg: #12141a;
-  --fg: #e8eaf0;
-  --muted: #8b93a7;
-  --accent: #4c8dff;
-  --danger: #e5484d;
+  color-scheme: dark;
+
+  --bg: #0b0e15;
+  --panel: #141926;
+  --panel-2: #1b2233;
+  --line: #242c40;
+
+  --fg: #e8ecf5;
+  --fg-2: #a3afc7;
+  --fg-3: #8593af;
+
+  /* 상태 색 — 안전 / 주의 / 위험. 색만으로 뜻을 전하지 않는다(항상 글자가 붙는다). */
+  --safe: #2bd9a0;
+  --warn: #ffb020;
+  --crit: #ff5c63;
+  --safe-dim: rgb(43 217 160 / 0.14);
+  --warn-dim: rgb(255 176 32 / 0.14);
+  --crit-dim: rgb(255 92 99 / 0.16);
+
+  --radius: 14px;
+  --shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 현재 단계의 색 — data-level이 갈아끼운다. 한 곳만 바꾸면 화면 전체가 따라간다. */
+  --level: var(--fg-3);
+  --level-dim: rgb(133 147 175 / 0.14);
+}
+
+body[data-level="safe"] {
+  --level: var(--safe);
+  --level-dim: var(--safe-dim);
+}
+
+body[data-level="watch"] {
+  --level: var(--warn);
+  --level-dim: var(--warn-dim);
+}
+
+body[data-level="crit"] {
+  --level: var(--crit);
+  --level-dim: var(--crit-dim);
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* SVG에는 hidden 속성의 기본 스타일이 걸리지 않는다 — 아이콘 원본이 자리를 차지하지 않게 한다 */
+svg[hidden] {
+  display: none;
+}
+
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  padding: 24px;
+  min-height: 100%;
   background: var(--bg);
   color: var(--fg);
-  font: 15px/1.6 -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 낙상 확정 구간 — 화면 전체가 붉게 물든다. 멀리서도 사고를 알아본다. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  background: radial-gradient(120% 90% at 50% 0%, rgb(255 92 99 / 0.22), transparent 62%);
+  transition: opacity 400ms var(--ease);
+}
+
+body[data-level="crit"]::before {
+  opacity: 1;
+  animation: alarm-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes alarm-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* 브라우저가 기본값으로 그리는 부분들도 이 화면의 색을 입는다 */
+::selection {
+  background: var(--level-dim);
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--level);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 h1 {
-  font-size: 20px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0 0 20px;
 }
 
+/* ── 로그인 · 회원가입 · 방 선택 카드 ───────────────────────────── */
+
 .card {
-  max-width: 380px;
-  margin: 64px auto;
-  padding: 28px;
-  background: #1a1d26;
-  border-radius: 12px;
+  position: relative;
+  z-index: 1;
+  max-width: 400px;
+  margin: 88px auto;
+  padding: 32px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 label {
   display: block;
-  margin: 14px 0 6px;
-  color: var(--muted);
+  margin: 16px 0 6px;
+  color: var(--fg-2);
   font-size: 13px;
 }
 
@@ -44,116 +164,555 @@ input,
 select,
 button {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #2b3040;
-  border-radius: 8px;
-  background: #12141a;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
   color: var(--fg);
+  font-family: inherit;
   font-size: 15px;
+  transition:
+    border-color 150ms,
+    background 150ms;
+}
+
+input:hover,
+select:hover {
+  border-color: #33405c;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--safe);
+  outline: none;
 }
 
 button {
-  margin-top: 20px;
-  background: var(--accent);
+  margin-top: 24px;
+  padding: 13px;
+  background: var(--safe);
   border: 0;
-  font-weight: 600;
+  color: #04231a;
+  font-weight: 700;
   cursor: pointer;
 }
 
+button:hover:not(:disabled) {
+  background: #3ee5ae;
+}
+
+button:active:not(:disabled) {
+  background: #21c08c;
+}
+
 button:disabled {
-  opacity: 0.5;
-  cursor: default;
+  background: var(--line);
+  color: var(--fg-3);
+  cursor: not-allowed;
 }
 
 .error {
   margin-top: 14px;
-  color: var(--danger);
+  color: var(--crit);
   font-size: 13px;
   min-height: 20px;
 }
 
 .alt-link {
-  margin-top: 4px;
-  color: var(--muted);
+  margin-top: 8px;
+  color: var(--fg-2);
   font-size: 13px;
   text-align: center;
 }
 
 .alt-link a {
-  color: var(--accent);
+  color: var(--safe);
+  text-underline-offset: 3px;
 }
 
-.banner {
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
-  background: var(--danger);
-  color: #fff;
-  font-size: 14px;
-}
+/* ── 상단 바 ────────────────────────────────────────────────────── */
 
-.hidden {
-  display: none;
-}
-
-#stage {
+.topbar {
+  position: relative;
+  z-index: 1;
   display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
 }
 
-canvas {
-  background: #000; /* 원본 영상은 절대 표시하지 않는다 */
-  border-radius: 12px;
-}
-
-#status {
-  min-width: 220px;
-}
-
-#state {
-  font-size: 28px;
+.live {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--level);
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.metric {
-  color: var(--muted);
-  font-size: 13px;
+.live::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px var(--level-dim);
+}
+
+body[data-level="crit"] .topbar {
+  background: #2a1114;
+  border-bottom-color: var(--crit);
+}
+
+body[data-level="crit"] .live::before {
+  animation: alarm-breathe 1s ease-in-out infinite;
+}
+
+.topbar .room {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.topbar .sent {
+  color: var(--fg-3);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.clock {
+  color: var(--fg-2);
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
 
-/* 임계값 실측 튜닝용 패널. 튜닝 완료 후 제거한다. */
-.tuning {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border: 1px solid #2b3040;
-  border-radius: 8px;
+/* ── 감지 화면 ──────────────────────────────────────────────────── */
+
+#stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  gap: 24px;
+  align-items: start;
+  padding: 24px;
 }
 
-.tuning button {
-  margin-top: 12px;
-  padding: 6px 10px;
+.viewport {
+  justify-self: center;
+  width: min(100%, calc((100dvh - 120px) * 4 / 3));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  background: #000; /* 원본 영상은 절대 표시하지 않는다 */
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel > p {
+  margin: 0;
+}
+
+/* 판정 — 이 화면에서 가장 큰 글자. 프로젝터 뒷자리에서도 읽혀야 한다. */
+.verdict {
+  padding: 22px 22px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.verdict-head {
+  color: var(--level);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.verdict-sub {
+  margin-top: 6px;
+  color: var(--fg-2);
+  font-size: 15px;
+}
+
+/* ── 세 관문 ────────────────────────────────────────────────────── */
+
+.gates {
+  padding: 20px 22px 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.gates h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.gates-note {
+  margin: 0 0 18px;
+  color: var(--fg-3);
   font-size: 13px;
 }
 
-/* 음성 확인·119 신고 진행 상태 — 응급 구간(IDLE 제외)에만 보인다 */
-#escalation {
+.gate + .gate {
+  margin-top: 18px;
+}
+
+.gate-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.gate-idx {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  align-self: center;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--fg-2);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.gate[data-passed] .gate-idx {
+  background: var(--level-dim);
+  color: var(--level);
+}
+
+.gate-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.gate-value {
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-track {
+  position: relative;
+  height: 8px;
+  margin: 9px 0 5px;
+  border-radius: 999px;
+  background: #1e2536;
+  overflow: hidden;
+}
+
+.gate-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--fg-3);
+  transition:
+    width 120ms linear,
+    background 200ms var(--ease);
+}
+
+.gate[data-passed] .gate-fill {
+  background: var(--level);
+}
+
+/* 기준선 — 이 눈금을 넘어야 관문이 열린다 */
+.gate-mark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 70%;
+  width: 2px;
+  background: var(--fg-2);
+  border-radius: 1px;
+}
+
+.gate-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--fg-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 색만으로 통과를 알리지 않는다 — 글자와 체크 표시가 함께 붙는다 */
+.gate-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-3);
+  font-weight: 700;
+}
+
+.gate[data-passed] .gate-state {
+  color: var(--level);
+}
+
+.gate-state svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+}
+
+.gate[data-passed] .gate-state svg {
+  opacity: 1;
+}
+
+/* ── 응급 대응 타임라인 ─────────────────────────────────────────── */
+
+.escalation {
+  padding: 20px 22px 22px;
+  background: var(--panel);
+  border: 1px solid var(--crit);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.escalation h2 {
+  margin: 0 0 18px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.step {
+  position: relative;
+  padding-top: 20px;
+  color: var(--fg-3);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* 단계를 잇는 선 — 선은 자기 뒤의 단계로 뻗는다. 그래서 지나온 구간만 색이 찬다. */
+.step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: -50%;
+  left: 50%;
+  height: 2px;
+  background: var(--line);
+}
+
+.step[data-done]::before {
+  background: var(--crit);
+}
+
+.step::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+}
+
+.step[data-done]::after {
+  border-color: var(--crit);
+  background: var(--crit);
+}
+
+.step[data-now] {
+  color: var(--fg);
+  font-weight: 700;
+}
+
+.step[data-now]::after {
+  border-color: var(--crit);
+  background: var(--panel);
+  box-shadow: 0 0 0 4px var(--crit-dim);
+}
+
+.step svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0 auto 4px;
+}
+
+.escalation-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.escalation-status {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.countdown {
+  color: var(--crit);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.countdown small {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* 응답으로 종결된 경우 — 빨강을 걷고 안전색으로 되돌린다 */
+.escalation[data-reported] .escalation-status {
+  color: var(--crit);
+}
+
+.escalation[data-resolved] {
+  border-color: var(--safe);
+}
+
+.escalation[data-resolved] .escalation-status {
+  color: var(--safe);
+}
+
+/* 응답으로 끝난 에피소드 — 지나온 단계까지 안전색으로 바꾼다. 119로 향하던 빨간 선을 남겨 두면
+   "괜찮다고 했는데도 신고로 가는 중"으로 읽힌다. */
+.escalation[data-resolved] .step[data-done]::before {
+  background: var(--safe);
+}
+
+.escalation[data-resolved] .step[data-done]::after {
+  border-color: var(--safe);
+  background: var(--safe);
+}
+
+/* ── 알림 배너 · 사생활 문구 · 측정 패널 ────────────────────────── */
+
+.banner {
+  position: relative;
+  z-index: 1;
+  padding: 13px 24px;
+  background: var(--crit-dim);
+  border-bottom: 1px solid var(--crit);
+  color: var(--crit);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .privacy {
-  margin-top: 20px;
-  padding: 12px 14px;
-  border: 1px solid #2b3040;
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 12px;
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--fg-2);
+  font-size: 12.5px;
+  line-height: 1.55;
 }
 
-h2 {
-  font-size: 15px;
-  margin: 24px 0 8px;
+.card .privacy {
+  margin-top: 24px;
+}
+
+.privacy svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 2px;
+  color: var(--fg-3);
+}
+
+/* 임계값 실측용. 평소엔 숨어 있고 d 키로만 나온다. */
+.tuning {
+  display: none;
+  padding: 14px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--fg-2);
+  font-size: 12.5px;
+}
+
+body.debug .tuning {
+  display: block;
+}
+
+.tuning p {
+  margin: 0 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tuning button {
+  width: auto;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-2);
+  font-size: 12.5px;
+}
+
+.tuning button:hover:not(:disabled) {
+  background: var(--panel-2);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 화면이 좁으면 오른쪽 패널이 카메라 아래로 내려간다.
+   이때 카메라가 창을 다 먹으면 판정 문구가 첫 화면에서 밀려나므로 높이를 절반으로 묶는다. */
+@media (max-width: 900px) {
+  #stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .viewport {
+    width: min(100%, calc(46dvh * 4 / 3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  body::before {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
 }

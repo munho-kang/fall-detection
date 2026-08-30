@@ -8,27 +8,18 @@ import { createPoseLandmarker, runLoop, startCamera } from "./pose.js";
 import { createFallQueue } from "./queue.js";
 import { createSpeechAdapter } from "./speech.js";
 import { createTuningRecorder } from "./tuning.js";
+import { createView } from "./view.js";
 
 requireToken();
 
-const el = {
-  setup: document.getElementById("setup"),
-  stage: document.getElementById("stage"),
-  start: document.getElementById("start"),
-  error: document.getElementById("error"),
-  banner: document.getElementById("banner"),
-  roomSelect: document.getElementById("roomSelect"),
-  noRooms: document.getElementById("noRooms"),
-  room: document.getElementById("room"),
-  state: document.getElementById("state"),
-  metrics: document.getElementById("metrics"),
-  escalation: document.getElementById("escalation"),
-  sent: document.getElementById("sent"),
-  video: document.getElementById("video"),
-  canvas: document.getElementById("canvas"),
-  peak: document.getElementById("peak"),
-  download: document.getElementById("download"),
-};
+const el = Object.fromEntries(
+  [
+    "setup", "stageWrap", "start", "error", "banner", "roomSelect", "noRooms",
+    "room", "clock", "verdict", "verdictSub", "gate1", "gate2", "gate3",
+    "escalation", "escalationStatus", "countdown", "step1", "step2", "step3",
+    "sent", "video", "canvas", "peak", "download",
+  ].map((id) => [id, document.getElementById(id)]),
+);
 
 function showBanner(message) {
   el.banner.textContent = message;
@@ -38,6 +29,7 @@ function showBanner(message) {
 const ctx = el.canvas.getContext("2d");
 const detector = createDetector();
 const tuning = createTuningRecorder({ peakEl: el.peak, downloadEl: el.download });
+const view = createView(el);
 let sentCount = 0;
 
 const escalation = createEscalation();
@@ -49,6 +41,7 @@ let lastFallPayload = null; // 현재 에피소드에서 확정 전송한 낙상
 let lastFallingAt = null; // 마지막 FALLING 진입 시각 — 확정 전에 가려진 채 신고에 이르는 드문 경로용
 let pendingVoiceOkAt = null; // 이 에피소드의 "괜찮아" 응답 시각 — 원본 전송 전이면 5s 원본에 동승한다
 let prevDetectorState = null;
+let fallenAt = null; // 세 번째 관문(5초 유지)의 진행 막대를 그리는 데 쓴다
 
 const queue = createFallQueue(localStorage);
 // flush 개별 항목은 1회만 시도한다 — 실패하면 어차피 다음 트리거가 다시 부른다
@@ -114,7 +107,14 @@ el.start.addEventListener("click", async () => {
 
   el.room.textContent = `${room.name} ${room.number}`;
   el.setup.classList.add("hidden");
-  el.stage.classList.remove("hidden");
+  el.stageWrap.classList.remove("hidden");
+
+  // 상단 바 시계 — 시연 녹화에 사고 시각이 함께 남는다
+  const tick = () => {
+    el.clock.textContent = new Date().toLocaleTimeString("ko-KR", { hour12: false });
+  };
+  tick();
+  setInterval(tick, 1000);
 
   // 20s 무응답 — 같은 낙상 payload에 신고 시각만 붙여 한 번 더 보낸다. 서버가 기존 행에 병합한다.
   const reportEmergency = (t) => {
@@ -160,11 +160,12 @@ el.start.addEventListener("click", async () => {
 
     // 확정(5s) 전에 신고 마감이 오는 드문 경로를 위해, 실제로 넘어진 시각을 따로 기억한다
     if (state === "FALLING" && prevDetectorState !== "FALLING") lastFallingAt = t;
+    if (state === "FALLEN" || state === "ALERTED") fallenAt ??= t;
+    else fallenAt = null;
     prevDetectorState = state;
 
     drawSkeleton(ctx, landmarks, state);
-    el.state.textContent = state;
-    el.metrics.textContent = `tilt ${(tilt ?? 0).toFixed(1)}°  ·  hipV ${hipVelocity.toFixed(2)}/s`;
+    view.frame({ state, tilt, hipVelocity, fallenFor: fallenAt == null ? 0 : t - fallenAt });
     tuning.record(t, state, tilt, hipVelocity);
 
     if (fall) {
@@ -194,8 +195,7 @@ el.start.addEventListener("click", async () => {
 
     // 같은 틱에 fall 확정과 SEND_OK가 겹치면 위 원본은 voice_ok 없이 나가고 재-POST가 뒤따른다(2회 POST) — 서버 병합이 멱등이라 결과는 같다.
     const esc = escalation.update(state, t);
-    el.escalation.textContent = esc.statusText ?? "";
-    el.escalation.classList.toggle("hidden", !esc.statusText);
+    view.escalation(esc);
     for (const command of esc.commands) {
       if (command === "MIC_ON") {
         lastFallPayload = null; // 새 에피소드 — 이전 낙상의 payload가 신고에 섞이면 안 된다

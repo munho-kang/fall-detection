@@ -8,11 +8,11 @@ export const CONFIG = {
 // IDLE의 null은 "상태 줄을 숨겨라"다
 const STATUS_TEXT = {
   IDLE: null,
-  LISTENING: "🎤 음성 확인 대기",
+  LISTENING: "대답을 듣는 중",
   ASKING: "괜찮으세요? 확인 중",
   WAITING: "괜찮으세요? 확인 중",
   RESOLVED: "응답 확인 — 신고 안 함",
-  REPORTED: "🚨 119 자동 신고됨",
+  REPORTED: "119 자동 신고됨",
 };
 
 export function createEscalation(config = CONFIG) {
@@ -88,7 +88,7 @@ export function createEscalation(config = CONFIG) {
       }
     }
 
-    return { state, commands, statusText: STATUS_TEXT[state] };
+    return { state, commands, statusText: STATUS_TEXT[state], elapsed: startedAt == null ? null : t - startedAt };
   }
 
   return {

@@ -43,7 +43,7 @@ describe("escalation", () => {
 
     expect(r.times("MIC_ON")).toEqual([1000]);
     expect(r.times("PLAY_QUESTION")).toEqual([11000]); // 에피소드 시작 + 10초
-    expect(r.textAt(1000)).toBe("🎤 음성 확인 대기");
+    expect(r.textAt(1000)).toBe("대답을 듣는 중");
     expect(r.textAt(11000)).toBe("괜찮으세요? 확인 중");
     expect(esc.state).toBe("ASKING"); // ttsEnded가 아직 없다
   });
@@ -59,7 +59,7 @@ describe("escalation", () => {
     expect(r.times("REPORT")).toEqual([21000]); // 에피소드 시작 + 20초 절대 마감
     expect(r.times("MIC_OFF")).toEqual([21000]);
     expect(esc.state).toBe("REPORTED");
-    expect(r.textAt(21000)).toBe("🚨 119 자동 신고됨");
+    expect(r.textAt(21000)).toBe("119 자동 신고됨");
   });
 
   it("질문 전(0~10s) '괜찮아'는 질문을 생략하고 RESOLVED — 신고 없음", () => {

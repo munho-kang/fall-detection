@@ -21,6 +21,8 @@ export function createTuningRecorder({ peakEl, downloadEl }) {
   // 한 동작을 마칠 때마다 r을 눌러 시행을 끊는다. take 번호가 CSV에 같이 실리므로
   // 나중에 어느 행이 어느 시행인지 되짚을 수 있다.
   window.addEventListener("keydown", (e) => {
+    // 평소엔 숨어 있는 패널이다 — d로 열고 닫는다. 시연 화면을 깨끗하게 두기 위해서다.
+    if (e.key === "d" || e.key === "D") document.body.classList.toggle("debug");
     if (e.key !== "r" && e.key !== "R") return;
     take += 1;
     peak = { ...EMPTY };
